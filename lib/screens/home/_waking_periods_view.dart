@@ -3,7 +3,6 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -45,19 +44,17 @@ class _WakingPeriodsViewState extends State<WakingPeriodsView> {
               if (state.currentWakingPeriod != null && wakingPeriod.id == state.currentWakingPeriod!.id) {
                 return ListTile(
                   contentPadding: EdgeInsets.fromLTRB(25, 10, 25, 10),
-                  tileColor: Theme.of(context).accentColor.withOpacity(0.1),
+                  tileColor: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
                   title: Text('Current waking period'),
-                  subtitle: Text('From ' + (DateFormat('MMM d, HH:mm').format(wakingPeriod.createdAt))),
+                  subtitle: Text('From ${DateFormat('MMM d, HH:mm').format(wakingPeriod.createdAt)}'),
                 );
               }
 
               return ListTile(
                 contentPadding: EdgeInsets.fromLTRB(25, 10, 25, 10),
                 key: Key(index.toString()),
-                title: Text(wakingPeriod.caloriesValue.toStringAsFixed(2) + ' kCal'),
-                subtitle: Text((DateFormat('MMM d, HH:mm').format(wakingPeriod.startedAt)) +
-                    ' - ' +
-                    (DateFormat('MMM d, HH:mm').format(wakingPeriod.endedAt!))),
+                title: Text('${wakingPeriod.caloriesValue.toStringAsFixed(2)} kCal'),
+                subtitle: Text('${DateFormat('MMM d, HH:mm').format(wakingPeriod.startedAt)} - ${DateFormat('MMM d, HH:mm').format(wakingPeriod.endedAt!)}'),
                 onTap: () {
                   showModalBottomSheet<dynamic>(
                       context: context,
@@ -85,13 +82,13 @@ class _WakingPeriodsViewState extends State<WakingPeriodsView> {
                                       title: Text('Remove waking period'),
                                       content: Text('Continue?'),
                                       actions: [
-                                        MaterialButton(
+                                        TextButton(
                                           child: Text("Cancel"),
                                           onPressed: () {
                                             Navigator.pop(context);
                                           },
                                         ),
-                                        MaterialButton(
+                                        TextButton(
                                           child: Text("Ok"),
                                           onPressed: () {
                                             _removeWakingPeriod(wakingPeriod);

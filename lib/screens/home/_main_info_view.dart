@@ -7,7 +7,6 @@ import 'package:cat_calories/screens/edit_waking_period_screen.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -48,48 +47,51 @@ class _MainInfoViewState extends State<MainInfoView> {
                             ),
                           ),
                           Divider(),
-                          ButtonBar(
-                            alignment: MainAxisAlignment.start,
-                            children: [
-                              MaterialButton(
-                                onPressed: () {
-                                  final wakingPeriod = WakingPeriodModel(
-                                    id: null,
-                                    description: null,
-                                    createdAt: DateTime.now(),
-                                    updatedAt: DateTime.now(),
-                                    startedAt: DateTime.now(),
-                                    endedAt: null,
-                                    caloriesValue: 0.0,
-                                    profileId: state.activeProfile.id!,
-                                    caloriesLimitGoal:
-                                        state.activeProfile.caloriesLimitGoal,
-                                    expectedWakingTimeSeconds: state
-                                        .activeProfile
-                                        .getExpectedWakingDuration()
-                                        .inSeconds,
-                                  );
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    final wakingPeriod = WakingPeriodModel(
+                                      id: null,
+                                      description: null,
+                                      createdAt: DateTime.now(),
+                                      updatedAt: DateTime.now(),
+                                      startedAt: DateTime.now(),
+                                      endedAt: null,
+                                      caloriesValue: 0.0,
+                                      profileId: state.activeProfile.id!,
+                                      caloriesLimitGoal:
+                                      state.activeProfile.caloriesLimitGoal,
+                                      expectedWakingTimeSeconds: state
+                                          .activeProfile
+                                          .getExpectedWakingDuration()
+                                          .inSeconds,
+                                    );
 
-                                  BlocProvider.of<HomeBloc>(context).add(
-                                      WakingPeriodCreatingEvent(wakingPeriod));
-                                },
-                                child: Text(
-                                  'Start waking period',
-                                  style: TextStyle(
-                                    color: Theme.of(context).buttonColor,
-                                    fontWeight: FontWeight.w600,
+                                    BlocProvider.of<HomeBloc>(context).add(
+                                        WakingPeriodCreatingEvent(wakingPeriod));
+                                  },
+                                  child: Text(
+                                    'Start waking period',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.secondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ]);
                   }
 
                   final int currentTimestamp =
-                      (state.nowDateTime.millisecondsSinceEpoch / 1000)
-                          .round()
-                          .toInt();
+                  (state.nowDateTime.millisecondsSinceEpoch / 1000)
+                      .round()
+                      .toInt();
                   final int secondsToEndDay =
                       state.currentWakingPeriod!.getToTimestamp() -
                           currentTimestamp;
@@ -101,7 +103,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                   final double allowedSeconds = allowedCalories /
                       state.currentWakingPeriod!.getCaloriesPerSecond();
                   final Duration allowedDuration =
-                      Duration(seconds: allowedSeconds.round().toInt());
+                  Duration(seconds: allowedSeconds.round().toInt());
 
                   final double periodCaloriesEatenPercentage =
                       state.getPeriodCaloriesEatenSum() /
@@ -117,9 +119,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          DateFormat('EEEE').format(
-                                  state.currentWakingPeriod!.startedAt) +
-                              ' waking period',
+                          '${DateFormat('EEEE').format(state.currentWakingPeriod!.startedAt)} waking period',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -129,11 +129,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Text(
-                          DateFormat('MMM d, HH:mm').format(
-                                  state.currentWakingPeriod!.startedAt) +
-                              ' ~ ' +
-                              DateFormat('MMM d, HH:mm').format(
-                                  state.currentWakingPeriod!.getToDateTime()),
+                          '${DateFormat('MMM d, HH:mm').format(state.currentWakingPeriod!.startedAt)} ~ ${DateFormat('MMM d, HH:mm').format(state.currentWakingPeriod!.getToDateTime())}',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.6),
                             fontSize: 12,
@@ -147,20 +143,14 @@ class _MainInfoViewState extends State<MainInfoView> {
 
                         if (overLimit > 0) {
                           final Duration overLimitDuration =
-                              Duration(seconds: overLimit);
+                          Duration(seconds: overLimit);
                           final String overLimitDurationString =
-                              (overLimitDuration.inHours)
-                                      .toString()
-                                      .padLeft(2, '0') +
-                                  ':' +
-                                  (overLimitDuration.inMinutes.remainder(60))
-                                      .toString()
-                                      .padLeft(2, '0');
+                              '${overLimitDuration.inHours.toString().padLeft(2, '0')}:${(overLimitDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
                           return Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             child: Text(
-                              'will end after ${overLimitDurationString}',
+                              'will end after $overLimitDurationString',
                               style: TextStyle(
                                 color: SuccessColor,
                                 fontSize: 12,
@@ -170,20 +160,14 @@ class _MainInfoViewState extends State<MainInfoView> {
                         }
 
                         final Duration overLimitDuration =
-                            Duration(seconds: overLimit * -1);
+                        Duration(seconds: overLimit * -1);
                         final String overLimitDurationString =
-                            (overLimitDuration.inHours)
-                                    .toString()
-                                    .padLeft(2, '0') +
-                                ':' +
-                                (overLimitDuration.inMinutes.remainder(60))
-                                    .toString()
-                                    .padLeft(2, '0');
+                            '${overLimitDuration.inHours.toString().padLeft(2, '0')}:${(overLimitDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           child: Text(
-                            'Overlimit: ${overLimitDurationString}',
+                            'Overlimit: $overLimitDurationString',
                             style: TextStyle(
                               color: DangerColor,
                               fontSize: 12,
@@ -202,22 +186,20 @@ class _MainInfoViewState extends State<MainInfoView> {
                             child: CustomPaint(
                               child: Center(
                                 child: Text(
-                                  periodCaloriesEatenPercentage
-                                          .toStringAsFixed(0) +
-                                      '%',
+                                  '${periodCaloriesEatenPercentage.toStringAsFixed(0)}%',
                                   style: TextStyle(fontSize: 12),
                                 ),
                               ),
                               foregroundPainter: ProgressPainter(
                                   defaultCircleColor: Colors.grey.shade200,
                                   percentageCompletedCircleColor:
-                                      periodCaloriesEatenPercentage >= 100
-                                          ? DangerColor
-                                          : DangerLiteColor,
+                                  periodCaloriesEatenPercentage >= 100
+                                      ? DangerColor
+                                      : DangerLiteColor,
                                   completedPercentage:
-                                      periodCaloriesEatenPercentage >= 100
-                                          ? 100
-                                          : periodCaloriesEatenPercentage,
+                                  periodCaloriesEatenPercentage >= 100
+                                      ? 100
+                                      : periodCaloriesEatenPercentage,
                                   circleWidth: 3.0),
                             ),
                           ),
@@ -229,16 +211,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                   child: Padding(
                                     padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
                                     child: Text(
-                                      'Goal: ' +
-                                          state.currentWakingPeriod!
-                                              .caloriesLimitGoal
-                                              .toString() +
-                                          ' kcal/' +
-                                          state.currentWakingPeriod!
-                                              .getExpectedWakingDuration()
-                                              .inHours
-                                              .toString() +
-                                          'h (${state.currentWakingPeriod!.getCaloriesPerHour().toStringAsFixed(2)} kcal/h)',
+                                      'Goal: ${state.currentWakingPeriod!.caloriesLimitGoal} kcal/${state.currentWakingPeriod!.getExpectedWakingDuration().inHours}h (${state.currentWakingPeriod!.getCaloriesPerHour().toStringAsFixed(2)} kcal/h)',
                                       style: TextStyle(
                                           color: Colors.black.withOpacity(0.6)),
                                     ),
@@ -247,43 +220,23 @@ class _MainInfoViewState extends State<MainInfoView> {
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child:
-                                      Builder(builder: (BuildContext context) {
+                                  Builder(builder: (BuildContext context) {
                                     if (allowedCalories > 0) {
                                       final String stringAllowedDuration =
-                                          (allowedDuration.inHours)
-                                                  .toString()
-                                                  .padLeft(2, '0') +
-                                              ':' +
-                                              (allowedDuration.inMinutes
-                                                      .remainder(60))
-                                                  .toString()
-                                                  .padLeft(2, '0');
+                                          '${allowedDuration.inHours.toString().padLeft(2, '0')}:${(allowedDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
                                       return Text(
-                                        'You can eat ' +
-                                            allowedCalories.toStringAsFixed(2) +
-                                            ' kcal , $stringAllowedDuration',
+                                        'You can eat ${allowedCalories.toStringAsFixed(2)} kcal , $stringAllowedDuration',
                                         style: TextStyle(color: SuccessColor),
                                         textAlign: TextAlign.left,
                                       );
                                     }
 
                                     final String stringAllowedDuration =
-                                        (allowedDuration.inHours * -1)
-                                                .toString()
-                                                .padLeft(2, '0') +
-                                            ':' +
-                                            (allowedDuration.inMinutes
-                                                        .remainder(60) *
-                                                    -1)
-                                                .toString()
-                                                .padLeft(2, '0');
+                                        '${(allowedDuration.inHours * -1).toString().padLeft(2, '0')}:${(allowedDuration.inMinutes.remainder(60) * -1).toString().padLeft(2, '0')}';
 
                                     return Text(
-                                      'You can eat ' +
-                                          allowedCalories.toStringAsFixed(2) +
-                                          ' kcal (after $stringAllowedDuration)',
-                                      // 'You can eat after',
+                                      'You can eat ${allowedCalories.toStringAsFixed(2)} kcal (after $stringAllowedDuration)',
                                       style: TextStyle(color: DangerColor),
                                       textAlign: TextAlign.left,
                                     );
@@ -295,71 +248,77 @@ class _MainInfoViewState extends State<MainInfoView> {
                         ],
                       ),
                       Divider(),
-                      ButtonBar(
-                        buttonPadding: EdgeInsets.zero,
-                        alignment: MainAxisAlignment.start,
-                        children: [
-                          MaterialButton(
-                            padding: EdgeInsets.fromLTRB(16, 0, 0, 0),
-                            child: Text(
-                              'Done period',
-                              style: TextStyle(
-                                color: Theme.of(context).buttonColor,
-                                fontWeight: FontWeight.w600,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
+                              ),
+                              child: Text(
+                                'Done period',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Text('Done waking period'),
+                                      content: Text(
+                                          '${state.getPeriodCaloriesEatenSum()} kcal by current waking period. Continue?'),
+                                      actions: [
+                                        TextButton(
+                                          child: Text('Cancel'),
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: Text("Ok"),
+                                          onPressed: () {
+                                            BlocProvider.of<HomeBloc>(context)
+                                                .add(WakingPeriodEndingEvent(
+                                                state.currentWakingPeriod!,
+                                                state
+                                                    .getPeriodCaloriesEatenSum()));
+                                            Navigator.pop(context);
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditWakingPeriodScreen(
+                                              state.currentWakingPeriod!)),
+                                );
+                              },
+                              child: Text(
+                                'Edit',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: Text('Done waking period'),
-                                    content: Text(
-                                        '${state.getPeriodCaloriesEatenSum()} kcal by current waking period. Continue?'),
-                                    actions: [
-                                      MaterialButton(
-                                        child: Text('Cancel'),
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                        },
-                                      ),
-                                      MaterialButton(
-                                        child: Text("Ok"),
-                                        onPressed: () {
-                                          BlocProvider.of<HomeBloc>(context)
-                                              .add(WakingPeriodEndingEvent(
-                                                  state.currentWakingPeriod!,
-                                                  state
-                                                      .getPeriodCaloriesEatenSum()));
-                                          Navigator.pop(context);
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          MaterialButton(
-                            padding: EdgeInsets.fromLTRB(16, 0, 16, 0),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        EditWakingPeriodScreen(
-                                            state.currentWakingPeriod!)),
-                              );
-                            },
-                            child: Text(
-                              'Edit',
-                              style: TextStyle(
-                                color: Theme.of(context).buttonColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(4.0),
@@ -376,8 +335,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                     child: Text(
-                      'Today: ' +
-                          DateFormat('MMM, d').format(state.nowDateTime),
+                      'Today: ${DateFormat('MMM, d').format(state.nowDateTime)}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -407,7 +365,7 @@ class _MainInfoViewState extends State<MainInfoView> {
             ),
             Column(
               children:
-                  state.get30DaysUntilToday().days.map((DayResultModel day) {
+              state.get30DaysUntilToday().days.map((DayResultModel day) {
                 return SizedBox(
                   width: double.infinity,
                   child: Card(
@@ -416,11 +374,8 @@ class _MainInfoViewState extends State<MainInfoView> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(DateFormat('MMM d, y')
-                                    .format(day.createdAtDay) +
-                                ': ' +
-                                day.valueSum.round().toString() +
-                                ' kcal'),
+                            child: Text(
+                                '${DateFormat('MMM d, y').format(day.createdAtDay)}: ${day.valueSum.round()} kcal'),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
