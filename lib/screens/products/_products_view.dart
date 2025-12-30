@@ -5,7 +5,7 @@ import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/models/product_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/ui/colors.dart';
-import 'package:cat_calories/ui/widgets/caclulator_widget.dart';
+import 'package:cat_calories/ui/widgets/calculator_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

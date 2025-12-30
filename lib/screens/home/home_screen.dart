@@ -7,18 +7,15 @@ import 'package:cat_calories/screens/create_product_screen.dart';
 import 'package:cat_calories/screens/home/_app_drawer.dart';
 import 'package:cat_calories/screens/home/_calorie_items_view.dart';
 import 'package:cat_calories/screens/home/_days_view.dart';
-import 'package:cat_calories/screens/home/_food_intakes.dart';
 import 'package:cat_calories/screens/home/_waking_periods_view.dart';
-import 'package:cat_calories/screens/products/products_page.dart';
 import 'package:cat_calories/ui/colors.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/ui/widgets/caclulator_widget.dart';
+import 'package:cat_calories/ui/widgets/calculator_widget.dart';
 
 import '_main_info_view.dart';
 
@@ -91,13 +88,12 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Scaffold(
         body: DefaultTabController(
-          length: 5,
+          length: 4,
           child: Scaffold(
             drawer: Drawer(
               child: AppDrawer(),
             ),
             appBar: AppBar(
-              backgroundColor: Colors.white,
               actions: [
                 BlocBuilder<HomeBloc, AbstractHomeState>(
                     builder: (context, state) {
@@ -160,27 +156,15 @@ class _HomeScreenState extends State<HomeScreen>
                 }),
               ],
               bottom: TabBar(
-                isScrollable: true,
                 labelStyle: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
                 ),
                 tabs: [
-                  Tab(
-                    text: 'Info',
-                  ),
-                  Tab(
-                    text: 'kCal',
-                  ),
-                  Tab(
-                    text: 'Waking periods',
-                  ),
-                  Tab(
-                    text: 'Days',
-                  ),
-                  Tab(
-                    text: 'Food intakes',
-                  ),
+                  Tab(text: 'Info'),
+                  Tab(text: 'kCal'),
+                  Tab(text: 'Periods'),
+                  Tab(text: 'Days'),
+                  // Tab(text: 'Food intakes'),
                 ],
               ),
 
@@ -215,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen>
                 CalorieItemsView(),
                 WakingPeriodsView(),
                 DaysView(),
-                FoodIntakesView(),
               ],
             ),
           ),
@@ -228,7 +211,6 @@ class _HomeScreenState extends State<HomeScreen>
             child: Icon(Icons.add),
             onPressed: () {
               showModalBottomSheet<dynamic>(
-                barrierColor: Colors.black.withOpacity(0.2),
                 isScrollControlled: true,
                 context: context,
                 builder: (BuildContext context) {
