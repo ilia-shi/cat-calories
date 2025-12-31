@@ -1,5 +1,3 @@
-// lib/service/calorie_recommendation_service.dart
-
 import 'dart:math';
 import 'package:cat_calories/models/calorie_recommendation_model.dart';
 import 'package:cat_calories/models/day_result.dart';

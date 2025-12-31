@@ -1,5 +1,3 @@
-// lib/screens/home/equalization_stats_tab.dart
-
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_recommendation_model.dart';

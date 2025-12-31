@@ -1,5 +1,3 @@
-// lib/screens/home/widgets/home_app_drawer.dart
-
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';

@@ -1,5 +1,3 @@
-// lib/screens/home/widgets/home_floating_action_button.dart
-
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:flutter/material.dart';

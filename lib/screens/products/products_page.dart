@@ -1,5 +1,4 @@
 import 'package:cat_calories/screens/products/_products_view.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ProductsPage extends StatefulWidget {

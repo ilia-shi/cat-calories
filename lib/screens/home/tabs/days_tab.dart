@@ -5,7 +5,6 @@ import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 

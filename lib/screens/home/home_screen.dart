@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/screens/create_product_screen.dart';

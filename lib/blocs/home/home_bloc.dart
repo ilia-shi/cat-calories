@@ -15,7 +15,6 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_event.dart';
 import 'package:cat_calories/models/equalization_settings_model.dart';
-import 'package:cat_calories/models/calorie_recommendation_model.dart';
 import 'package:cat_calories/service/calorie_recommendation_service.dart';
 
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {

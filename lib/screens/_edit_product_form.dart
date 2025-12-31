@@ -1,6 +1,5 @@
 import 'package:cat_calories/utils/number_validator.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class EditProductForm extends StatelessWidget {
 
