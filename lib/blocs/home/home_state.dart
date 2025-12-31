@@ -3,6 +3,8 @@ import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/product_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
+import 'package:cat_calories/models/calorie_recommendation_model.dart';
+import 'package:cat_calories/models/equalization_settings_model.dart';
 
 abstract class AbstractHomeState {}
 
@@ -22,6 +24,8 @@ class HomeFetched extends AbstractHomeState {
   final WakingPeriodModel? currentWakingPeriod;
   final double preparedCaloriesValue;
   final List<ProductModel> products;
+  final CalorieRecommendationModel? recommendation;
+  final EqualizationSettingsModel equalizationSettings;
 
   HomeFetched({
     required this.nowDateTime,
@@ -37,6 +41,8 @@ class HomeFetched extends AbstractHomeState {
     required this.currentWakingPeriod,
     required this.preparedCaloriesValue,
     required this.products,
+    required this.recommendation,
+    required this.equalizationSettings,
   });
 
   double getPeriodCaloriesEatenSum() {

@@ -14,6 +14,9 @@ import 'package:cat_calories/repositories/calorie_item_repository.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_event.dart';
+import 'package:cat_calories/models/equalization_settings_model.dart';
+import 'package:cat_calories/models/calorie_recommendation_model.dart';
+import 'package:cat_calories/service/calorie_recommendation_service.dart';
 
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   final locator = GetIt.instance;
@@ -22,10 +25,10 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
   late ProductRepository productRepository = locator.get<ProductRepository>();
   late CalorieItemRepository calorieItemRepository =
-  locator.get<CalorieItemRepository>();
+      locator.get<CalorieItemRepository>();
   late ProfileRepository profileRepository = locator.get<ProfileRepository>();
   late WakingPeriodRepository wakingPeriodRepository =
-  locator.get<WakingPeriodRepository>();
+      locator.get<WakingPeriodRepository>();
 
   ProfileModel? _activeProfile;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -68,17 +71,17 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onCalorieItemListFetching(
-      CalorieItemListFetchingInProgressEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CalorieItemListFetchingInProgressEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await _emitHomeData(emit);
   }
 
   Future<void> _onCreatingCalorieItem(
-      CreatingCalorieItemEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CreatingCalorieItemEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final CalorieItemModel calorieItem = CalorieItemModel(
@@ -103,9 +106,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onRemovingCalorieItem(
-      RemovingCalorieItemEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    RemovingCalorieItemEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await calorieItemRepository.delete(event.calorieItem);
     event.callback();
@@ -113,45 +116,45 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onCalorieItemListResorting(
-      CalorieItemListResortingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CalorieItemListResortingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await calorieItemRepository.resort(event.items);
     await _emitHomeData(emit);
   }
 
   Future<void> _onCalorieItemListUpdating(
-      CalorieItemListUpdatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CalorieItemListUpdatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await calorieItemRepository.update(event.calorieItem);
     await _emitHomeData(emit);
   }
 
   Future<void> _onProfileCreating(
-      ProfileCreatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    ProfileCreatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await profileRepository.insert(event.profile);
     await _emitHomeData(emit);
   }
 
   Future<void> _onProfileUpdating(
-      ProfileUpdatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    ProfileUpdatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await profileRepository.update(event.profile);
     await _emitHomeData(emit);
   }
 
   Future<void> _onChangeProfile(
-      ChangeProfileEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    ChangeProfileEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     _activeProfile = event.profile;
     _saveActiveProfile(event.profile);
@@ -159,18 +162,18 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onWakingPeriodCreating(
-      WakingPeriodCreatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    WakingPeriodCreatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await wakingPeriodRepository.insert(event.wakingPeriod);
     await _emitHomeData(emit);
   }
 
   Future<void> _onWakingPeriodEnding(
-      WakingPeriodEndingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    WakingPeriodEndingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final WakingPeriodModel wakingPeriod = event.wakingPeriod;
@@ -183,36 +186,36 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onWakingPeriodDeleting(
-      WakingPeriodDeletingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    WakingPeriodDeletingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await wakingPeriodRepository.delete(event.wakingPeriod);
     await _emitHomeData(emit);
   }
 
   Future<void> _onWakingPeriodUpdating(
-      WakingPeriodUpdatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    WakingPeriodUpdatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await wakingPeriodRepository.update(event.wakingPeriod);
     await _emitHomeData(emit);
   }
 
   Future<void> _onRemovingCaloriesByCreatedAtDay(
-      RemovingCaloriesByCreatedAtDayEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    RemovingCaloriesByCreatedAtDayEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await calorieItemRepository.deleteByCreatedAtDay(event.date, event.profile);
     await _emitHomeData(emit);
   }
 
   Future<void> _onCalorieItemEating(
-      CalorieItemEatingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CalorieItemEatingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final CalorieItemModel calorieItem = event.calorieItem;
@@ -223,9 +226,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onProfileDeleting(
-      ProfileDeletingEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    ProfileDeletingEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final List<ProfileModel> profiles = await profileRepository.fetchAll();
@@ -239,18 +242,18 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onCaloriePrepared(
-      CaloriePreparedEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CaloriePreparedEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     _preparedCaloriesValue = ExpressionExecutor.execute(event.expression);
     await _emitHomeData(emit);
   }
 
   Future<void> _onCreateProduct(
-      CreateProductEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    CreateProductEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final product = ProductModel(
@@ -274,27 +277,27 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onDeleteProduct(
-      DeleteProductEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    DeleteProductEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await productRepository.delete(event.product);
     await _emitHomeData(emit);
   }
 
   Future<void> _onUpdateProduct(
-      UpdateProductEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    UpdateProductEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await productRepository.update(event.product);
     await _emitHomeData(emit);
   }
 
   Future<void> _onEatProduct(
-      EatProductEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    EatProductEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
 
     final CalorieItemModel calorieItem = CalorieItemModel(
@@ -321,35 +324,78 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _onProductsResort(
-      ProductsResortEvent event,
-      Emitter<AbstractHomeState> emit,
-      ) async {
+    ProductsResortEvent event,
+    Emitter<AbstractHomeState> emit,
+  ) async {
     await _ensureActiveProfile();
     await productRepository.resort(event.products);
     await _emitHomeData(emit);
   }
 
+  EqualizationSettingsModel _equalizationSettings = EqualizationSettingsModel();
+
   Future<void> _emitHomeData(Emitter<AbstractHomeState> emit) async {
     final ProfileModel activeProfile = _activeProfile!;
 
+    // Calculate recommendation
+    final recommendationService = CalorieRecommendationService(
+      EqualizationSettingsModel(
+        baseCalorieGoal: activeProfile.caloriesLimitGoal,
+      ),
+    );
+
+    List<CalorieItemModel> todayCalorieItems =
+        await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
+
+    DateTime? lastMealTime;
+    if (todayCalorieItems.isNotEmpty) {
+      final sortedItems = todayCalorieItems
+          .where((item) => item.eatenAt != null)
+          .toList()
+        ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
+      if (sortedItems.isNotEmpty) {
+        lastMealTime = sortedItems.first.eatenAt;
+      }
+    }
+
+    if (todayCalorieItems.isNotEmpty) {
+      final sortedItems = todayCalorieItems
+          .where((item) => item.eatenAt != null)
+          .toList()
+        ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
+      if (sortedItems.isNotEmpty) {
+        lastMealTime = sortedItems.first.eatenAt;
+      }
+    }
+
     final List<DayResultModel> _dayResultsList30days =
-    await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
+        await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
+
+    final recommendation = recommendationService.calculate(
+      historicalDays: _dayResultsList30days,
+      consumedToday: todayCalorieItems.fold<double>(
+        0,
+        (sum, item) => sum + (item.isEaten() ? item.value : 0),
+      ),
+      now: DateTime.now(),
+      lastMealTime: lastMealTime,
+    );
 
     final List<DayResultModel> _dayResultsList2days =
-    await calorieItemRepository.fetchDaysByProfile(activeProfile, 2);
+        await calorieItemRepository.fetchDaysByProfile(activeProfile, 2);
 
     final List<ProfileModel> _profiles = await profileRepository.fetchAll();
     final List<WakingPeriodModel> wakingPeriods =
-    await wakingPeriodRepository.fetchByProfile(activeProfile);
+        await wakingPeriodRepository.fetchByProfile(activeProfile);
     final List<ProductModel> products = await productRepository.fetchAll();
 
     final WakingPeriodModel? currentWakingPeriod =
-    await wakingPeriodRepository.findActual(activeProfile);
+        await wakingPeriodRepository.findActual(activeProfile);
     final DateTime startDate =
-    DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day);
+        DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day);
     final DateTime endDate =
-    DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day)
-        .add(Duration(days: 1));
+        DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day)
+            .add(Duration(days: 1));
 
     List<CalorieItemModel> _calorieItems = [];
 
@@ -357,9 +403,6 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       _calorieItems = await calorieItemRepository.fetchByWakingPeriodAndProfile(
           currentWakingPeriod, activeProfile);
     }
-
-    final List<CalorieItemModel> todayCalorieItems =
-    await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
 
     emit(HomeFetched(
       nowDateTime: DateTime.now(),
@@ -375,6 +418,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       currentWakingPeriod: currentWakingPeriod,
       preparedCaloriesValue: _preparedCaloriesValue,
       products: products,
+      recommendation: recommendation,
+      equalizationSettings: _equalizationSettings,
     ));
   }
 }

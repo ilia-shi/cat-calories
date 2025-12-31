@@ -17,6 +17,7 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/ui/widgets/calculator_widget.dart';
 
+import '_equalization_stats_view.dart';
 import '_main_info_view.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -88,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Scaffold(
         body: DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             drawer: Drawer(
               child: AppDrawer(),
@@ -160,11 +161,11 @@ class _HomeScreenState extends State<HomeScreen>
                   fontSize: 12,
                 ),
                 tabs: [
+                  Tab(text: 'Stats'),  // NEW - rename or add
                   Tab(text: 'Info'),
                   Tab(text: 'kCal'),
                   Tab(text: 'Periods'),
                   Tab(text: 'Days'),
-                  // Tab(text: 'Food intakes'),
                 ],
               ),
 
@@ -195,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             body: TabBarView(
               children: [
+                EqualizationStatsView(),
                 MainInfoView(),
                 CalorieItemsView(),
                 WakingPeriodsView(),
