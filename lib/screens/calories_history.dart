@@ -1,5 +1,6 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
+import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/repositories/calorie_item_repository.dart';
@@ -19,12 +20,14 @@ class AllCaloriesHistoryScreen extends StatefulWidget {
       _AllCaloriesHistoryScreenState();
 }
 
-class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
+class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
+    with AutomaticKeepAliveClientMixin {
   final locator = GetIt.instance;
   late CalorieItemRepository calorieItemRepository =
-      locator.get<CalorieItemRepository>();
+  locator.get<CalorieItemRepository>();
 
   bool _isLoading = true;
+  bool _isInitialLoad = true;
   Map<DateTime, List<CalorieItemModel>> _groupedCalories = {};
   Map<DateTime, _DaySummary> _daySummaries = {};
   List<DateTime> _sortedDates = [];
@@ -33,15 +36,20 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
   int _totalItems = 0;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
-    _loadAllCalories();
+    _loadAllCalories(showLoading: true);
   }
 
-  Future<void> _loadAllCalories() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _loadAllCalories({bool showLoading = false}) async {
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final ProfileModel profile = await ProfileResolver().resolve();
@@ -85,23 +93,26 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
       // Sort dates descending
       final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
-      setState(() {
-        _groupedCalories = grouped;
-        _daySummaries = summaries;
-        _sortedDates = sortedDates;
-        _totalAllTime = total;
-        _totalItems = itemCount;
-        _isLoading = false;
-        // Expand the first date by default
-        if (sortedDates.isNotEmpty) {
-          _expandedDates.add(sortedDates.first);
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _groupedCalories = grouped;
+          _daySummaries = summaries;
+          _sortedDates = sortedDates;
+          _totalAllTime = total;
+          _totalItems = itemCount;
+          _isLoading = false;
+          // Expand the first date by default only on initial load
+          if (_isInitialLoad && sortedDates.isNotEmpty) {
+            _expandedDates.add(sortedDates.first);
+            _isInitialLoad = false;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading calories: $e')),
         );
@@ -111,58 +122,61 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calorie History'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllCalories,
-            tooltip: 'Refresh',
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'expand_all') {
-                setState(() {
-                  _expandedDates = Set.from(_sortedDates);
-                });
-              } else if (value == 'collapse_all') {
-                setState(() {
-                  _expandedDates.clear();
-                });
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'expand_all',
-                child: Row(
-                  children: [
-                    Icon(Icons.unfold_more, size: 20),
-                    SizedBox(width: 12),
-                    Text('Expand All'),
-                  ],
+    super.build(context);
+    return BlocListener<HomeBloc, AbstractHomeState>(
+      listener: (context, state) {
+        if (state is HomeFetched) {
+          _loadAllCalories();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Calorie History'),
+          elevation: 0,
+          actions: [
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'expand_all') {
+                  setState(() {
+                    _expandedDates = Set.from(_sortedDates);
+                  });
+                } else if (value == 'collapse_all') {
+                  setState(() {
+                    _expandedDates.clear();
+                  });
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'expand_all',
+                  child: Row(
+                    children: [
+                      Icon(Icons.unfold_more, size: 20),
+                      SizedBox(width: 12),
+                      Text('Expand All'),
+                    ],
+                  ),
                 ),
-              ),
-              const PopupMenuItem(
-                value: 'collapse_all',
-                child: Row(
-                  children: [
-                    Icon(Icons.unfold_less, size: 20),
-                    SizedBox(width: 12),
-                    Text('Collapse All'),
-                  ],
+                const PopupMenuItem(
+                  value: 'collapse_all',
+                  child: Row(
+                    children: [
+                      Icon(Icons.unfold_less, size: 20),
+                      SizedBox(width: 12),
+                      Text('Collapse All'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _sortedDates.isEmpty
+            ? _buildEmptyState()
+            : _buildContent(),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _sortedDates.isEmpty
-              ? _buildEmptyState()
-              : _buildContent(),
     );
   }
 
@@ -357,9 +371,9 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
         borderRadius: BorderRadius.circular(16),
         side: isToday
             ? BorderSide(
-                color: Theme.of(context).primaryColor.withOpacity(0.3),
-                width: 2,
-              )
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          width: 2,
+        )
             : BorderSide.none,
       ),
       child: Column(
@@ -399,13 +413,13 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
                     decoration: BoxDecoration(
                       gradient: isToday
                           ? LinearGradient(
-                              colors: [
-                                Theme.of(context).primaryColor,
-                                Theme.of(context).primaryColor.withOpacity(0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
+                        colors: [
+                          Theme.of(context).primaryColor,
+                          Theme.of(context).primaryColor.withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
                           : null,
                       color: isToday ? null : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
@@ -445,7 +459,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight:
-                                isToday ? FontWeight.bold : FontWeight.w600,
+                            isToday ? FontWeight.bold : FontWeight.w600,
                             color: Colors.black87,
                           ),
                         ),
@@ -489,8 +503,8 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
                           color: summary.totalEaten > 2000
                               ? DangerColor
                               : summary.totalEaten > 1500
-                                  ? Colors.orange
-                                  : SuccessColor,
+                              ? Colors.orange
+                              : SuccessColor,
                         ),
                       ),
                       Text(
@@ -569,10 +583,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
           border: isLast
               ? null
               : Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade100,
-                  ),
-                ),
+            bottom: BorderSide(
+              color: Colors.grey.shade100,
+            ),
+          ),
         ),
         child: Opacity(
           opacity: item.isEaten() ? 1.0 : 0.5,
@@ -678,7 +692,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
               // Calories value
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: (item.value > 0 ? DangerColor : SuccessColor)
                       .withOpacity(0.1),
@@ -747,7 +761,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color:
-                                    item.value > 0 ? DangerColor : SuccessColor,
+                                item.value > 0 ? DangerColor : SuccessColor,
                               ),
                             ),
                             if (item.description != null)
@@ -835,7 +849,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child:
-                        const Icon(Icons.delete, color: DangerColor, size: 20),
+                    const Icon(Icons.delete, color: DangerColor, size: 20),
                   ),
                   title: const Text(
                     'Delete Entry',

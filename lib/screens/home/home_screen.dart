@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
+import 'package:cat_calories/screens/calories_history.dart';
 import 'package:cat_calories/screens/create_product_screen.dart';
 import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/tabs/calorie_items_tab.dart';
@@ -78,10 +79,26 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     ];
 
+    const tabMenuItems = [
+      Tab(text: 'Stats'),
+      Tab(text: 'Info'),
+      Tab(text: 'kCal'),
+      Tab(text: 'Periods'),
+      Tab(text: 'Days'),
+    ];
+
+    var tabViews = [
+      EqualizationStatsView(),
+      MainInfoView(),
+      AllCaloriesHistoryScreen(),
+      WakingPeriodsView(),
+      DaysView(),
+    ];
+
     return Scaffold(
       body: Scaffold(
         body: DefaultTabController(
-          length: 5,
+          length: tabViews.length,
           child: Scaffold(
             drawer: Drawer(
               child: HomeAppDrawer(),
@@ -127,16 +144,8 @@ class _HomeScreenState extends State<HomeScreen>
                 labelStyle: TextStyle(
                   fontSize: 12,
                 ),
-                tabs: [
-                  Tab(text: 'Stats'),  // NEW - rename or add
-                  Tab(text: 'Info'),
-                  Tab(text: 'kCal'),
-                  Tab(text: 'Periods'),
-                  Tab(text: 'Days'),
-                ],
+                tabs: tabMenuItems,
               ),
-
-              // Home Screen
               title: BlocBuilder<HomeBloc, AbstractHomeState>(
                 builder: (context, state) {
                   if (state is HomeFetched) {
@@ -162,13 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             body: TabBarView(
-              children: [
-                EqualizationStatsView(),
-                MainInfoView(),
-                CalorieItemsView(),
-                WakingPeriodsView(),
-                DaysView(),
-              ],
+              children: tabViews,
             ),
           ),
         ),
