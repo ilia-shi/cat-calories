@@ -19,54 +19,54 @@ class CalorieStabilizer {
     StabilizerSettings? settings,
   }) : settings = settings ?? const StabilizerSettings();
 
-  /// Список всех записей (только для чтения)
+  /// List of all entries (read-only)
   List<CalorieEntry> get entries => List.unmodifiable(_entries);
 
-  /// Добавить запись о потреблении калорий
+  /// Add a calorie consumption entry
   void addEntry(CalorieEntry entry) {
     _entries.add(entry);
     _entries.sort((a, b) => a.timestamp.compareTo(b.timestamp));
   }
 
-  /// Добавить несколько записей
+  /// Add multiple entries
   void addEntries(Iterable<CalorieEntry> entries) {
     _entries.addAll(entries);
     _entries.sort((a, b) => a.timestamp.compareTo(b.timestamp));
   }
 
-  /// Удалить запись
+  /// Remove an entry
   bool removeEntry(CalorieEntry entry) {
     return _entries.remove(entry);
   }
 
-  /// Очистить все записи
+  /// Clear all entries
   void clearEntries() {
     _entries.clear();
   }
 
-  /// Рассчитывает вес записи на основе её давности
+  /// Calculates the weight of an entry based on its age
   ///
-  /// Использует экспоненциальное затухание: weight = 0.5^(daysAgo / halfLife)
+  /// Uses exponential decay: weight = 0.5^(daysAgo / halfLife)
   double calculateDecayWeight(DateTime entryTime, DateTime now) {
     final hoursDiff = now.difference(entryTime).inMinutes / 60.0;
     final daysAgo = hoursDiff / 24.0;
 
-    // Полностью игнорируем данные старше compensationDecayDays
+    // Completely ignore data older than compensationDecayDays
     if (daysAgo > settings.compensationDecayDays) {
       return 0;
     }
 
-    // Для будущих записей (не должно происходить, но на всякий случай)
+    // For future entries (shouldn't happen, but just in case)
     if (daysAgo < 0) {
       return 0;
     }
 
-    // Экспоненциальное затухание
+    // Exponential decay
     final halfLife = settings.historyDecayHalfLife;
     return math.pow(0.5, daysAgo / halfLife).toDouble();
   }
 
-  /// Получает калории за определённый период
+  /// Gets calories for a specific period
   double getCaloriesInRange(DateTime start, DateTime end) {
     return _entries
         .where((e) =>
@@ -74,7 +74,7 @@ class CalorieStabilizer {
         .fold(0.0, (sum, e) => sum + e.calories);
   }
 
-  /// Получает записи за определённый период
+  /// Gets entries for a specific period
   List<CalorieEntry> getEntriesInRange(DateTime start, DateTime end) {
     return _entries
         .where((e) =>
@@ -82,9 +82,9 @@ class CalorieStabilizer {
         .toList();
   }
 
-  /// Рассчитывает "долг" калорий — взвешенную сумму превышений
+  /// Calculates calorie "debt" — weighted sum of excesses
   ///
-  /// Анализирует скользящие окна за последние [compensationDecayDays] дней
+  /// Analyzes sliding windows for the last [compensationDecayDays] days
   double calculateCalorieDebt(DateTime now) {
     final targetDaily = settings.targetDailyCalories;
     final decayDays = settings.compensationDecayDays;
@@ -92,9 +92,9 @@ class CalorieStabilizer {
 
     double totalWeightedExcess = 0;
 
-    // Анализируем каждый день в периоде затухания
+    // Analyze each day in the decay period
     for (int dayOffset = 1; dayOffset <= decayDays; dayOffset++) {
-      // Конец окна — начало текущего дня минус (dayOffset - 1) дней
+      // Window end — start of current day minus (dayOffset - 1) days
       final windowEnd = now.subtract(Duration(hours: (dayOffset - 1) * 24));
       final windowStart =
       windowEnd.subtract(Duration(hours: windowHours.toInt()));
@@ -103,7 +103,7 @@ class CalorieStabilizer {
       final excess = math.max(0.0, windowCalories - targetDaily);
 
       if (excess > 0) {
-        // Вес основан на середине окна
+        // Weight is based on the middle of the window
         final windowMid = windowStart.add(
           Duration(hours: (windowHours / 2).toInt()),
         );
@@ -115,7 +115,7 @@ class CalorieStabilizer {
     return totalWeightedExcess;
   }
 
-  /// Рассчитывает скорректированную цель на текущий период
+  /// Calculates adjusted target for the current period
   double calculateAdjustedTarget(DateTime now) {
     final targetDaily = settings.targetDailyCalories;
     final compensationRate = settings.compensationRate;
@@ -125,23 +125,23 @@ class CalorieStabilizer {
 
     final debt = calculateCalorieDebt(now);
 
-    // Сколько нужно компенсировать сегодня
+    // How much needs to be compensated today
     final compensation = math.min(debt * compensationRate, maxCompensation);
 
-    // Применяем компенсацию с защитными ограничениями
+    // Apply compensation with protective limits
     final adjusted = (targetDaily - compensation).clamp(minDaily, maxDaily);
 
     return adjusted.roundToDouble();
   }
 
-  /// Рассчитывает компенсацию (снижение нормы)
+  /// Calculates compensation (target reduction)
   double calculateCompensation(DateTime now) {
     final debt = calculateCalorieDebt(now);
     final maxCompensation = settings.maxCompensationPerDay;
     return math.min(debt * settings.compensationRate, maxCompensation);
   }
 
-  /// Проверяет скорость потребления (ккал/час) за последний час
+  /// Checks consumption rate (kcal/hour) for the last hour
   ConsumptionRateResult checkConsumptionRate(DateTime now) {
     final oneHourAgo = now.subtract(const Duration(hours: 1));
     final recentCalories = getCaloriesInRange(oneHourAgo, now);
@@ -152,7 +152,7 @@ class CalorieStabilizer {
     );
   }
 
-  /// Находит последний приём пищи до указанного времени
+  /// Finds the last meal before the specified time
   CalorieEntry? getLastMeal(DateTime now) {
     final beforeNow = _entries
         .where((e) => !e.timestamp.isAfter(now))
@@ -163,9 +163,9 @@ class CalorieStabilizer {
     return beforeNow.last;
   }
 
-  /// Подсчитывает количество приёмов пищи в окне
+  /// Counts the number of meals in the window
   ///
-  /// Группирует близкие записи (в пределах [mealGroupingMinutes]) как один приём
+  /// Groups close entries (within [mealGroupingMinutes]) as one meal
   int getMealsInWindow(DateTime now) {
     final windowStart =
     now.subtract(Duration(hours: settings.windowHours.toInt()));
@@ -189,34 +189,34 @@ class CalorieStabilizer {
     return mealCount;
   }
 
-  /// Оценивает количество часов с последнего приёма пищи
+  /// Estimates hours since last meal
   double getHoursSinceLastMeal(DateTime now) {
     final lastMeal = getLastMeal(now);
     if (lastMeal == null) {
-      return settings.maxFastingHours; // Если нет данных — считаем что давно не ели
+      return settings.maxFastingHours; // If no data — assume it's been a long time since eating
     }
 
     return now.difference(lastMeal.timestamp).inMinutes / 60.0;
   }
 
-  /// Оценивает количество оставшихся приёмов пищи на день
+  /// Estimates remaining meals for the day
   int estimateRemainingMeals(DateTime now) {
     final hoursLeft = _estimateActiveHoursLeft(now);
     final mealsAlready = getMealsInWindow(now);
     final idealMeals = settings.idealMealsPerDay;
 
-    // Примерно 1 приём пищи каждые 4 часа активности
+    // Approximately 1 meal every 4 hours of activity
     final potentialMeals = (hoursLeft / 4).floor();
     return math.max(1, math.min(potentialMeals, idealMeals - mealsAlready));
   }
 
-  /// Оценивает оставшиеся часы активности
+  /// Estimates remaining active hours
   double _estimateActiveHoursLeft(DateTime now) {
-    // Анализируем паттерн активности пользователя за последние дни
+    // Analyze user activity pattern for recent days
     final recentDays = 7;
     final avgActiveHours = _analyzeActivityPattern(now, recentDays);
 
-    // Сколько часов уже прошло с первого приёма пищи сегодня
+    // How many hours have passed since the first meal today
     final windowStart =
     now.subtract(Duration(hours: settings.windowHours.toInt()));
     final todayEntries = getEntriesInRange(windowStart, now);
@@ -231,7 +231,7 @@ class CalorieStabilizer {
     return math.max(2, avgActiveHours - hoursSinceFirst);
   }
 
-  /// Анализирует паттерн активности пользователя
+  /// Analyzes user activity pattern
   double _analyzeActivityPattern(DateTime now, int days) {
     final List<double> activePeriods = [];
 
@@ -251,14 +251,14 @@ class CalorieStabilizer {
     }
 
     if (activePeriods.isEmpty) {
-      return 14; // Значение по умолчанию — 14 часов активности
+      return 14; // Default value — 14 hours of activity
     }
 
-    // Среднее значение
+    // Average value
     return activePeriods.reduce((a, b) => a + b) / activePeriods.length;
   }
 
-  /// Рассчитывает рекомендацию для следующего приёма пищи
+  /// Calculates recommendation for the next meal
   MealSuggestion suggestNextMeal(DateTime now) {
     final minInterval = settings.minMealInterval;
     final maxFasting = settings.maxFastingHours;
@@ -267,65 +267,66 @@ class CalorieStabilizer {
 
     final adjustedTarget = calculateAdjustedTarget(now);
 
-    // Сколько уже съедено за текущее "окно"
+    // How much already eaten in the current "window"
     final windowStart = now.subtract(Duration(hours: windowHours.toInt()));
     final consumed = getCaloriesInRange(windowStart, now);
     final remaining = math.max(0.0, adjustedTarget - consumed);
 
-    // Сколько часов прошло с последней еды
+    // How many hours since last meal
     final hoursSinceLastMeal = getHoursSinceLastMeal(now);
 
-    // Проверяем скорость потребления
+    // Check consumption rate
     final consumptionCheck = checkConsumptionRate(now);
 
     DateTime suggestedTime;
     String reason;
 
     if (consumptionCheck.isExcessive) {
-      // Слишком быстрое потребление — увеличиваем паузу
+      // Too fast consumption — increasing pause
       final excess = consumptionCheck.rate - settings.maxCaloriesPerHour;
-      final extraPause = (excess / 200).ceil(); // +1 час за каждые 200 ккал
+      final extraPause = (excess / 200).ceil(); // +1 hour for every 200 kcal
       final pauseHours = math.min(minInterval + extraPause, maxFasting);
 
       suggestedTime = now.add(Duration(hours: pauseHours.toInt()));
       reason =
-      'Рекомендуется пауза ${pauseHours.toStringAsFixed(1)} ч после большого приёма пищи';
+      'Recommended pause of ${pauseHours.toStringAsFixed(1)} h after a large meal';
     } else if (hoursSinceLastMeal < minInterval) {
-      // Слишком рано для следующего приёма
+      // Too early for the next meal
       final waitHours = minInterval - hoursSinceLastMeal;
       suggestedTime = now.add(Duration(minutes: (waitHours * 60).toInt()));
-      reason = 'Минимальный интервал между приёмами пищи';
+      reason = 'Minimum interval between meals';
     } else if (hoursSinceLastMeal >= maxFasting) {
-      // Пора есть!
+      // Time to eat!
       suggestedTime = now;
-      reason =
-      'Прошло ${hoursSinceLastMeal.toStringAsFixed(1)} ч — пора поесть';
+      reason = '${hoursSinceLastMeal.toStringAsFixed(1)} h passed — time to eat';
     } else {
-      // Нормальный режим — распределяем равномерно
       final mealsInWindow = getMealsInWindow(now);
       final remainingMealsTarget =
       math.max(1, settings.idealMealsPerDay - mealsInWindow);
 
-      // Оптимальный интервал до следующего приёма
       final activeHoursLeft = _estimateActiveHoursLeft(now);
       final optimalInterval = activeHoursLeft / remainingMealsTarget;
       final nextInterval = math.max(0.0, optimalInterval);
 
       suggestedTime = now.add(Duration(minutes: (nextInterval * 60).toInt()));
-      reason = 'Оптимальное распределение калорий';
+      reason = 'Optimal calorie distribution';
     }
 
-    // Рассчитываем размер порции
+    // Calculate portion size
     final remainingMeals = estimateRemainingMeals(now);
     final avgMealSize = remaining / remainingMeals;
 
-    // Применяем ограничения и вариативность
-    final minCalories = math.max(100.0, avgMealSize * (1 - variance));
-    final maxCalories = math.min(
+    final rawMinCalories = math.max(100.0, avgMealSize * (1 - variance));
+    final rawMaxCalories = math.min(
       settings.maxCaloriesPerMeal,
       avgMealSize * (1 + variance),
     );
-    final suggestedCalories = avgMealSize.clamp(minCalories, maxCalories);
+
+    final minCalories = math.min(rawMinCalories, rawMaxCalories);
+    final maxCalories = math.max(rawMinCalories, rawMaxCalories);
+
+    final safeMealSize = avgMealSize > 0 ? avgMealSize : 100.0;
+    final suggestedCalories = safeMealSize.clamp(minCalories, maxCalories);
 
     return MealSuggestion(
       suggestedTime: suggestedTime,
@@ -336,24 +337,24 @@ class CalorieStabilizer {
     );
   }
 
-  /// Генерирует предупреждения
+  /// Generates warnings
   List<Warning> generateWarnings(DateTime now) {
     final warnings = <Warning>[];
     final windowHours = settings.windowHours;
 
-    // Проверка скорости потребления
+    // Check consumption rate
     final consumptionCheck = checkConsumptionRate(now);
     if (consumptionCheck.isExcessive) {
       warnings.add(Warning(
         type: WarningType.rapidConsumption,
         message:
-        'Высокая скорость потребления: ${consumptionCheck.rate.toStringAsFixed(0)} ккал/час. '
-            'Рекомендуется сделать паузу.',
+        'High consumption rate: ${consumptionCheck.rate.toStringAsFixed(0)} kcal/hour. '
+            'A pause is recommended.',
         severity: WarningSeverity.warning,
       ));
     }
 
-    // Проверка долга калорий
+    // Check calorie debt
     final debt = calculateCalorieDebt(now);
     if (debt > 500) {
       final severity =
@@ -362,13 +363,13 @@ class CalorieStabilizer {
       warnings.add(Warning(
         type: WarningType.debt,
         message:
-        'Накопленное превышение: ${debt.toStringAsFixed(0)} ккал. '
-            'Цель снижена до ${adjustedTarget.toStringAsFixed(0)} ккал.',
+        'Accumulated excess: ${debt.toStringAsFixed(0)} kcal. '
+            'Target reduced to ${adjustedTarget.toStringAsFixed(0)} kcal.',
         severity: severity,
       ));
     }
 
-    // Проверка голодания
+    // Check fasting
     final hoursSinceLastMeal = getHoursSinceLastMeal(now);
     final maxFasting = settings.maxFastingHours;
 
@@ -379,13 +380,13 @@ class CalorieStabilizer {
       warnings.add(Warning(
         type: WarningType.fasting,
         message:
-        'Прошло ${hoursSinceLastMeal.toStringAsFixed(1)} часов с последнего приёма пищи. '
-            'Пора поесть!',
+        '${hoursSinceLastMeal.toStringAsFixed(1)} hours since last meal. '
+            'Time to eat!',
         severity: severity,
       ));
     }
 
-    // Проверка превышения нормы за текущее окно
+    // Check target excess for current window
     final windowStart = now.subtract(Duration(hours: windowHours.toInt()));
     final consumed = getCaloriesInRange(windowStart, now);
     final adjustedTarget = calculateAdjustedTarget(now);
@@ -397,25 +398,25 @@ class CalorieStabilizer {
       warnings.add(Warning(
         type: WarningType.overeating,
         message:
-        'Превышение нормы на ${excess.toStringAsFixed(0)} ккал за последние '
-            '${windowHours.toStringAsFixed(0)} часов.',
+        'Exceeded target by ${excess.toStringAsFixed(0)} kcal in the last '
+            '${windowHours.toStringAsFixed(0)} hours.',
         severity: severity,
       ));
     }
 
-    // Проверка слишком низкого потребления
+    // Check too low consumption
     if (consumed > 0 && consumed < settings.minDailyCalories * 0.5) {
       final hoursInWindow = math.min(
         hoursSinceLastMeal,
         windowHours,
       );
-      // Предупреждаем только если прошло достаточно времени
+      // Warn only if enough time has passed
       if (hoursInWindow > 12) {
         warnings.add(Warning(
           type: WarningType.belowMinimum,
           message:
-          'Потреблено всего ${consumed.toStringAsFixed(0)} ккал. '
-              'Не забывайте есть регулярно.',
+          'Only ${consumed.toStringAsFixed(0)} kcal consumed. '
+              'Don\'t forget to eat regularly.',
           severity: WarningSeverity.info,
         ));
       }
@@ -424,7 +425,7 @@ class CalorieStabilizer {
     return warnings;
   }
 
-  /// Главный метод — получить полную рекомендацию
+  /// Main method — get full recommendation
   DailyRecommendation getRecommendation([DateTime? now]) {
     final currentTime = now ?? DateTime.now();
     final windowHours = settings.windowHours;
@@ -447,9 +448,9 @@ class CalorieStabilizer {
     );
   }
 
-  /// Симулирует добавление калорий и возвращает результат
+  /// Simulates adding calories and returns the result
   ///
-  /// Полезно для предварительного просмотра эффекта от приёма пищи
+  /// Useful for previewing the effect of a meal
   DailyRecommendation simulateEntry(
       double calories, {
         DateTime? timestamp,
@@ -458,11 +459,11 @@ class CalorieStabilizer {
     final entryTime = timestamp ?? DateTime.now();
     final evalTime = evaluationTime ?? entryTime;
 
-    // Создаём временную копию
+    // Create a temporary copy
     final tempEntries = List<CalorieEntry>.from(_entries);
     tempEntries.add(CalorieEntry(timestamp: entryTime, calories: calories));
 
-    // Временно заменяем записи
+    // Temporarily replace entries
     final backup = List<CalorieEntry>.from(_entries);
     _entries
       ..clear()
@@ -471,14 +472,14 @@ class CalorieStabilizer {
     try {
       return getRecommendation(evalTime);
     } finally {
-      // Восстанавливаем оригинальные записи
+      // Restore original entries
       _entries
         ..clear()
         ..addAll(backup);
     }
   }
 
-  /// Получить статистику за период
+  /// Get statistics for period
   Map<String, dynamic> getStatistics(DateTime start, DateTime end) {
     final entries = getEntriesInRange(start, end);
     if (entries.isEmpty) {
@@ -496,7 +497,7 @@ class CalorieStabilizer {
     final totalCalories = entries.fold(0.0, (sum, e) => sum + e.calories);
     final days = end.difference(start).inDays.clamp(1, 365);
 
-    // Группируем по дням для статистики
+    // Group by days for statistics
     final dayCalories = <String, double>{};
     for (final entry in entries) {
       final dayKey =
@@ -512,7 +513,7 @@ class CalorieStabilizer {
         ? 0.0
         : dailyValues.reduce((a, b) => a < b ? a : b);
 
-    // Подсчёт приёмов пищи (группировка)
+    // Meal count (grouping)
     int totalMeals = 0;
     DateTime? lastMealTime;
     for (final entry in entries) {
