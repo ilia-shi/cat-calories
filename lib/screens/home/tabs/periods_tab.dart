@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../edit_waking_period_screen.dart';
+import '../../edit_waking_period_screen.dart';
 
 class WakingPeriodsView extends StatefulWidget {
   WakingPeriodsView({Key? key}) : super(key: key);

@@ -4,10 +4,11 @@ import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/screens/create_food_intake_screen.dart';
 import 'package:cat_calories/screens/create_product_screen.dart';
-import 'package:cat_calories/screens/home/_app_drawer.dart';
-import 'package:cat_calories/screens/home/_calorie_items_view.dart';
-import 'package:cat_calories/screens/home/_days_view.dart';
-import 'package:cat_calories/screens/home/_waking_periods_view.dart';
+import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
+import 'package:cat_calories/screens/home/tabs/calorie_items_tab.dart';
+import 'package:cat_calories/screens/home/tabs/days_tab.dart';
+import 'package:cat_calories/screens/home/tabs/periods_tab.dart';
+import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,10 +16,8 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/ui/widgets/calculator_widget.dart';
-
-import '_equalization_stats_view.dart';
-import '_main_info_view.dart';
+import 'tabs/equalization_stats_tab.dart';
+import 'tabs/main_info_tab.dart';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key);
@@ -66,25 +65,24 @@ class _HomeScreenState extends State<HomeScreen>
     BlocProvider.of<HomeBloc>(context)
         .add(CalorieItemListFetchingInProgressEvent());
 
-    void _createCalorieItem(
-        List<CalorieItemModel> calorieItems, WakingPeriodModel wakingPeriod) {
-      final String expression = _calorieItemController.text;
-
-      if (expression.length == 0) {
-        return;
-      }
-
-      BlocProvider.of<HomeBloc>(context).add(
-          CreatingCalorieItemEvent(expression, wakingPeriod, calorieItems,
-              (CalorieItemModel calorieItem) {
-        final snackBar = SnackBar(
-            content:
-                Text('${calorieItem.value.toStringAsFixed(2)} kcal added'));
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        _calorieItemController.text = '';
-      }));
-    }
+    const menuItems = [
+      PopupMenuItem<String>(
+        value: 'calories',
+        child: ListTile(title: Text('Calories')),
+      ),
+      PopupMenuItem<String>(
+        value: 'create_product',
+        child: ListTile(title: Text('Create product')),
+      ),
+      PopupMenuItem<String>(
+        value: 'products',
+        child: ListTile(title: Text('Products')),
+      ),
+      PopupMenuItem<String>(
+        value: 'create_food_intake',
+        child: ListTile(title: Text('Create food intake')),
+      ),
+    ];
 
     return Scaffold(
       body: Scaffold(
@@ -92,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen>
           length: 5,
           child: Scaffold(
             drawer: Drawer(
-              child: AppDrawer(),
+              child: HomeAppDrawer(),
             ),
             appBar: AppBar(
               actions: [
@@ -101,24 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
                   if (state is HomeFetched) {
                     return PopupMenuButton(
                       itemBuilder: (BuildContext context) {
-                        return [
-                          PopupMenuItem<String>(
-                            value: 'calories',
-                            child: ListTile(title: Text('Calories')),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'create_product',
-                            child: ListTile(title: Text('Create product')),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'products',
-                            child: ListTile(title: Text('Products')),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'create_food_intake',
-                            child: ListTile(title: Text('Create food intake')),
-                          ),
-                        ];
+                        return menuItems;
                       },
                       onSelected: (String value) {
                         if (value == 'create_product') {
@@ -206,71 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-      floatingActionButton:
-          BlocBuilder<HomeBloc, AbstractHomeState>(builder: (context, state) {
-        if (state is HomeFetched && state.currentWakingPeriod != null) {
-          return FloatingActionButton(
-            child: Icon(Icons.add),
-            onPressed: () {
-              showModalBottomSheet<dynamic>(
-                isScrollControlled: true,
-                context: context,
-                builder: (BuildContext context) {
-                  return StatefulBuilder(
-                      builder: (BuildContext context, StateSetter stateSetter) {
-                    return FractionallySizedBox(
-                      child: Wrap(
-                        children: <Widget>[
-                          Builder(
-                            builder: (context) => Form(
-                              child: Column(
-                                children: <Widget>[
-                                  Container(
-                                    color: Color(0xFFEEEEEE),
-                                    child: TextFormField(
-                                      decoration: InputDecoration(
-                                        fillColor: SuccessColor,
-                                        contentPadding: EdgeInsets.symmetric(
-                                            vertical: 10.0, horizontal: 10.0),
-                                        suffix: Text('kCal'),
-                                        prefix: Text('+'),
-                                      ),
-                                      validator: (value) {
-                                        // if (value.isEmpty) {
-                                        //   return 'Please enter some value';
-                                        // }
-                                        return null;
-                                      },
-                                      maxLines: 1,
-                                      controller: _calorieItemController,
-                                    ),
-                                  ),
-                                  CalculatorWidget(
-                                    controller: _calorieItemController,
-                                    onPressed: () {
-                                      _createCalorieItem(_calorieItems,
-                                          state.currentWakingPeriod!);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  });
-                },
-              );
-            },
-          );
-        }
-        return FloatingActionButton(
-          onPressed: null,
-          child: Icon(Icons.add),
-          backgroundColor: Theme.of(context).disabledColor,
-        );
-      }),
+      floatingActionButton: const HomeFloatingActionButton(),
     );
   }
 }

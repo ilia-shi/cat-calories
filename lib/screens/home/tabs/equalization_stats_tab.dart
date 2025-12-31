@@ -1,4 +1,4 @@
-// lib/screens/home/_equalization_stats_view.dart
+// lib/screens/home/equalization_stats_tab.dart
 
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
