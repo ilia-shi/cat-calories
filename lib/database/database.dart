@@ -79,10 +79,8 @@ class DBProvider {
             eaten_at INT NULL,
             profile_id INT,
             waking_period_id INT,
-            food_intake_id INT NULL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id),
-            FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
-            FOREIGN KEY(food_intake_id) REFERENCES food_intakes(id)
+            FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id)
           )
         ''');
 
@@ -102,24 +100,6 @@ class DBProvider {
             fats REAL NULL,
             carbohydrates REAL NULL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id)
-          )
-        ''');
-
-        await db.execute('''
-          CREATE TABLE food_intakes (
-            id INTEGER PRIMARY KEY NOT NULL,
-            created_at INT,
-            eaten_at INT NULL,
-            description TEXT NULL,
-            reason_comment TEXT NULL,
-            comment_after_intake TEXT NULL,
-            emotions_after_intake_comment TEXT NULL,
-            satiety_level_before_intake INT NULL,
-            satiety_level_after_intake INT NULL,
-            profile_id INT,
-            waking_period_id INT,
-            FOREIGN KEY(profile_id) REFERENCES profiles(id),
-            FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id)
           )
         ''');
 

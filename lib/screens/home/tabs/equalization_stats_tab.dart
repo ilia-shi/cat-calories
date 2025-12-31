@@ -83,7 +83,7 @@ class EqualizationStatsView extends StatelessWidget {
                       percentageCompletedCircleColor:
                       isOver ? DangerColor : SuccessColor,
                       completedPercentage: progressPercent,
-                      circleWidth: 6.0,
+                      circleWidth: 5.0,
                     ),
                   ),
                 ),

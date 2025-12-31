@@ -39,7 +39,6 @@ class CaloriesCubit extends Cubit<AbstractCaloriesState> {
       createdAt: dayStart,
       profileId: profile.id!,
       wakingPeriodId: null,
-      foodIntakeId: null,
     );
 
     calorieItemRepository.insert(calorieItem);

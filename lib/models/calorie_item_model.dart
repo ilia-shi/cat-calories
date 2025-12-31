@@ -1,4 +1,4 @@
-class CalorieItemModel {
+final class CalorieItemModel {
   int? id;
   double value;
   String? description;
@@ -7,7 +7,6 @@ class CalorieItemModel {
   DateTime createdAt;
   int profileId;
   int? wakingPeriodId;
-  int? foodIntakeId;
 
   CalorieItemModel({
     required this.id,
@@ -18,7 +17,6 @@ class CalorieItemModel {
     required this.createdAt,
     required this.profileId,
     required this.wakingPeriodId,
-    required this.foodIntakeId,
   });
 
   factory CalorieItemModel.fromJson(Map<String, dynamic> json) =>
@@ -33,7 +31,6 @@ class CalorieItemModel {
         createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at']),
         profileId: json['profile_id'],
         wakingPeriodId: json['waking_period_id'],
-        foodIntakeId: json['food_intake_id'],
       );
 
   Map<String, dynamic> toJson() => {
@@ -50,7 +47,6 @@ class CalorieItemModel {
         'sort_order': sortOrder,
         'profile_id': profileId,
         'waking_period_id': wakingPeriodId,
-        'food_intake_id': foodIntakeId,
       };
 
   bool isEaten() {

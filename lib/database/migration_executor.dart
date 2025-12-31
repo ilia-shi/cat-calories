@@ -1,10 +1,9 @@
 import 'package:cat_calories/database/migrations/abstract_migration.dart';
 import 'package:sqflite/sqflite.dart';
-import 'migrations.dart';
 
 class MigrationExecutor {
   static final List<AbstractMigration> _migrations = [
-    V003CreateFoodIntakesTable(),
+
   ];
 
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {

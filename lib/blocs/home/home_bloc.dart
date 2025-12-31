@@ -93,7 +93,6 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       description: null,
       profileId: _activeProfile!.id!,
       wakingPeriodId: event.wakingPeriod.id!,
-      foodIntakeId: null,
     );
 
     await calorieItemRepository.offsetSortOrder();
@@ -310,7 +309,6 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       description: event.product.title,
       profileId: _activeProfile!.id!,
       wakingPeriodId: event.wakingPeriod.id!,
-      foodIntakeId: null,
     );
 
     event.product.usesCount = event.product.usesCount + 1;

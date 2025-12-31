@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
-import 'package:cat_calories/screens/create_food_intake_screen.dart';
 import 'package:cat_calories/screens/create_product_screen.dart';
 import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/tabs/calorie_items_tab.dart';
@@ -78,10 +77,6 @@ class _HomeScreenState extends State<HomeScreen>
         value: 'products',
         child: ListTile(title: Text('Products')),
       ),
-      PopupMenuItem<String>(
-        value: 'create_food_intake',
-        child: ListTile(title: Text('Create food intake')),
-      ),
     ];
 
     return Scaffold(
@@ -115,14 +110,6 @@ class _HomeScreenState extends State<HomeScreen>
                             MaterialPageRoute(builder: (context) {
                               return DayCaloriesPage(state.startDate);
                             }),
-                          );
-                        } else if (value == 'products') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  CreateFoodIntakeScreen(state.activeProfile),
-                            ),
                           );
                         }
                       },
