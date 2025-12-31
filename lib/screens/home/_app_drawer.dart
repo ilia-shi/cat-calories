@@ -6,8 +6,8 @@ import 'package:cat_calories/screens/create_profile_screen.dart';
 import 'package:cat_calories/screens/edit_profile_screen.dart';
 import 'package:cat_calories/utils/cat_avatar_resolver.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cat_calories/screens/calories_history.dart';
 
 class AppDrawer extends StatefulWidget {
   AppDrawer({Key? key}) : super(key: key);
@@ -55,7 +55,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundImage:
-                                CatAvatarResolver.getImageByProfle(profile),
+                            CatAvatarResolver.getImageByProfle(profile),
                           ),
                           title: Text(profile.name),
                           onTap: () {
@@ -81,6 +81,22 @@ class _AppDrawerState extends State<AppDrawer> {
                       MaterialPageRoute(
                           builder: (context) => CreateProfileScreen()));
                   // Navigator.pop(context);
+                },
+              ),
+              Divider(),
+              // Calorie History Link
+              ListTile(
+                leading: Icon(Icons.history),
+                title: Text('Calorie History'),
+                subtitle: Text('View all calories by date'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllCaloriesHistoryScreen(),
+                    ),
+                  );
                 },
               ),
               Divider(),
