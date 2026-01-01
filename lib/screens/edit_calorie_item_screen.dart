@@ -393,7 +393,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
     return ActionChip(
       label: Text(label),
       backgroundColor: isSelected
-          ? Theme.of(context).primaryColor.withOpacity(0.2)
+          ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
           : Colors.grey.shade100,
       labelStyle: TextStyle(
         color: isSelected

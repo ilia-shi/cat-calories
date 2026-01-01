@@ -106,7 +106,7 @@ class _DayCaloriesPageState extends State<DayCaloriesPage> {
         child: Icon(Icons.add),
         onPressed: () {
           showModalBottomSheet<dynamic>(
-            barrierColor: Colors.black.withOpacity(0.2),
+            barrierColor: Colors.black.withValues(alpha: 0.2),
             isScrollControlled: true,
             context: context,
             builder: (BuildContext context) {

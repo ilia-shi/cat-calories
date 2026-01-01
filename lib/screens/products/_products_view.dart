@@ -89,7 +89,7 @@ class _ProductsViewState extends State<ProductsView> {
 
   _showToEatBottomSheet(ProductModel product, List<CalorieItemModel> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
     showModalBottomSheet<dynamic>(
-      barrierColor: Colors.black.withOpacity(0.2),
+      barrierColor: Colors.black.withValues(alpha: 0.2),
       isScrollControlled: true,
       context: context,
       builder: (BuildContext context) {

@@ -14,6 +14,12 @@ class HomeFetched extends AbstractHomeState {
   final DateTime nowDateTime;
   final List<CalorieItemModel> periodCalorieItems;
   final List<CalorieItemModel> todayCalorieItems;
+
+  /// Calorie items from the last 48 hours for rolling window calculations.
+  /// This enables the RollingCalorieTracker to work across irregular schedules
+  /// without being tied to calendar day boundaries.
+  final List<CalorieItemModel> rollingWindowCalorieItems;
+
   final List<DayResultModel> days30;
   final List<DayResultModel> days2;
   final List<ProfileModel> profiles;
@@ -31,6 +37,7 @@ class HomeFetched extends AbstractHomeState {
     required this.nowDateTime,
     required this.periodCalorieItems,
     required this.todayCalorieItems,
+    required this.rollingWindowCalorieItems,
     required this.days30,
     required this.days2,
     required this.profiles,
@@ -73,6 +80,30 @@ class HomeFetched extends AbstractHomeState {
     return totalCalories;
   }
 
+  /// Get calories consumed in the rolling 24-hour window ending at the given time.
+  double getRolling24hCalories({DateTime? asOf}) {
+    final endTime = asOf ?? DateTime.now();
+    final startTime = endTime.subtract(const Duration(hours: 24));
+
+    double total = 0;
+    for (final item in rollingWindowCalorieItems) {
+      if (item.isEaten()) {
+        final eatenAt = item.eatenAt ?? item.createdAt;
+        if (eatenAt.isAfter(startTime) && !eatenAt.isAfter(endTime)) {
+          total += item.value;
+        }
+      }
+    }
+    return total;
+  }
+
+  /// Get remaining budget in the rolling 24-hour window.
+  double getRolling24hRemaining({DateTime? asOf}) {
+    final consumed = getRolling24hCalories(asOf: asOf);
+    return (activeProfile.caloriesLimitGoal - consumed)
+        .clamp(0.0, activeProfile.caloriesLimitGoal);
+  }
+
   DateTime getDayStart() {
     return DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day, 0, 0, 0);
   }
@@ -111,9 +142,9 @@ class DaysStat {
   final double totalCalories;
 
   DaysStat(
-    this.days,
-    this.totalCalories,
-  );
+      this.days,
+      this.totalCalories,
+      );
 
   double getAvg() {
     return totalCalories / days.length;

@@ -1,0 +1,4 @@
+storePassword=
+keyPassword=
+keyAlias=cat-calories
+storeFile=/home/username/cat-calories.jks

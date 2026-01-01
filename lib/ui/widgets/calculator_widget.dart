@@ -44,7 +44,7 @@ class CalculatorWidget extends StatelessWidget {
               controller.text += '*';
             }),
             CalculatorKeyWidget(Icon(Icons.backspace), () {
-              if (controller.text == null || controller.text.length == 0) {
+              if (controller.text.length == 0) {
                 return;
               }
 

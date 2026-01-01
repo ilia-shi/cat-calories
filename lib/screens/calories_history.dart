@@ -251,7 +251,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.8),
+            Theme.of(context).primaryColor.withValues(alpha: 0.8),
             Theme.of(context).primaryColor,
           ],
           begin: Alignment.topLeft,
@@ -260,7 +260,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -279,7 +279,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               Container(
                 height: 50,
                 width: 1,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
               ),
               _buildSummaryItem(
                 icon: Icons.local_fire_department,
@@ -289,7 +289,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               Container(
                 height: 50,
                 width: 1,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
               ),
               _buildSummaryItem(
                 icon: Icons.analytics_outlined,
@@ -302,7 +302,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -341,7 +341,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
       ],
@@ -371,7 +371,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         borderRadius: BorderRadius.circular(16),
         side: isToday
             ? BorderSide(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
           width: 2,
         )
             : BorderSide.none,
@@ -397,7 +397,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isToday
-                    ? Theme.of(context).primaryColor.withOpacity(0.05)
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
                     : null,
                 borderRadius: BorderRadius.vertical(
                   top: const Radius.circular(16),
@@ -415,7 +415,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                           ? LinearGradient(
                         colors: [
                           Theme.of(context).primaryColor,
-                          Theme.of(context).primaryColor.withOpacity(0.8),
+                          Theme.of(context).primaryColor.withValues(alpha: 0.8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -441,7 +441,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: isToday
-                                ? Colors.white.withOpacity(0.9)
+                                ? Colors.white.withValues(alpha: 0.9)
                                 : Colors.grey.shade600,
                           ),
                         ),
@@ -560,7 +560,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -568,7 +568,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: color.withOpacity(0.8),
+          color: color.withValues(alpha: 0.8),
         ),
       ),
     );
@@ -614,7 +614,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: SuccessColor.withOpacity(0.1),
+                          color: SuccessColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
@@ -695,7 +695,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: (item.value > 0 ? DangerColor : SuccessColor)
-                      .withOpacity(0.1),
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -792,7 +792,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.edit, color: Colors.blue, size: 20),
@@ -814,7 +814,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: (item.isEaten() ? Colors.orange : SuccessColor)
-                          .withOpacity(0.1),
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -845,7 +845,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: DangerColor.withOpacity(0.1),
+                      color: DangerColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child:
@@ -882,7 +882,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: DangerColor.withOpacity(0.1),
+                color: DangerColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.delete_outline, color: DangerColor),

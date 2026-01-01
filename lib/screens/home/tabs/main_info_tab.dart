@@ -4,7 +4,6 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/screens/edit_waking_period_screen.dart';
-import 'package:cat_calories/screens/home/widgets/stabilizer_widgets.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';
@@ -32,16 +31,6 @@ class _MainInfoViewState extends State<MainInfoView> {
         return ListView(
           padding: const EdgeInsetsDirectional.all(10),
           children: [
-            // === NEW STABILIZATION WIDGETS ===
-            // Recommendations widget (always shown)
-            StabilizerRecommendationWidget(state: state),
-            const SizedBox(height: 10),
-
-            // Day progress widget
-            StabilizerProgressWidget(state: state),
-            const SizedBox(height: 10),
-
-            // === EXISTING WAKING PERIOD CARD ===
             SizedBox(
               child: Card(
                 child: Builder(builder: (BuildContext context) {
@@ -54,7 +43,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                             child: Text(
                               'No active waking period',
                               style: TextStyle(
-                                  color: Colors.black.withOpacity(0.6)),
+                                  color: Colors.black.withValues(alpha: 0.6)),
                             ),
                           ),
                           const Divider(),
@@ -146,7 +135,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                         child: Text(
                           '${DateFormat('MMM d, HH:mm').format(state.currentWakingPeriod!.startedAt)} ~ ${DateFormat('MMM d, HH:mm').format(state.currentWakingPeriod!.getToDateTime())}',
                           style: TextStyle(
-                            color: Colors.black.withOpacity(0.6),
+                            color: Colors.black.withValues(alpha: 0.6),
                             fontSize: 12,
                           ),
                         ),
@@ -229,7 +218,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                     child: Text(
                                       'Goal: ${state.currentWakingPeriod!.caloriesLimitGoal} kcal/${state.currentWakingPeriod!.getExpectedWakingDuration().inHours}h (${state.currentWakingPeriod!.getCaloriesPerHour().toStringAsFixed(2)} kcal/h)',
                                       style: TextStyle(
-                                          color: Colors.black.withOpacity(0.6)),
+                                          color: Colors.black.withValues(alpha: 0.6)),
                                     ),
                                   ),
                                 ),

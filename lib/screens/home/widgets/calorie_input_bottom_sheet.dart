@@ -134,18 +134,18 @@ class _CalorieInputBottomSheetState extends State<CalorieInputBottomSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Add Calories',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
+          // Text(
+          //   'Add Calories',
+          //   style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          //     fontWeight: FontWeight.w600,
+          //   ),
+          // ),
+          // IconButton(
+          //   icon: const Icon(Icons.close),
+          //   onPressed: () => Navigator.of(context).pop(),
+          //   padding: EdgeInsets.zero,
+          //   constraints: const BoxConstraints(),
+          // ),
         ],
       ),
     );
