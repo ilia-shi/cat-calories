@@ -221,23 +221,19 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildContent() {
-    return Column(
-      children: [
-        _buildSummaryCard(),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadAllCalories,
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 24),
-              itemCount: _sortedDates.length,
-              itemBuilder: (context, index) {
-                final date = _sortedDates[index];
-                return _buildDateGroup(date);
-              },
-            ),
-          ),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: _loadAllCalories,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: _sortedDates.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildSummaryCard();
+          }
+          final date = _sortedDates[index - 1];
+          return _buildDateGroup(date);
+        },
+      ),
     );
   }
 
