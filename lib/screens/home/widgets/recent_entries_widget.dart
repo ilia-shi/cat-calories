@@ -246,24 +246,6 @@ class RecentEntriesWidget extends StatelessWidget {
               ),
             ],
           ),
-
-          // Remove button
-          if (onRemove != null) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: () => onRemove!(entry),
-              icon: Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.grey.shade400,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 24,
-                minHeight: 24,
-              ),
-            ),
-          ],
         ],
       ),
     );
