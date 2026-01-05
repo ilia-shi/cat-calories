@@ -22,6 +22,25 @@ class DBProvider {
     return _database;
   }
 
+  Future<bool> _columnExists(Database db, String table, String column) async {
+    final result = await db.rawQuery('PRAGMA table_info($table)');
+    return result.any((row) => row['name'] == column);
+  }
+
+  Future<void> _addColumnIfNotExists(Database db, String table, String column, String type) async {
+    if (!await _columnExists(db, table, column)) {
+      print('Adding column $column to $table...');
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
+  }
+
+  Future<void> _ensureColumns(Database db) async {
+    await _addColumnIfNotExists(db, 'calorie_items', 'weight_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'protein_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'fat_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'carb_grams', 'REAL NULL');
+  }
+
   initDB() async {
     Directory documentsDir = await getApplicationDocumentsDirectory();
     String path = join(documentsDir.path, 'app.db');
@@ -36,7 +55,9 @@ class DBProvider {
     return await openDatabase(
       path,
       version: 3,
-      onOpen: (db) async {},
+      onOpen: (db) async {
+        await _ensureColumns(db);
+      },
       onCreate: (Database db, int version) async {
         print('Creating database tables...');
 
@@ -79,6 +100,10 @@ class DBProvider {
             eaten_at INT NULL,
             profile_id INT,
             waking_period_id INT,
+            weight_grams REAL NULL,
+            protein_grams REAL NULL,
+            fat_grams REAL NULL,
+            carb_grams REAL NULL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id),
             FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id)
           )

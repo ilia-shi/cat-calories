@@ -1,6 +1,8 @@
+import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class IndicatorData {
+final class IndicatorData {
   final double averageLast7Days;
   final double caloriesLast24Hours;
   final double caloriesToday;
@@ -9,6 +11,7 @@ class IndicatorData {
   final double dailyGoal;
   final double? periodGoal;
   final bool hasPeriod;
+  final List<CalorieItemModel> todayCalorieItems;
 
   const IndicatorData({
     required this.averageLast7Days,
@@ -17,6 +20,7 @@ class IndicatorData {
     required this.caloriesYesterday,
     required this.caloriesCurrentPeriod,
     required this.dailyGoal,
+    required this.todayCalorieItems,
     this.periodGoal,
     this.hasPeriod = false,
   });
@@ -32,6 +36,9 @@ final class IndicatorsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final firstItem = _firstTodayCalorieItem();
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -63,7 +70,7 @@ final class IndicatorsWidget extends StatelessWidget {
               Expanded(
                 child: _buildIndicatorCard(
                   context: context,
-                  title: 'Today',
+                  title: _getTodayTitle(),
                   value: data.caloriesToday,
                   goal: data.dailyGoal,
                   icon: Icons.today,
@@ -385,12 +392,50 @@ final class IndicatorsWidget extends StatelessWidget {
     final percentage =
         data.dailyGoal > 0 ? data.caloriesToday / data.dailyGoal : 0.0;
 
-    if (percentage > 1.0) return Colors.red.shade600;
-    if (percentage > 0.9) return Colors.orange.shade600;
+    if (percentage > 1.0) {
+      return Colors.red.shade600;
+    }
+
+    if (percentage > 0.9) {
+      return Colors.orange.shade600;
+    }
+
     return Colors.green.shade600;
   }
 
   Color _getOverColor(BuildContext context) {
     return Colors.red.shade600;
+  }
+
+  CalorieItemModel? _firstTodayCalorieItem() {
+    if (data.todayCalorieItems.isEmpty) {
+      return null;
+    }
+
+    final eatenItems =
+        data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
+
+    if (eatenItems.isEmpty) {
+      return null;
+    }
+
+    return eatenItems.reduce((earliest, current) =>
+        earliest.eatenAt!.isBefore(current.eatenAt!) ? earliest : current);
+  }
+  
+  String _getTodayTitle() {
+    final firstItem = _firstTodayCalorieItem();
+    if (null == firstItem) {
+      return 'Today';
+    }
+
+    final dateTime = firstItem.eatenAt;
+    if (null == dateTime) {
+      return 'Today';
+    }
+
+    final dateString = DateFormat('MMM dd HH:mm').format(dateTime);
+
+    return '${dateString}';
   }
 }

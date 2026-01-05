@@ -135,12 +135,10 @@ class _TrackingTabState extends State<TrackingTab> {
     // FIXED: When using time simulation, calculate "today" based on the simulated time
     final double caloriesToday;
     if (_hoursOffset == 0) {
-      // Normal mode - use bloc's todayCalorieItems
       caloriesToday = state.todayCalorieItems
           .where((item) => item.isEaten())
           .fold(0.0, (sum, item) => sum + item.value);
     } else {
-      // Time simulation mode - calculate based on simulated "today"
       final simulatedDayStart = DateTime(now.year, now.month, now.day);
       final simulatedDayEnd = simulatedDayStart.add(const Duration(days: 1));
       caloriesToday = entries
@@ -149,13 +147,8 @@ class _TrackingTabState extends State<TrackingTab> {
           .fold(0.0, (sum, e) => sum + e.value);
     }
 
-    // 3. Calories for yesterday
     final caloriesYesterday = _calculateYesterdayCalories(state, entries, now);
-
-    // 4. Average daily for last 7 days (excluding last 24 hours)
     final averageLast7Days = _calculateAverageLast7Days(state, entries, now);
-
-    // 5. Calories for current waking period
     final caloriesCurrentPeriod = state.periodCalorieItems
         .where((item) => item.isEaten())
         .fold(0.0, (sum, item) => sum + item.value);
@@ -170,6 +163,7 @@ class _TrackingTabState extends State<TrackingTab> {
       caloriesToday: caloriesToday,
       caloriesYesterday: caloriesYesterday,
       caloriesCurrentPeriod: caloriesCurrentPeriod,
+      todayCalorieItems: state.todayCalorieItems,
       dailyGoal: dailyGoal,
       periodGoal: periodGoal,
       hasPeriod: hasPeriod,
@@ -263,6 +257,7 @@ class _TrackingTabState extends State<TrackingTab> {
           caloriesYesterday: 0,
           caloriesCurrentPeriod: 0,
           dailyGoal: config.targetDailyCalories,
+          todayCalorieItems: [],
         );
 
         return RefreshIndicator(

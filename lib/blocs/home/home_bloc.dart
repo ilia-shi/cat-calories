@@ -370,7 +370,6 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   Future<void> _emitHomeData(Emitter<AbstractHomeState> emit) async {
     final ProfileModel activeProfile = _activeProfile!;
 
-    // FIXED: Always use fresh DateTime.now() to ensure we get data for the current day
     final DateTime nowDateTime = DateTime.now();
 
     // Calculate recommendation
