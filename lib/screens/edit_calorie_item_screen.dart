@@ -17,12 +17,20 @@ class EditCalorieItemScreen extends StatefulWidget {
 }
 
 class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
+  // Core fields
   TextEditingController _valueController = TextEditingController();
   TextEditingController _descriptionController = TextEditingController();
+
+  // Nutritional fields
+  TextEditingController _weightController = TextEditingController();
+  TextEditingController _proteinController = TextEditingController();
+  TextEditingController _fatController = TextEditingController();
+  TextEditingController _carbController = TextEditingController();
 
   CalorieItemModel calorieItem;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
+  bool _showNutritionFields = false;
 
   EditCalorieItemScreenState(this.calorieItem);
 
@@ -37,6 +45,18 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
         (calorieItem.description == null ? '' : calorieItem.description)
             .toString();
 
+    // Initialize nutritional fields
+    _weightController.text = calorieItem.weightGrams?.toString() ?? '';
+    _proteinController.text = calorieItem.proteinGrams?.toString() ?? '';
+    _fatController.text = calorieItem.fatGrams?.toString() ?? '';
+    _carbController.text = calorieItem.carbGrams?.toString() ?? '';
+
+    // Show nutrition section if any nutritional data exists
+    _showNutritionFields = calorieItem.weightGrams != null ||
+        calorieItem.proteinGrams != null ||
+        calorieItem.fatGrams != null ||
+        calorieItem.carbGrams != null;
+
     // Initialize date and time from the calorie item
     _selectedDate = calorieItem.createdAt;
     _selectedTime = TimeOfDay.fromDateTime(calorieItem.createdAt);
@@ -46,8 +66,17 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   void dispose() {
     _valueController.dispose();
     _descriptionController.dispose();
+    _weightController.dispose();
+    _proteinController.dispose();
+    _fatController.dispose();
+    _carbController.dispose();
 
     super.dispose();
+  }
+
+  double? _parseNullableDouble(String text) {
+    if (text.isEmpty) return null;
+    return double.tryParse(text);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -109,6 +138,37 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
     }
   }
 
+  void _saveCalorieItem() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    calorieItem.value = double.parse(_valueController.text);
+    calorieItem.description = _descriptionController.text.length == 0
+        ? null
+        : _descriptionController.text;
+
+    // Update nutritional data
+    calorieItem.weightGrams = _parseNullableDouble(_weightController.text);
+    calorieItem.proteinGrams = _parseNullableDouble(_proteinController.text);
+    calorieItem.fatGrams = _parseNullableDouble(_fatController.text);
+    calorieItem.carbGrams = _parseNullableDouble(_carbController.text);
+
+    // Update the date
+    calorieItem.createdAt = _selectedDate;
+
+    // Update eatenAt if it was set
+    if (calorieItem.eatenAt != null) {
+      calorieItem.eatenAt = _selectedDate;
+    }
+
+    BlocProvider.of<HomeBloc>(context)
+        .add(CalorieItemListUpdatingEvent(calorieItem, [], () {
+      Navigator.of(context).pop();
+    }));
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,33 +181,8 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
             )),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.check,
-            ),
-            onPressed: () {
-              if (!_formKey.currentState!.validate()) {
-                return;
-              }
-
-              calorieItem.value = double.parse(_valueController.text);
-              calorieItem.description = _descriptionController.text.length == 0
-                  ? null
-                  : _descriptionController.text;
-
-              // Update the date
-              calorieItem.createdAt = _selectedDate;
-
-              // Update eatenAt if it was set
-              if (calorieItem.eatenAt != null) {
-                calorieItem.eatenAt = _selectedDate;
-              }
-
-              BlocProvider.of<HomeBloc>(context)
-                  .add(CalorieItemListUpdatingEvent(calorieItem, [], () {
-                Navigator.of(context).pop();
-              }));
-              Navigator.of(context).pop();
-            },
+            icon: Icon(Icons.check),
+            onPressed: _saveCalorieItem,
           ),
         ],
       ),
@@ -205,6 +240,11 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
 
                     const SizedBox(height: 32),
 
+                    // Nutritional Information Section
+                    _buildNutritionSection(),
+
+                    const SizedBox(height: 32),
+
                     // Date & Time Section
                     Text(
                       'Date & Time',
@@ -246,7 +286,8 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    DateFormat('EEEE, MMMM d, y').format(_selectedDate),
+                                    DateFormat('EEEE, MMMM d, y')
+                                        .format(_selectedDate),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
@@ -382,6 +423,359 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
               ),
             );
           }),
+    );
+  }
+
+  Widget _buildNutritionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header with Toggle
+        InkWell(
+          onTap: () {
+            setState(() {
+              _showNutritionFields = !_showNutritionFields;
+            });
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.restaurant_menu,
+                  color: Colors.green.shade600,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Nutritional Information',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Optional',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _showNutritionFields ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Expandable Content
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: _buildNutritionFields(),
+          crossFadeState: _showNutritionFields
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNutritionFields() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade100),
+      ),
+      child: Column(
+        children: [
+          // Weight Field
+          _buildNutritionField(
+            controller: _weightController,
+            label: 'Weight',
+            hint: 'e.g., 150',
+            suffix: 'g',
+            icon: Icons.scale,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Macros Row 1: Protein & Fat
+          Row(
+            children: [
+              Expanded(
+                child: _buildNutritionField(
+                  controller: _proteinController,
+                  label: 'Protein',
+                  hint: 'e.g., 25',
+                  suffix: 'g',
+                  icon: Icons.egg_alt_outlined,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildNutritionField(
+                  controller: _fatController,
+                  label: 'Fat',
+                  hint: 'e.g., 10',
+                  suffix: 'g',
+                  icon: Icons.water_drop_outlined,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Carbs Field
+          Row(
+            children: [
+              Expanded(
+                child: _buildNutritionField(
+                  controller: _carbController,
+                  label: 'Carbs',
+                  hint: 'e.g., 30',
+                  suffix: 'g',
+                  icon: Icons.bakery_dining_outlined,
+                ),
+              ),
+              const Expanded(child: SizedBox()), // Spacer for alignment
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Nutrition Summary
+          if (_hasAnyNutritionData()) _buildNutritionSummary(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String suffix,
+    required IconData icon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        suffixText: suffix,
+        prefixIcon: Icon(icon, size: 20),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.green.shade400, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.red.shade300),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+        ),
+      ),
+      validator: (String? value) {
+        if (value != null && value.isNotEmpty) {
+          if (double.tryParse(value) == null) {
+            return 'Invalid number';
+          }
+          if (double.parse(value) < 0) {
+            return 'Must be positive';
+          }
+        }
+        return null;
+      },
+      onChanged: (_) => setState(() {}),
+    );
+  }
+
+  bool _hasAnyNutritionData() {
+    return _weightController.text.isNotEmpty ||
+        _proteinController.text.isNotEmpty ||
+        _fatController.text.isNotEmpty ||
+        _carbController.text.isNotEmpty;
+  }
+
+  Widget _buildNutritionSummary() {
+    final protein = _parseNullableDouble(_proteinController.text) ?? 0;
+    final fat = _parseNullableDouble(_fatController.text) ?? 0;
+    final carbs = _parseNullableDouble(_carbController.text) ?? 0;
+
+    // Calculate calories from macros (4 cal/g protein, 9 cal/g fat, 4 cal/g carbs)
+    final calculatedCalories = (protein * 4) + (fat * 9) + (carbs * 4);
+    final enteredCalories = double.tryParse(_valueController.text) ?? 0;
+
+    final hasAllMacros = _proteinController.text.isNotEmpty &&
+        _fatController.text.isNotEmpty &&
+        _carbController.text.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calculate_outlined,
+                  size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 6),
+              Text(
+                'Macro Summary',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMacroChip('P', protein, Colors.blue),
+              _buildMacroChip('F', fat, Colors.orange),
+              _buildMacroChip('C', carbs, Colors.purple),
+            ],
+          ),
+          if (hasAllMacros && calculatedCalories > 0) ...[
+            const SizedBox(height: 12),
+            Divider(height: 1, color: Colors.grey.shade200),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Calculated from macros:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                Text(
+                  '${calculatedCalories.toStringAsFixed(0)} kcal',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ],
+            ),
+            if ((calculatedCalories - enteredCalories).abs() > 10 &&
+                enteredCalories > 0) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 14, color: Colors.amber.shade700),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Differs from entered calories by ${(calculatedCalories - enteredCalories).abs().toStringAsFixed(0)} kcal',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.amber.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMacroChip(String label, double value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${value.toStringAsFixed(1)}g',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: color.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
