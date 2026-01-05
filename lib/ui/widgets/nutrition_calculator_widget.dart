@@ -536,7 +536,7 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
         color: isDarkMode ? Colors.grey[850] : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: field.color.withOpacity(0.5),
+          color: field.color.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
@@ -786,7 +786,7 @@ class _FieldSelectorChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? field.color.withOpacity(0.2)
+              ? field.color.withValues(alpha: 0.2)
               : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -928,13 +928,13 @@ class _KeypadButton extends StatelessWidget {
       backgroundColor = isValid ? Colors.green : Colors.grey;
       textColor = Colors.white;
     } else if (label == 'C') {
-      backgroundColor = Colors.red.withOpacity(0.1);
+      backgroundColor = Colors.red.withValues(alpha: 0.1);
       textColor = Colors.red;
     } else if (label == '⌫') {
-      backgroundColor = Colors.orange.withOpacity(0.1);
+      backgroundColor = Colors.orange.withValues(alpha: 0.1);
       textColor = Colors.orange;
     } else if (label == '→') {
-      backgroundColor = Colors.blue.withOpacity(0.1);
+      backgroundColor = Colors.blue.withValues(alpha: 0.1);
       textColor = Colors.blue;
     } else {
       backgroundColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
