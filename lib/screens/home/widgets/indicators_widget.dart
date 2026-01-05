@@ -12,6 +12,7 @@ final class IndicatorData {
   final double? periodGoal;
   final bool hasPeriod;
   final List<CalorieItemModel> todayCalorieItems;
+  final DateTime now;
 
   const IndicatorData({
     required this.averageLast7Days,
@@ -21,6 +22,7 @@ final class IndicatorData {
     required this.caloriesCurrentPeriod,
     required this.dailyGoal,
     required this.todayCalorieItems,
+    required this.now,
     this.periodGoal,
     this.hasPeriod = false,
   });
@@ -36,9 +38,6 @@ final class IndicatorsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final firstItem = _firstTodayCalorieItem();
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -422,20 +421,54 @@ final class IndicatorsWidget extends StatelessWidget {
     return eatenItems.reduce((earliest, current) =>
         earliest.eatenAt!.isBefore(current.eatenAt!) ? earliest : current);
   }
-  
+
+  CalorieItemModel? _lastTodayCalorieItem() {
+    if (data.todayCalorieItems.isEmpty) {
+      return null;
+    }
+
+    final eatenItems =
+        data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
+
+    if (eatenItems.isEmpty) {
+      return null;
+    }
+
+    return eatenItems.reduce((latest, current) =>
+        latest.eatenAt!.isAfter(current.eatenAt!) ? latest : current);
+  }
+
   String _getTodayTitle() {
     final firstItem = _firstTodayCalorieItem();
+
     if (null == firstItem) {
       return 'Today';
     }
 
-    final dateTime = firstItem.eatenAt;
-    if (null == dateTime) {
+    final lastItem = _lastTodayCalorieItem();
+    if (null == lastItem) {
       return 'Today';
     }
 
-    final dateString = DateFormat('MMM dd HH:mm').format(dateTime);
+    if (firstItem == lastItem) {
+      return 'Today';
+    }
 
-    return '${dateString}';
+    final firstDateTime = firstItem.eatenAt;
+    if (null == firstDateTime) {
+      return 'Today';
+    }
+
+    final lastDateTime = lastItem.eatenAt;
+    if (null == lastDateTime) {
+      return 'Today';
+    }
+
+    final diff = this.data.now.difference(firstDateTime);
+
+    final firstDateString = DateFormat('HH:mm').format(firstDateTime);
+    final lastDateString = DateFormat('HH:mm').format(lastDateTime);
+
+    return '${firstDateString} - ${lastDateString} +${diff.inHours}h';
   }
 }

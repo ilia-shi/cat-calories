@@ -167,6 +167,7 @@ class _TrackingTabState extends State<TrackingTab> {
       dailyGoal: dailyGoal,
       periodGoal: periodGoal,
       hasPeriod: hasPeriod,
+      now: _baseTime
     );
   }
 
@@ -247,18 +248,19 @@ class _TrackingTabState extends State<TrackingTab> {
         final forecast = _tracker.getForecast(entries, _currentTime, hours: 12);
         final recentEntries = _tracker.entriesInLast24h(entries, _currentTime);
 
-        // Calculate indicator data
         final indicatorData = state is HomeFetched
             ? _calculateIndicatorData(state, entries)
             : IndicatorData(
-          averageLast7Days: 0,
-          caloriesLast24Hours: _tracker.consumedInLast24h(entries, _currentTime),
-          caloriesToday: 0,
-          caloriesYesterday: 0,
-          caloriesCurrentPeriod: 0,
-          dailyGoal: config.targetDailyCalories,
-          todayCalorieItems: [],
-        );
+                averageLast7Days: 0,
+                caloriesLast24Hours:
+                    _tracker.consumedInLast24h(entries, _currentTime),
+                caloriesToday: 0,
+                caloriesYesterday: 0,
+                caloriesCurrentPeriod: 0,
+                dailyGoal: config.targetDailyCalories,
+                todayCalorieItems: [],
+                now: _baseTime,
+              );
 
         return RefreshIndicator(
           onRefresh: () async {
