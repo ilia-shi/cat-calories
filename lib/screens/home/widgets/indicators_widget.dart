@@ -2,6 +2,87 @@ import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Represents macronutrient data with support for undefined/partial tracking
+final class MacroData {
+  final double? proteinGrams;
+  final double? fatGrams;
+  final double? carbGrams;
+  final double? proteinGoal;
+  final double? fatGoal;
+  final double? carbGoal;
+
+  /// Count of items that have macro data defined
+  final int itemsWithMacros;
+  final int totalItems;
+
+  const MacroData({
+    this.proteinGrams,
+    this.fatGrams,
+    this.carbGrams,
+    this.proteinGoal,
+    this.fatGoal,
+    this.carbGoal,
+    this.itemsWithMacros = 0,
+    this.totalItems = 0,
+  });
+
+  /// Returns true if any macro data is available
+  bool get hasAnyData =>
+      proteinGrams != null || fatGrams != null || carbGrams != null;
+
+  /// Returns true if all macro data is available
+  bool get hasCompleteData =>
+      proteinGrams != null && fatGrams != null && carbGrams != null;
+
+  /// Coverage percentage (how many items have macro data)
+  double get coveragePercent =>
+      totalItems > 0 ? (itemsWithMacros / totalItems * 100) : 0;
+
+  /// Returns true if coverage is considered reliable (>= 70%)
+  bool get isReliable => coveragePercent >= 70;
+
+  /// Calculate macros from a list of calorie items
+  factory MacroData.fromCalorieItems(
+      List<CalorieItemModel> items, {
+        double? proteinGoal,
+        double? fatGoal,
+        double? carbGoal,
+      }) {
+    double? totalProtein;
+    double? totalFat;
+    double? totalCarbs;
+    int itemsWithMacros = 0;
+
+    for (final item in items) {
+      if (!item.isEaten()) continue;
+
+      final hasMacro = item.proteinGrams != null ||
+          item.fatGrams != null ||
+          item.carbGrams != null;
+
+      if (hasMacro) {
+        itemsWithMacros++;
+        totalProtein = (totalProtein ?? 0) + (item.proteinGrams ?? 0);
+        totalFat = (totalFat ?? 0) + (item.fatGrams ?? 0);
+        totalCarbs = (totalCarbs ?? 0) + (item.carbGrams ?? 0);
+      }
+    }
+
+    final eatenItems = items.where((i) => i.isEaten()).length;
+
+    return MacroData(
+      proteinGrams: totalProtein,
+      fatGrams: totalFat,
+      carbGrams: totalCarbs,
+      proteinGoal: proteinGoal,
+      fatGoal: fatGoal,
+      carbGoal: carbGoal,
+      itemsWithMacros: itemsWithMacros,
+      totalItems: eatenItems,
+    );
+  }
+}
+
 final class IndicatorData {
   final double averageLast7Days;
   final double caloriesLast24Hours;
@@ -14,6 +95,12 @@ final class IndicatorData {
   final List<CalorieItemModel> todayCalorieItems;
   final DateTime now;
 
+  /// Macronutrient data for today
+  final MacroData? macrosToday;
+
+  /// Macronutrient data for 24h rolling window
+  final MacroData? macros24h;
+
   const IndicatorData({
     required this.averageLast7Days,
     required this.caloriesLast24Hours,
@@ -25,6 +112,8 @@ final class IndicatorData {
     required this.now,
     this.periodGoal,
     this.hasPeriod = false,
+    this.macrosToday,
+    this.macros24h,
   });
 }
 
@@ -63,6 +152,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   icon: Icons.update,
                   color: _get24hColor(context),
                   isPrimary: true,
+                  macros: data.macros24h,
                 ),
               ),
               const SizedBox(width: 12),
@@ -75,6 +165,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   icon: Icons.today,
                   color: _getTodayColor(context),
                   isPrimary: true,
+                  macros: data.macrosToday,
                 ),
               ),
             ],
@@ -135,6 +226,7 @@ final class IndicatorsWidget extends StatelessWidget {
     required IconData icon,
     required Color color,
     bool isPrimary = false,
+    MacroData? macros,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -188,7 +280,10 @@ final class IndicatorsWidget extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          // Compact inline macro display
+          if (macros != null) _buildInlineMacros(context, macros),
+          const SizedBox(height: 8),
           // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -217,6 +312,63 @@ final class IndicatorsWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Compact inline macro display for indicator cards
+  Widget _buildInlineMacros(BuildContext context, MacroData macros) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        _buildMiniMacro('P', macros.proteinGrams, Colors.blue.shade600, theme),
+        const SizedBox(width: 6),
+        _buildMiniMacro('F', macros.fatGrams, Colors.orange.shade600, theme),
+        const SizedBox(width: 6),
+        _buildMiniMacro('C', macros.carbGrams, Colors.green.shade600, theme),
+      ],
+    );
+  }
+
+  /// Mini macro indicator for inline display
+  Widget _buildMiniMacro(String label, double? value, Color color, ThemeData theme) {
+    final isUndefined = value == null;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: isUndefined
+                ? Colors.grey.withValues(alpha: 0.2)
+                : color.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 7,
+                fontWeight: FontWeight.bold,
+                color: isUndefined ? Colors.grey : color,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          isUndefined ? '—' : '${value.round()}',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: isUndefined
+                ? Colors.grey
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 
@@ -323,7 +475,7 @@ final class IndicatorsWidget extends StatelessWidget {
 
     if (rolling24hPercent < 70) {
       statusText =
-          'Under target - ${100 - rolling24hPercent}% budget remaining';
+      'Under target - ${100 - rolling24hPercent}% budget remaining';
       statusIcon = Icons.trending_down;
       statusColor = Colors.blue.shade600;
     } else if (rolling24hPercent <= 100) {
@@ -362,7 +514,7 @@ final class IndicatorsWidget extends StatelessWidget {
               statusText,
               style: theme.textTheme.bodySmall?.copyWith(
                 color:
-                    isDark ? statusColor.withValues(alpha: 0.9) : statusColor,
+                isDark ? statusColor.withValues(alpha: 0.9) : statusColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -380,7 +532,7 @@ final class IndicatorsWidget extends StatelessWidget {
 
   Color _get24hColor(BuildContext context) {
     final percentage =
-        data.dailyGoal > 0 ? data.caloriesLast24Hours / data.dailyGoal : 0.0;
+    data.dailyGoal > 0 ? data.caloriesLast24Hours / data.dailyGoal : 0.0;
 
     if (percentage > 1.0) return Colors.red.shade600;
     if (percentage > 0.9) return Colors.orange.shade600;
@@ -389,7 +541,7 @@ final class IndicatorsWidget extends StatelessWidget {
 
   Color _getTodayColor(BuildContext context) {
     final percentage =
-        data.dailyGoal > 0 ? data.caloriesToday / data.dailyGoal : 0.0;
+    data.dailyGoal > 0 ? data.caloriesToday / data.dailyGoal : 0.0;
 
     if (percentage > 1.0) {
       return Colors.red.shade600;
@@ -412,14 +564,14 @@ final class IndicatorsWidget extends StatelessWidget {
     }
 
     final eatenItems =
-        data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
+    data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
 
     if (eatenItems.isEmpty) {
       return null;
     }
 
     return eatenItems.reduce((earliest, current) =>
-        earliest.eatenAt!.isBefore(current.eatenAt!) ? earliest : current);
+    earliest.eatenAt!.isBefore(current.eatenAt!) ? earliest : current);
   }
 
   CalorieItemModel? _lastTodayCalorieItem() {
@@ -428,14 +580,14 @@ final class IndicatorsWidget extends StatelessWidget {
     }
 
     final eatenItems =
-        data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
+    data.todayCalorieItems.where((item) => null != item.eatenAt).toList();
 
     if (eatenItems.isEmpty) {
       return null;
     }
 
     return eatenItems.reduce((latest, current) =>
-        latest.eatenAt!.isAfter(current.eatenAt!) ? latest : current);
+    latest.eatenAt!.isAfter(current.eatenAt!) ? latest : current);
   }
 
   String _getTodayTitle() {

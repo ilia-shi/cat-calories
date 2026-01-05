@@ -157,6 +157,20 @@ class _TrackingTabState extends State<TrackingTab> {
     final periodGoal = state.currentWakingPeriod?.caloriesLimitGoal ?? dailyGoal;
     final hasPeriod = state.currentWakingPeriod != null;
 
+    // Calculate macro data for today
+    final macrosToday = MacroData.fromCalorieItems(
+      state.todayCalorieItems,
+      // You can add goals here if your profile has them
+      // proteinGoal: state.activeProfile.proteinGoal,
+      // fatGoal: state.activeProfile.fatGoal,
+      // carbGoal: state.activeProfile.carbGoal,
+    );
+
+    // Calculate macro data for 24h rolling window
+    final macros24h = MacroData.fromCalorieItems(
+      state.rollingWindowCalorieItems,
+    );
+
     return IndicatorData(
       averageLast7Days: averageLast7Days,
       caloriesLast24Hours: caloriesLast24Hours,
@@ -167,7 +181,9 @@ class _TrackingTabState extends State<TrackingTab> {
       dailyGoal: dailyGoal,
       periodGoal: periodGoal,
       hasPeriod: hasPeriod,
-      now: _baseTime
+      now: _baseTime,
+      macrosToday: macrosToday,
+      macros24h: macros24h,
     );
   }
 
@@ -251,16 +267,16 @@ class _TrackingTabState extends State<TrackingTab> {
         final indicatorData = state is HomeFetched
             ? _calculateIndicatorData(state, entries)
             : IndicatorData(
-                averageLast7Days: 0,
-                caloriesLast24Hours:
-                    _tracker.consumedInLast24h(entries, _currentTime),
-                caloriesToday: 0,
-                caloriesYesterday: 0,
-                caloriesCurrentPeriod: 0,
-                dailyGoal: config.targetDailyCalories,
-                todayCalorieItems: [],
-                now: _baseTime,
-              );
+          averageLast7Days: 0,
+          caloriesLast24Hours:
+          _tracker.consumedInLast24h(entries, _currentTime),
+          caloriesToday: 0,
+          caloriesYesterday: 0,
+          caloriesCurrentPeriod: 0,
+          dailyGoal: config.targetDailyCalories,
+          todayCalorieItems: [],
+          now: _baseTime,
+        );
 
         return RefreshIndicator(
           onRefresh: () async {
