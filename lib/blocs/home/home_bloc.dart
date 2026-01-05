@@ -38,6 +38,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     // Register all event handlers
     on<CalorieItemListFetchingInProgressEvent>(_onCalorieItemListFetching);
     on<CreatingCalorieItemEvent>(_onCreatingCalorieItem);
+    on<CreatingCalorieItemWithNutritionEvent>(_onCreatingCalorieItemWithNutrition);
     on<RemovingCalorieItemEvent>(_onRemovingCalorieItem);
     on<CalorieItemListResortingEvent>(_onCalorieItemListResorting);
     on<CalorieItemListUpdatingEvent>(_onCalorieItemListUpdating);
@@ -98,6 +99,35 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     await calorieItemRepository.offsetSortOrder();
     await calorieItemRepository.insert(calorieItem);
     _preparedCaloriesValue = 0;
+
+    event.callback(calorieItem);
+
+    await _emitHomeData(emit);
+  }
+
+  Future<void> _onCreatingCalorieItemWithNutrition(
+      CreatingCalorieItemWithNutritionEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    await _ensureActiveProfile();
+
+    final CalorieItemModel calorieItem = CalorieItemModel(
+      id: null,
+      value: event.calories,
+      sortOrder: 0,
+      eatenAt: DateTime.now(),
+      createdAt: DateTime.now(),
+      description: null,
+      profileId: _activeProfile!.id!,
+      wakingPeriodId: event.wakingPeriod.id!,
+      weightGrams: event.weightGrams,
+      proteinGrams: event.proteinGrams,
+      fatGrams: event.fatGrams,
+      carbGrams: event.carbGrams,
+    );
+
+    await calorieItemRepository.offsetSortOrder();
+    await calorieItemRepository.insert(calorieItem);
 
     event.callback(calorieItem);
 

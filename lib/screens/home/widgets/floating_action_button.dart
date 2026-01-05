@@ -2,8 +2,7 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'calorie_input_bottom_sheet.dart';
+import 'calorie_input_bottom_sheet_v2.dart';
 
 class HomeFloatingActionButton extends StatelessWidget {
   const HomeFloatingActionButton({Key? key}) : super(key: key);
@@ -35,7 +34,7 @@ class HomeFloatingActionButton extends StatelessWidget {
       builder: (BuildContext bottomSheetContext) {
         return BlocProvider.value(
           value: context.read<HomeBloc>(),
-          child: CalorieInputBottomSheet(
+          child: CalorieInputBottomSheetV2(
             wakingPeriod: state.currentWakingPeriod!,
             calorieItems: state.periodCalorieItems,
           ),

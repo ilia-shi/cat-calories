@@ -16,11 +16,33 @@ class CreatingCalorieItemEvent extends AbstractHomeEvent {
   final void Function(CalorieItemModel) callback;
 
   CreatingCalorieItemEvent(
-    this.expression,
-    this.wakingPeriod,
-    this.calorieItems,
-    this.callback,
-  );
+      this.expression,
+      this.wakingPeriod,
+      this.calorieItems,
+      this.callback,
+      );
+}
+
+class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
+  final double calories;
+  final WakingPeriodModel wakingPeriod;
+  final List<CalorieItemModel> calorieItems;
+  final double weightGrams;
+  final double? proteinGrams;
+  final double? fatGrams;
+  final double? carbGrams;
+  final void Function(CalorieItemModel) callback;
+
+  CreatingCalorieItemWithNutritionEvent({
+    required this.calories,
+    required this.wakingPeriod,
+    required this.calorieItems,
+    required this.weightGrams,
+    this.proteinGrams,
+    this.fatGrams,
+    this.carbGrams,
+    required this.callback,
+  });
 }
 
 class EatProductEvent extends AbstractHomeEvent {
@@ -31,12 +53,12 @@ class EatProductEvent extends AbstractHomeEvent {
   final void Function(CalorieItemModel) callback;
 
   EatProductEvent(
-    this.product,
-    this.expression,
-    this.wakingPeriod,
-    this.calorieItems,
-    this.callback,
-  );
+      this.product,
+      this.expression,
+      this.wakingPeriod,
+      this.calorieItems,
+      this.callback,
+      );
 }
 
 class ChangeProfileEvent extends AbstractHomeEvent {
