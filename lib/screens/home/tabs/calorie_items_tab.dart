@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-class _ItemsGroup {
+final class _ItemsGroup {
   String title;
   List<CalorieItemModel> items = [];
 
@@ -17,14 +17,14 @@ class _ItemsGroup {
   });
 }
 
-class CalorieItemsView extends StatefulWidget {
-  CalorieItemsView({Key? key}) : super(key: key);
+final class CalorieItemsTab extends StatefulWidget {
+  CalorieItemsTab({Key? key}) : super(key: key);
 
   @override
-  _CalorieItemsViewState createState() => _CalorieItemsViewState();
+  _CalorieItemsTabState createState() => _CalorieItemsTabState();
 }
 
-class _CalorieItemsViewState extends State<CalorieItemsView> {
+final class _CalorieItemsTabState extends State<CalorieItemsTab> {
   void _removeCalorieItem(
       CalorieItemModel calorieItem, List<CalorieItemModel> calorieItems) {
     BlocProvider.of<HomeBloc>(context)

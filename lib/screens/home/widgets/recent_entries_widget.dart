@@ -37,6 +37,7 @@ class RecentEntriesWidget extends StatelessWidget {
       }
       return '${hours}h ${m}m ago';
     }
+
     return 'Over 24h ago';
   }
 
