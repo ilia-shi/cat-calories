@@ -63,6 +63,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   _saveActiveProfile(ProfileModel profile) async {
     SharedPreferences prefs = await _prefs;
     prefs.setInt(ProfileResolver.activeProfileKey, profile.id!);
+    // Also update the ProfileResolver cache
+    ProfileResolver.setActiveProfile(profile);
   }
 
   Future<void> _ensureActiveProfile() async {
@@ -246,11 +248,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       Emitter<AbstractHomeState> emit,
       ) async {
     await _ensureActiveProfile();
-
-    final CalorieItemModel calorieItem = event.calorieItem;
-    calorieItem.eatenAt = calorieItem.isEaten() ? null : DateTime.now();
-
-    await calorieItemRepository.update(calorieItem);
+    event.calorieItem.eatenAt = DateTime.now();
+    await calorieItemRepository.update(event.calorieItem);
     await _emitHomeData(emit);
   }
 
@@ -260,13 +259,30 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
 
-    final List<ProfileModel> profiles = await profileRepository.fetchAll();
+    // FIXED: Fetch profiles BEFORE deletion to check count,
+    // then delete, then fetch again to get remaining profiles
+    final List<ProfileModel> profilesBeforeDelete = await profileRepository.fetchAll();
 
-    if (profiles.length > 1) {
+    // Only allow deletion if there's more than one profile
+    if (profilesBeforeDelete.length > 1) {
+      // Delete the profile
       await profileRepository.delete(event.profile);
+
+      // Clear the ProfileResolver cache since we're changing profiles
+      ProfileResolver.clearCache();
+
+      // Fetch the remaining profiles AFTER deletion
+      final List<ProfileModel> remainingProfiles = await profileRepository.fetchAll();
+
+      // Set active profile to the first remaining profile
+      if (remainingProfiles.isNotEmpty) {
+        _activeProfile = remainingProfiles.first;
+
+        // Update SharedPreferences with the new active profile
+        await _saveActiveProfile(_activeProfile!);
+      }
     }
 
-    _activeProfile = profiles.first;
     await _emitHomeData(emit);
   }
 

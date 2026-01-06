@@ -17,33 +17,61 @@ class ProfileResolver {
     if (_activeProfile == null) {
       final List<ProfileModel> profiles = await _profileRepository.fetchAll();
 
-      final int? activeProfileId = await prefs.getInt(activeProfileKey);
+      final int? activeProfileId = prefs.getInt(activeProfileKey);
 
       if (activeProfileId == null) {
-        _activeProfile = profiles.length > 0 ? profiles.first : null;
+        // No saved preference - use first profile if available
+        _activeProfile = profiles.isNotEmpty ? profiles.first : null;
       } else {
-        profiles.forEach((ProfileModel profile) {
+        // Try to find the saved profile
+        for (final profile in profiles) {
           if (profile.id == activeProfileId) {
             _activeProfile = profile;
+            break;
           }
-        });
+        }
+
+        // If saved profile wasn't found (e.g., it was deleted),
+        // fall back to first available profile instead of creating a new one
+        if (_activeProfile == null && profiles.isNotEmpty) {
+          _activeProfile = profiles.first;
+          // Update SharedPreferences to the new active profile
+          await prefs.setInt(activeProfileKey, _activeProfile!.id!);
+        }
       }
     }
 
+    // Only create a default profile if there are truly no profiles at all
     if (_activeProfile == null) {
-      _profileRepository.insert(ProfileModel(
+      final newProfile = ProfileModel(
           id: null,
           name: "Default Profile",
           wakingTimeSeconds: 16 * 60 * 60,
           caloriesLimitGoal: 2000,
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now()));
+          updatedAt: DateTime.now());
+
+      await _profileRepository.insert(newProfile);
 
       List<ProfileModel> profiles = await _profileRepository.fetchAll();
-
       _activeProfile = profiles.first;
+
+      // Save the new profile as active
+      await prefs.setInt(activeProfileKey, _activeProfile!.id!);
     }
 
     return _activeProfile!;
+  }
+
+  /// Clear the cached active profile.
+  /// Call this when a profile is deleted to force re-resolution.
+  static void clearCache() {
+    _activeProfile = null;
+  }
+
+  /// Update the cached active profile.
+  /// Call this when switching profiles.
+  static void setActiveProfile(ProfileModel profile) {
+    _activeProfile = profile;
   }
 }
