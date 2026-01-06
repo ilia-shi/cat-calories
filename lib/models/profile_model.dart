@@ -1,4 +1,4 @@
-class ProfileModel {
+final class ProfileModel {
   int? id;
   String name;
   int wakingTimeSeconds;
