@@ -272,14 +272,14 @@ class _HomeScreenState extends State<HomeScreen>
 
     const tabMenuItems = [
       Tab(text: 'Tracking'),
-      Tab(text: 'Info'),
       Tab(text: 'kCal'),
+      Tab(text: 'Info'),
     ];
 
     var tabViews = [
       TrackingTab(),
-      MainInfoView(),
       AllCaloriesHistoryScreen(),
+      MainInfoView(),
     ];
 
     return Scaffold(
