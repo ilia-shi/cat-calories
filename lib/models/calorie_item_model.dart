@@ -7,8 +7,6 @@ final class CalorieItemModel {
   DateTime createdAt;
   int profileId;
   int? wakingPeriodId;
-
-  // TODO: New fields
   double? weightGrams;
   double? proteinGrams;
   double? fatGrams;
