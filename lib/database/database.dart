@@ -35,26 +35,18 @@ class DBProvider {
   }
 
   Future<void> _ensureColumns(Database db) async {
-    await _addColumnIfNotExists(db, 'calorie_items', 'weight_grams', 'REAL NULL');
-    await _addColumnIfNotExists(db, 'calorie_items', 'protein_grams', 'REAL NULL');
-    await _addColumnIfNotExists(db, 'calorie_items', 'fat_grams', 'REAL NULL');
-    await _addColumnIfNotExists(db, 'calorie_items', 'carb_grams', 'REAL NULL');
+    // FIRST: Run force migration to handle table schema changes (INTEGER to UUID migration)
+    // This must happen before we try to add columns to potentially old tables
+    await MigrationExecutor.forceMigration(db);
   }
 
   initDB() async {
     Directory documentsDir = await getApplicationDocumentsDirectory();
     String path = join(documentsDir.path, 'app.db');
 
-    // For development: delete existing database to force recreation
-    // Remove this in production!
-    // final file = File(path);
-    // if (await file.exists()) {
-    //   await file.delete();
-    // }
-
     return await openDatabase(
       path,
-      version: 3,
+      version: MigrationExecutor.currentVersion,
       onOpen: (db) async {
         await _ensureColumns(db);
       },
@@ -104,14 +96,30 @@ class DBProvider {
             protein_grams REAL NULL,
             fat_grams REAL NULL,
             carb_grams REAL NULL,
+            product_id TEXT NULL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id),
-            FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id)
+            FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
+            FOREIGN KEY(product_id) REFERENCES products(id)
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE product_categories(
+            id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            icon_name TEXT NULL,
+            color_hex TEXT NULL,
+            sort_order INT DEFAULT 0,
+            profile_id INT NOT NULL,
+            created_at INT NOT NULL,
+            updated_at INT NOT NULL,
+            FOREIGN KEY(profile_id) REFERENCES profiles(id)
           )
         ''');
 
         await db.execute('''
           CREATE TABLE products(
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            id TEXT PRIMARY KEY NOT NULL,
             title TEXT,
             description TEXT NULL,
             created_at INT,
@@ -119,17 +127,34 @@ class DBProvider {
             uses_count INT,
             profile_id INT,
             sort_order INT DEFAULT 0,
-            barcode INT NULL,
-            calorie_content REAL NULL,
-            proteins REAL NULL,
-            fats REAL NULL,
-            carbohydrates REAL NULL,
-            FOREIGN KEY(profile_id) REFERENCES profiles(id)
+            barcode TEXT NULL,
+            calories_per_100g REAL NULL,
+            proteins_per_100g REAL NULL,
+            fats_per_100g REAL NULL,
+            carbs_per_100g REAL NULL,
+            package_weight_grams REAL NULL,
+            category_id TEXT NULL,
+            last_used_at INT NULL,
+            FOREIGN KEY(profile_id) REFERENCES profiles(id),
+            FOREIGN KEY(category_id) REFERENCES product_categories(id)
           )
         ''');
 
+        // Create indexes
         await db.execute('''
           CREATE INDEX calorie_items_created_at_day_idx ON calorie_items(created_at_day)
+        ''');
+
+        await db.execute('''
+          CREATE INDEX calorie_items_product_id_idx ON calorie_items(product_id)
+        ''');
+
+        await db.execute('''
+          CREATE INDEX products_category_id_idx ON products(category_id)
+        ''');
+
+        await db.execute('''
+          CREATE INDEX products_last_used_at_idx ON products(last_used_at)
         ''');
 
         print('Database tables created successfully!');

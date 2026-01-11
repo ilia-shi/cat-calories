@@ -146,7 +146,7 @@ class _ProductsViewState extends State<ProductsView> {
     }
 
     BlocProvider.of<HomeBloc>(context)
-        .add(EatProductEvent(product, expression, wakingPeriod, calorieItems, (CalorieItemModel calorieItem) {
+        .add(EatProductEvent(product, 0, wakingPeriod, calorieItems, (CalorieItemModel calorieItem) {
       final snackBar = SnackBar(content: Text('${calorieItem.value.toStringAsFixed(2)} kcal added'));
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(snackBar);

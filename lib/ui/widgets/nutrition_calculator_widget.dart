@@ -357,7 +357,12 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
         case '.':
         // Only add decimal if not already present
           if (!currentText.contains('.')) {
-            controller.text = currentText + '.';
+            // Prepend 0 if text is empty
+            if (currentText.isEmpty) {
+              controller.text = '0.';
+            } else {
+              controller.text = currentText + '.';
+            }
           }
           break;
         case '→':

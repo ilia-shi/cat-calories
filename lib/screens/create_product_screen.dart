@@ -63,11 +63,11 @@ class CreateProductScreenState extends State<CreateProductScreen> {
               BlocProvider.of<HomeBloc>(context).add(CreateProductEvent(
                 title: titleController.text,
                 description: descriptionController.text.length > 0 ? descriptionController.text : null,
-                barcode: barcodeController.text.length == 0 ? null : int.parse(barcodeController.text),
-                calorieContent: calorieContentController.text.length > 0 ? double.parse(calorieContentController.text) : null,
-                proteins: proteinsController.text.length > 0 ? double.parse(proteinsController.text) : null,
-                fats: fatsController.text.length > 0 ? double.parse(fatsController.text) : null,
-                carbohydrates: carbohydratesController.text.length > 0 ? double.parse(carbohydratesController.text) : null,
+                barcode: barcodeController.text.length == 0 ? null : barcodeController.text,
+                caloriesPer100g: calorieContentController.text.length > 0 ? double.parse(calorieContentController.text) : null,
+                proteinsPer100g: proteinsController.text.length > 0 ? double.parse(proteinsController.text) : null,
+                fatsPer100g: fatsController.text.length > 0 ? double.parse(fatsController.text) : null,
+                carbsPer100g: carbohydratesController.text.length > 0 ? double.parse(carbohydratesController.text) : null,
               ));
 
               Navigator.of(context).pop();

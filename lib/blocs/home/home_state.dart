@@ -1,6 +1,7 @@
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/product_model.dart';
+import 'package:cat_calories/models/product_category_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/models/calorie_recommendation_model.dart';
@@ -9,6 +10,32 @@ import 'package:cat_calories/models/equalization_settings_model.dart';
 abstract class AbstractHomeState {}
 
 class HomeFetchingInProgress extends AbstractHomeState {}
+
+/// Error state for database and other errors
+class HomeError extends AbstractHomeState {
+  final String message;
+  final String? technicalDetails;
+  final dynamic originalError;
+  final StackTrace? stackTrace;
+
+  /// If true, the error is recoverable and user can retry
+  final bool canRetry;
+
+  /// Previous state to restore after error is dismissed (optional)
+  final HomeFetched? previousState;
+
+  HomeError({
+    required this.message,
+    this.technicalDetails,
+    this.originalError,
+    this.stackTrace,
+    this.canRetry = true,
+    this.previousState,
+  });
+
+  @override
+  String toString() => 'HomeError: $message';
+}
 
 class HomeFetched extends AbstractHomeState {
   final DateTime nowDateTime;
@@ -30,6 +57,7 @@ class HomeFetched extends AbstractHomeState {
   final WakingPeriodModel? currentWakingPeriod;
   final double preparedCaloriesValue;
   final List<ProductModel> products;
+  final List<ProductCategoryModel> productCategories;
   final CalorieRecommendationModel? recommendation;
   final EqualizationSettingsModel equalizationSettings;
 
@@ -48,6 +76,7 @@ class HomeFetched extends AbstractHomeState {
     required this.currentWakingPeriod,
     required this.preparedCaloriesValue,
     required this.products,
+    required this.productCategories,
     required this.recommendation,
     required this.equalizationSettings,
   });
@@ -105,7 +134,8 @@ class HomeFetched extends AbstractHomeState {
   }
 
   DateTime getDayStart() {
-    return DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day, 0, 0, 0);
+    return DateTime(
+        nowDateTime.year, nowDateTime.month, nowDateTime.day, 0, 0, 0);
   }
 
   DaysStat get30DaysUntilToday() {
@@ -113,7 +143,8 @@ class HomeFetched extends AbstractHomeState {
     double totalCalories = 0;
 
     this.days30.forEach((DayResultModel dayResult) {
-      if (getDayStart().millisecondsSinceEpoch > dayResult.createdAtDay.millisecondsSinceEpoch) {
+      if (getDayStart().millisecondsSinceEpoch >
+          dayResult.createdAtDay.millisecondsSinceEpoch) {
         days.add(dayResult);
         totalCalories += dayResult.valueSum;
       }
@@ -127,13 +158,68 @@ class HomeFetched extends AbstractHomeState {
     double totalCalories = 0;
 
     this.days2.forEach((DayResultModel dayResult) {
-      if (getDayStart().millisecondsSinceEpoch > dayResult.createdAtDay.millisecondsSinceEpoch) {
+      if (getDayStart().millisecondsSinceEpoch >
+          dayResult.createdAtDay.millisecondsSinceEpoch) {
         days.add(dayResult);
         totalCalories += dayResult.valueSum;
       }
     });
 
     return DaysStat(days, totalCalories);
+  }
+
+  /// Get products grouped by category
+  Map<ProductCategoryModel?, List<ProductModel>> getProductsByCategory() {
+    final Map<ProductCategoryModel?, List<ProductModel>> grouped = {};
+
+    // Initialize with null key for uncategorized
+    grouped[null] = [];
+
+    // Initialize category keys
+    for (final category in productCategories) {
+      grouped[category] = [];
+    }
+
+    // Group products
+    for (final product in products) {
+      if (product.categoryId == null) {
+        grouped[null]!.add(product);
+      } else {
+        final category = productCategories.firstWhere(
+              (c) => c.id == product.categoryId,
+          orElse: () => productCategories.first,
+        );
+        grouped[category]?.add(product);
+      }
+    }
+
+    return grouped;
+  }
+
+  /// Get category by UUID
+  ProductCategoryModel? getCategoryById(String? categoryId) {
+    if (categoryId == null) return null;
+    try {
+      return productCategories.firstWhere((c) => c.id == categoryId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get recently used products
+  List<ProductModel> getRecentlyUsedProducts({int limit = 5}) {
+    final sortedProducts = products
+        .where((p) => p.lastUsedAt != null)
+        .toList()
+      ..sort((a, b) => b.lastUsedAt!.compareTo(a.lastUsedAt!));
+    return sortedProducts.take(limit).toList();
+  }
+
+  /// Get most used products
+  List<ProductModel> getMostUsedProducts({int limit = 5}) {
+    final sortedProducts = products.where((p) => p.usesCount > 0).toList()
+      ..sort((a, b) => b.usesCount.compareTo(a.usesCount));
+    return sortedProducts.take(limit).toList();
   }
 }
 

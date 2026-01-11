@@ -1,5 +1,6 @@
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/models/product_model.dart';
+import 'package:cat_calories/models/product_category_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 
@@ -9,6 +10,13 @@ class CalorieItemListFetchingInProgressEvent extends AbstractHomeEvent {}
 
 class HomeFetchedEvent extends AbstractHomeEvent {}
 
+/// Event to dismiss an error and optionally retry or restore previous state
+class HomeErrorDismissedEvent extends AbstractHomeEvent {
+  final bool retry;
+
+  HomeErrorDismissedEvent({this.retry = false});
+}
+
 class CreatingCalorieItemEvent extends AbstractHomeEvent {
   String expression;
   List<CalorieItemModel> calorieItems;
@@ -16,11 +24,11 @@ class CreatingCalorieItemEvent extends AbstractHomeEvent {
   final void Function(CalorieItemModel) callback;
 
   CreatingCalorieItemEvent(
-      this.expression,
-      this.wakingPeriod,
-      this.calorieItems,
-      this.callback,
-      );
+    this.expression,
+    this.wakingPeriod,
+    this.calorieItems,
+    this.callback,
+  );
 }
 
 class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
@@ -31,6 +39,8 @@ class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
   final double? proteinGrams;
   final double? fatGrams;
   final double? carbGrams;
+  final String? description;
+  final String? productId;
   final void Function(CalorieItemModel) callback;
 
   CreatingCalorieItemWithNutritionEvent({
@@ -41,24 +51,40 @@ class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
     this.proteinGrams,
     this.fatGrams,
     this.carbGrams,
+    this.description,
+    this.productId,
     required this.callback,
   });
 }
 
 class EatProductEvent extends AbstractHomeEvent {
   ProductModel product;
-  String expression;
+  double weightGrams;
   List<CalorieItemModel> calorieItems;
   WakingPeriodModel wakingPeriod;
   final void Function(CalorieItemModel) callback;
 
   EatProductEvent(
-      this.product,
-      this.expression,
-      this.wakingPeriod,
-      this.calorieItems,
-      this.callback,
-      );
+    this.product,
+    this.weightGrams,
+    this.wakingPeriod,
+    this.calorieItems,
+    this.callback,
+  );
+}
+
+class EatEntirePackageEvent extends AbstractHomeEvent {
+  final ProductModel product;
+  final List<CalorieItemModel> calorieItems;
+  final WakingPeriodModel wakingPeriod;
+  final void Function(CalorieItemModel) callback;
+
+  EatEntirePackageEvent({
+    required this.product,
+    required this.calorieItems,
+    required this.wakingPeriod,
+    required this.callback,
+  });
 }
 
 class ChangeProfileEvent extends AbstractHomeEvent {
@@ -87,7 +113,8 @@ class CalorieItemListUpdatingEvent extends AbstractHomeEvent {
   final List<CalorieItemModel> calorieItems;
   final callback;
 
-  CalorieItemListUpdatingEvent(this.calorieItem, this.calorieItems, this.callback);
+  CalorieItemListUpdatingEvent(
+      this.calorieItem, this.calorieItems, this.callback);
 }
 
 class CalorieItemListResortingEvent extends AbstractHomeEvent {
@@ -153,23 +180,31 @@ class CaloriePreparedEvent extends AbstractHomeEvent {
   CaloriePreparedEvent(this.expression);
 }
 
+// ============================================================================
+// Product Events
+// ============================================================================
+
 class CreateProductEvent extends AbstractHomeEvent {
   final String title;
   final String? description;
-  final int? barcode;
-  final double? calorieContent;
-  final double? proteins;
-  final double? fats;
-  final double? carbohydrates;
+  final String? barcode;
+  final double? caloriesPer100g;
+  final double? proteinsPer100g;
+  final double? fatsPer100g;
+  final double? carbsPer100g;
+  final double? packageWeightGrams;
+  final String? categoryId;
 
   CreateProductEvent({
     required this.title,
-    required this.description,
-    required this.barcode,
-    required this.calorieContent,
-    required this.proteins,
-    required this.fats,
-    required this.carbohydrates,
+    this.description,
+    this.barcode,
+    this.caloriesPer100g,
+    this.proteinsPer100g,
+    this.fatsPer100g,
+    this.carbsPer100g,
+    this.packageWeightGrams,
+    this.categoryId,
   });
 }
 
@@ -190,3 +225,40 @@ class ProductsResortEvent extends AbstractHomeEvent {
 
   final List<ProductModel> products;
 }
+
+// ============================================================================
+// Product Category Events
+// ============================================================================
+
+class CreateProductCategoryEvent extends AbstractHomeEvent {
+  final String name;
+  final String? iconName;
+  final String? colorHex;
+
+  CreateProductCategoryEvent({
+    required this.name,
+    this.iconName,
+    this.colorHex,
+  });
+}
+
+class UpdateProductCategoryEvent extends AbstractHomeEvent {
+  final ProductCategoryModel category;
+
+  UpdateProductCategoryEvent(this.category);
+}
+
+class DeleteProductCategoryEvent extends AbstractHomeEvent {
+  final ProductCategoryModel category;
+
+  DeleteProductCategoryEvent(this.category);
+}
+
+class ProductCategoriesResortEvent extends AbstractHomeEvent {
+  final List<ProductCategoryModel> categories;
+
+  ProductCategoriesResortEvent(this.categories);
+}
+
+/// Event to initialize default categories if none exist
+class InitializeDefaultCategoriesEvent extends AbstractHomeEvent {}

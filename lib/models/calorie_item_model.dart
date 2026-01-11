@@ -11,6 +11,7 @@ final class CalorieItemModel {
   double? proteinGrams;
   double? fatGrams;
   double? carbGrams;
+  String? productId;
 
   CalorieItemModel({
     required this.id,
@@ -21,11 +22,11 @@ final class CalorieItemModel {
     required this.createdAt,
     required this.profileId,
     required this.wakingPeriodId,
-
     this.weightGrams = null,
     this.proteinGrams = null,
     this.fatGrams = null,
     this.carbGrams = null,
+    this.productId = null,
   });
 
   factory CalorieItemModel.fromJson(Map<String, dynamic> json) =>
@@ -45,6 +46,7 @@ final class CalorieItemModel {
         proteinGrams: json['protein_grams'] ?? null,
         fatGrams: json['fat_grams'] ?? null,
         carbGrams: json['carb_grams'] ?? null,
+        productId: json['product_id'] ?? null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +68,7 @@ final class CalorieItemModel {
         'protein_grams': proteinGrams,
         'fat_grams': fatGrams,
         'carb_grams': carbGrams,
+        'product_Id': productId,
       };
 
   bool isEaten() {

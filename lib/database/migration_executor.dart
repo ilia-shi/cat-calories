@@ -1,80 +1,564 @@
-import 'package:cat_calories/database/migrations/abstract_migration.dart';
 import 'package:sqflite/sqflite.dart';
 
+/// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
-  static final List<AbstractMigration> _migrations = [
+  /// Current database version
+  static const int currentVersion = 5;
 
-  ];
-
+  /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
-    final Batch batch = db.batch();
-    await _createMigrationsTable(batch);
-    final List<int> list = [
-      for (var i = oldVersion + 1; i <= newVersion; i += 1) i
-    ];
+    print('Upgrading database from version $oldVersion to $newVersion');
 
-    list.forEach((int version) async {
-      _migrations.forEach((AbstractMigration migration) async {
-        if (migration.getVersion() == version) {
-          print('\x1B[32mUp to version $version...\x1B[0m');
-
-          final Batch batchToExecute = await migration.up(batch);
-          batchToExecute.commit();
-
-          print('\x1B[32mUp to version $version success!\x1B[0m');
-        }
-      });
-    });
+    // Run migrations sequentially
+    for (int version = oldVersion + 1; version <= newVersion; version++) {
+      await _runMigration(db, version);
+    }
   }
 
+  /// Downgrade the database schema (if needed)
   Future<void> downgrade(Database db, int oldVersion, int newVersion) async {
-    final Batch batch = db.batch();
-    await _createMigrationsTable(batch);
-    final List<int> list = [
-      for (var i = newVersion + 1; i <= oldVersion; i += 1) i
-    ].reversed.toList();
-
-    list.forEach((int version) async {
-      _migrations.forEach((AbstractMigration migration) async {
-        if (migration.getVersion() == version) {
-          print('\x1B[32mDown to version $version...\x1B[0m');
-
-          final Batch batchToExecute = await migration.down(batch);
-          batchToExecute.commit();
-
-          print('\x1B[32mDown to version $version success!\x1B[0m');
-        }
-      });
-    });
+    print('Downgrading database from version $oldVersion to $newVersion');
+    // Generally, we don't support downgrades, but this is required by sqflite
   }
 
-  Future<List> _createMigrationsTable(Batch batch) async {
-    batch.execute('''
-				CREATE TABLE IF NOT EXISTS migration_versions (
-					version INT UNIQUE,
-					executed_at INT NOT NULL
-				)
-			''');
-    return await batch.commit();
+  /// Run a specific migration version
+  Future<void> _runMigration(Database db, int version) async {
+    print('Running migration for version $version');
+
+    switch (version) {
+      case 2:
+        await _migrateToVersion2(db);
+        break;
+      case 3:
+        await _migrateToVersion3(db);
+        break;
+      case 4:
+        await _migrateToVersion4(db);
+        break;
+      case 5:
+        await _migrateToVersion5(db);
+        break;
+    }
   }
 
-  int getLastMigrationVersion() {
-    int lastVersion = 2;
-
-    return lastVersion;
+  /// Migration to version 2: Add nutrition columns to calorie_items
+  Future<void> _migrateToVersion2(Database db) async {
+    await _addColumnIfNotExists(db, 'calorie_items', 'weight_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'protein_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'fat_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'calorie_items', 'carb_grams', 'REAL NULL');
   }
 
-  Future<int> getExecutedMigrationVersion(Database db) async {
-    await _createMigrationsTable(db.batch());
+  /// Migration to version 3: Add package weight to products
+  Future<void> _migrateToVersion3(Database db) async {
+    await _addColumnIfNotExists(db, 'products', 'package_weight_grams', 'REAL NULL');
+  }
 
-    final result = await db.rawQuery('''
-      SELECT *
-      FROM migration_versions
-      LIMIT 1
+  /// Migration to version 4: Rename product nutrition fields and add category support
+  Future<void> _migrateToVersion4(Database db) async {
+    // Create product_categories table with UUID primary key
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS product_categories (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        icon_name TEXT NULL,
+        color_hex TEXT NULL,
+        sort_order INT DEFAULT 0,
+        profile_id INT NOT NULL,
+        created_at INT NOT NULL,
+        updated_at INT NOT NULL,
+        FOREIGN KEY(profile_id) REFERENCES profiles(id)
+      )
     ''');
 
-    print(result);
+    // Add new columns to products table
+    await _addColumnIfNotExists(db, 'products', 'category_id', 'TEXT NULL');
+    await _addColumnIfNotExists(db, 'products', 'last_used_at', 'INT NULL');
 
-    return 1;
+    // Add renamed columns (keeping old columns for backward compatibility during migration)
+    await _addColumnIfNotExists(db, 'products', 'calories_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'proteins_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'fats_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'carbs_per_100g', 'REAL NULL');
+
+    // Copy data from old columns to new columns
+    await db.execute('''
+      UPDATE products 
+      SET calories_per_100g = calorie_content,
+          proteins_per_100g = proteins,
+          fats_per_100g = fats,
+          carbs_per_100g = carbohydrates
+      WHERE calorie_content IS NOT NULL OR proteins IS NOT NULL OR fats IS NOT NULL OR carbohydrates IS NOT NULL
+    ''');
+
+    print('Migration to version 4 completed: Renamed product nutrition fields and added category support');
+  }
+
+  /// Migration to version 5: Add description field to calorie_items for product name tracking
+  Future<void> _migrateToVersion5(Database db) async {
+    await _addColumnIfNotExists(db, 'calorie_items', 'product_id', 'TEXT NULL');
+
+    // Create index for product lookups
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS calorie_items_product_id_idx ON calorie_items(product_id)
+    ''');
+
+    // Create index for category lookups
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS products_category_id_idx ON products(category_id)
+    ''');
+
+    // Create index for last_used_at sorting
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS products_last_used_at_idx ON products(last_used_at)
+    ''');
+
+    print('Migration to version 5 completed: Added product_id to calorie_items and created indexes');
+  }
+
+  /// Helper method to check if a column exists
+  Future<bool> _columnExists(Database db, String table, String column) async {
+    final result = await db.rawQuery('PRAGMA table_info($table)');
+    return result.any((row) => row['name'] == column);
+  }
+
+  /// Helper method to add a column if it doesn't exist
+  Future<void> _addColumnIfNotExists(
+      Database db, String table, String column, String type) async {
+    if (!await _columnExists(db, table, column)) {
+      print('Adding column $column to $table...');
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
+  }
+
+  /// Check if the id column type is INTEGER (needs migration to TEXT UUID)
+  Future<bool> _isIdColumnInteger(Database db, String table) async {
+    final result = await db.rawQuery('PRAGMA table_info($table)');
+    for (final row in result) {
+      if (row['name'] == 'id') {
+        final type = (row['type'] as String?)?.toUpperCase() ?? '';
+        print('Table $table id column type: $type');
+        // Check for INTEGER or empty (SQLite uses empty string for INTEGER PRIMARY KEY)
+        return type.contains('INT') || type.isEmpty || type == 'INTEGER';
+      }
+    }
+    // If no id column found, assume we need to create the table
+    return true;
+  }
+
+  /// Migrate products table from INTEGER id to TEXT UUID
+  Future<void> _migrateProductsTableToUuid(Database db) async {
+    // Check if table exists
+    final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+    );
+
+    if (tables.isEmpty) {
+      // Table doesn't exist, create it with UUID schema
+      print('Creating products table with UUID schema...');
+      await db.execute('''
+        CREATE TABLE products (
+          id TEXT PRIMARY KEY NOT NULL,
+          title TEXT,
+          description TEXT NULL,
+          created_at INT,
+          updated_at INT,
+          uses_count INT DEFAULT 0,
+          profile_id INT NOT NULL,
+          sort_order INT DEFAULT 0,
+          barcode TEXT NULL,
+          calories_per_100g REAL NULL,
+          proteins_per_100g REAL NULL,
+          fats_per_100g REAL NULL,
+          carbs_per_100g REAL NULL,
+          package_weight_grams REAL NULL,
+          category_id TEXT NULL,
+          last_used_at INT NULL
+        )
+      ''');
+      return;
+    }
+
+    // Check if id column is TEXT (already migrated)
+    final tableInfo = await db.rawQuery('PRAGMA table_info(products)');
+    String? idType;
+    bool hasProfileId = false;
+    for (final row in tableInfo) {
+      final colName = row['name'] as String?;
+      final colType = row['type'] as String?;
+      print('Column: $colName, Type: $colType');
+      if (colName == 'id') {
+        idType = colType?.toUpperCase();
+      }
+      if (colName == 'profile_id') {
+        hasProfileId = true;
+      }
+    }
+
+    print('Products table id type: "$idType", has profile_id: $hasProfileId');
+
+    // If id is already TEXT, skip migration
+    // SQLite PRAGMA returns uppercase types, but we check case-insensitively to be safe
+    // Note: SQLite might return empty string for INTEGER PRIMARY KEY (rowid alias)
+    final isTextId = idType != null && idType.isNotEmpty && idType.contains('TEXT');
+    if (isTextId) {
+      print('Products table already has TEXT id, skipping migration');
+      // Still ensure all columns exist
+      await _ensureProductsColumns(db);
+      return;
+    }
+
+    // If idType is INTEGER, empty, or anything else, we need to migrate to TEXT UUID
+    print('Migrating products table to UUID schema (current id type: "$idType")...');
+
+    try {
+      // Clean up any leftover from previous failed migration
+      await db.execute('DROP TABLE IF EXISTS products_new');
+
+      // Create new table with UUID schema
+      await db.execute('''
+        CREATE TABLE products_new (
+          id TEXT PRIMARY KEY NOT NULL,
+          title TEXT,
+          description TEXT NULL,
+          created_at INT,
+          updated_at INT,
+          uses_count INT DEFAULT 0,
+          profile_id INT NOT NULL DEFAULT 1,
+          sort_order INT DEFAULT 0,
+          barcode TEXT NULL,
+          calorie_content REAL NULL,
+          proteins REAL NULL,
+          fats REAL NULL,
+          carbohydrates REAL NULL,
+          calories_per_100g REAL NULL,
+          proteins_per_100g REAL NULL,
+          fats_per_100g REAL NULL,
+          carbs_per_100g REAL NULL,
+          package_weight_grams REAL NULL,
+          category_id TEXT NULL,
+          last_used_at INT NULL
+        )
+      ''');
+
+      // Get column names from old table to build dynamic INSERT
+      final oldColumns = tableInfo.map((r) => r['name'] as String).toList();
+
+      // Columns that exist in both old and new tables (excluding id which we regenerate)
+      final commonColumns = <String>[];
+      final newTableColumns = [
+        'title', 'description', 'created_at', 'updated_at', 'uses_count',
+        'profile_id', 'sort_order', 'barcode', 'calorie_content', 'proteins',
+        'fats', 'carbohydrates', 'calories_per_100g', 'proteins_per_100g',
+        'fats_per_100g', 'carbs_per_100g', 'package_weight_grams',
+        'category_id', 'last_used_at'
+      ];
+
+      for (final col in newTableColumns) {
+        if (oldColumns.contains(col)) {
+          commonColumns.add(col);
+        }
+      }
+
+      print('Migrating columns: $commonColumns from old columns: $oldColumns');
+
+      // Copy data with UUID conversion
+      if (commonColumns.isNotEmpty) {
+        final columnList = commonColumns.join(', ');
+        await db.execute('''
+          INSERT INTO products_new (id, $columnList)
+          SELECT 
+            lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || 
+                  substr(hex(randomblob(2)),2) || '-' || 
+                  substr('89ab', abs(random()) % 4 + 1, 1) || 
+                  substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))),
+            $columnList
+          FROM products
+        ''');
+      }
+
+      // Drop old table and rename new one
+      await db.execute('DROP TABLE products');
+      await db.execute('ALTER TABLE products_new RENAME TO products');
+
+      print('Products table migrated to UUID successfully');
+    } catch (e) {
+      print('Error during products table migration: $e');
+      // Clean up if migration failed
+      try {
+        await db.execute('DROP TABLE IF EXISTS products_new');
+      } catch (_) {}
+      rethrow;
+    }
+
+    // Ensure all columns exist after migration
+    await _ensureProductsColumns(db);
+  }
+
+  /// Ensure products table has all required columns
+  Future<void> _ensureProductsColumns(Database db) async {
+    await _addColumnIfNotExists(db, 'products', 'profile_id', 'INT NOT NULL DEFAULT 1');
+    await _addColumnIfNotExists(db, 'products', 'package_weight_grams', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'category_id', 'TEXT NULL');
+    await _addColumnIfNotExists(db, 'products', 'last_used_at', 'INT NULL');
+    await _addColumnIfNotExists(db, 'products', 'calories_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'proteins_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'fats_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'carbs_per_100g', 'REAL NULL');
+    await _addColumnIfNotExists(db, 'products', 'uses_count', 'INT DEFAULT 0');
+    await _addColumnIfNotExists(db, 'products', 'sort_order', 'INT DEFAULT 0');
+    await _addColumnIfNotExists(db, 'products', 'barcode', 'TEXT NULL');
+    await _addColumnIfNotExists(db, 'products', 'description', 'TEXT NULL');
+  }
+
+  /// Migrate product_categories table from INTEGER id to TEXT UUID
+  Future<void> _migrateProductCategoriesTableToUuid(Database db) async {
+    // Check if table exists
+    final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='product_categories'"
+    );
+
+    if (tables.isEmpty) {
+      // Table doesn't exist, create it with UUID schema
+      print('Creating product_categories table with UUID schema...');
+      await db.execute('''
+        CREATE TABLE product_categories (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          icon_name TEXT NULL,
+          color_hex TEXT NULL,
+          sort_order INT DEFAULT 0,
+          profile_id INT NOT NULL DEFAULT 1,
+          created_at INT NOT NULL DEFAULT 0,
+          updated_at INT NOT NULL DEFAULT 0
+        )
+      ''');
+      return;
+    }
+
+    // Check if id column is already TEXT
+    final tableInfo = await db.rawQuery('PRAGMA table_info(product_categories)');
+    String? idType;
+    for (final row in tableInfo) {
+      if (row['name'] == 'id') {
+        idType = (row['type'] as String?)?.toUpperCase() ?? '';
+        break;
+      }
+    }
+
+    print('Product_categories table id type: $idType');
+
+    if (idType != null && idType.toUpperCase() == 'TEXT') {
+      print('Product_categories table already has TEXT id, skipping migration');
+      return;
+    }
+
+    print('Migrating product_categories table to UUID schema...');
+
+    // Store old id -> new UUID mapping for updating products.category_id
+    final oldCategories = await db.query('product_categories');
+    final idMapping = <String, String>{}; // old id (as string) -> new UUID
+
+    // Create new table with UUID schema
+    await db.execute('''
+      CREATE TABLE product_categories_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        icon_name TEXT NULL,
+        color_hex TEXT NULL,
+        sort_order INT DEFAULT 0,
+        profile_id INT NOT NULL DEFAULT 1,
+        created_at INT NOT NULL DEFAULT 0,
+        updated_at INT NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // Insert data with new UUIDs and track mapping
+    for (final cat in oldCategories) {
+      final oldId = cat['id'].toString();
+      // Generate a UUID using SQLite
+      final uuidResult = await db.rawQuery('''
+        SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || 
+              substr(hex(randomblob(2)),2) || '-' || 
+              substr('89ab', abs(random()) % 4 + 1, 1) || 
+              substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) as uuid
+      ''');
+      final newId = uuidResult.first['uuid'] as String;
+      idMapping[oldId] = newId;
+
+      await db.insert('product_categories_new', {
+        'id': newId,
+        'name': cat['name'] ?? 'Unnamed',
+        'icon_name': cat['icon_name'],
+        'color_hex': cat['color_hex'],
+        'sort_order': cat['sort_order'] ?? 0,
+        'profile_id': cat['profile_id'] ?? 1,
+        'created_at': cat['created_at'] ?? DateTime.now().millisecondsSinceEpoch,
+        'updated_at': cat['updated_at'] ?? DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+
+    // Update products.category_id to use new UUIDs
+    for (final entry in idMapping.entries) {
+      await db.execute(
+        'UPDATE products SET category_id = ? WHERE category_id = ?',
+        [entry.value, entry.key],
+      );
+    }
+
+    // Drop old table and rename new one
+    await db.execute('DROP TABLE product_categories');
+    await db.execute('ALTER TABLE product_categories_new RENAME TO product_categories');
+
+    print('Product_categories table migrated to UUID successfully');
+  }
+
+  /// Force migration: Run all migrations needed for new installations
+  /// This ensures all tables and columns exist even if the database version is already current
+  static Future<void> forceMigration(Database db) async {
+    print('Running force migration to ensure all schema elements exist...');
+
+    final executor = MigrationExecutor();
+
+    // FIRST: Ensure all required tables exist (create them if they don't)
+    await executor._ensureTablesExist(db);
+
+    // Ensure calorie_items has nutrition columns
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'weight_grams', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'protein_grams', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'fat_grams', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'carb_grams', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'product_id', 'TEXT NULL');
+
+    // Check if products table needs to be migrated from INTEGER to TEXT id
+    await executor._migrateProductsTableToUuid(db);
+
+    // Ensure products has all new columns
+    await executor._addColumnIfNotExists(db, 'products', 'package_weight_grams', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'category_id', 'TEXT NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'last_used_at', 'INT NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'calories_per_100g', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'proteins_per_100g', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'fats_per_100g', 'REAL NULL');
+    await executor._addColumnIfNotExists(db, 'products', 'carbs_per_100g', 'REAL NULL');
+
+    // Check if product_categories table needs to be migrated from INTEGER to TEXT id
+    await executor._migrateProductCategoriesTableToUuid(db);
+
+    // Ensure product_categories has all required columns (for tables created with old schema)
+    await executor._addColumnIfNotExists(db, 'product_categories', 'profile_id', 'INT NOT NULL DEFAULT 1');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'icon_name', 'TEXT NULL');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'color_hex', 'TEXT NULL');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'sort_order', 'INT DEFAULT 0');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'created_at', 'INT NOT NULL DEFAULT 0');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'updated_at', 'INT NOT NULL DEFAULT 0');
+
+    // Copy data from old columns to new columns if needed
+    try {
+      final products = await db.query('products');
+      for (final product in products) {
+        final updates = <String, dynamic>{};
+
+        if (product['calories_per_100g'] == null && product['calorie_content'] != null) {
+          updates['calories_per_100g'] = product['calorie_content'];
+        }
+        if (product['proteins_per_100g'] == null && product['proteins'] != null) {
+          updates['proteins_per_100g'] = product['proteins'];
+        }
+        if (product['fats_per_100g'] == null && product['fats'] != null) {
+          updates['fats_per_100g'] = product['fats'];
+        }
+        if (product['carbs_per_100g'] == null && product['carbohydrates'] != null) {
+          updates['carbs_per_100g'] = product['carbohydrates'];
+        }
+
+        if (updates.isNotEmpty) {
+          await db.update('products', updates, where: 'id = ?', whereArgs: [product['id']]);
+        }
+      }
+    } catch (e) {
+      print('Error copying data from old columns: $e');
+    }
+
+    // Create indexes if not exist
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS calorie_items_product_id_idx ON calorie_items(product_id)');
+    } catch (e) {
+      print('Index calorie_items_product_id_idx might already exist: $e');
+    }
+
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS products_category_id_idx ON products(category_id)');
+    } catch (e) {
+      print('Index products_category_id_idx might already exist: $e');
+    }
+
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS products_last_used_at_idx ON products(last_used_at)');
+    } catch (e) {
+      print('Index products_last_used_at_idx might already exist: $e');
+    }
+
+    print('Force migration completed successfully');
+  }
+
+  /// Ensure all required tables exist - creates them if they don't
+  Future<void> _ensureTablesExist(Database db) async {
+    print('Checking that all required tables exist...');
+
+    // Check and create product_categories table
+    final categoriesExists = await _tableExists(db, 'product_categories');
+    if (!categoriesExists) {
+      print('Creating product_categories table...');
+      await db.execute('''
+        CREATE TABLE product_categories (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          icon_name TEXT NULL,
+          color_hex TEXT NULL,
+          sort_order INT DEFAULT 0,
+          profile_id INT NOT NULL DEFAULT 1,
+          created_at INT NOT NULL DEFAULT 0,
+          updated_at INT NOT NULL DEFAULT 0
+        )
+      ''');
+      print('product_categories table created successfully');
+    }
+
+    // Check and create products table
+    final productsExists = await _tableExists(db, 'products');
+    if (!productsExists) {
+      print('Creating products table...');
+      await db.execute('''
+        CREATE TABLE products (
+          id TEXT PRIMARY KEY NOT NULL,
+          title TEXT,
+          description TEXT NULL,
+          created_at INT,
+          updated_at INT,
+          uses_count INT DEFAULT 0,
+          profile_id INT NOT NULL,
+          sort_order INT DEFAULT 0,
+          barcode TEXT NULL,
+          calories_per_100g REAL NULL,
+          proteins_per_100g REAL NULL,
+          fats_per_100g REAL NULL,
+          carbs_per_100g REAL NULL,
+          package_weight_grams REAL NULL,
+          category_id TEXT NULL,
+          last_used_at INT NULL
+        )
+      ''');
+      print('products table created successfully');
+    }
+  }
+
+  /// Check if a table exists in the database
+  Future<bool> _tableExists(Database db, String tableName) async {
+    final result = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        [tableName]
+    );
+    return result.isNotEmpty;
   }
 }

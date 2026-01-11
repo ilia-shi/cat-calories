@@ -1,8 +1,10 @@
 import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/product_model.dart';
+import 'package:cat_calories/models/product_category_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:cat_calories/repositories/product_repository.dart';
+import 'package:cat_calories/repositories/product_category_repository.dart';
 import 'package:cat_calories/repositories/profile_repository.dart';
 import 'package:cat_calories/repositories/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
@@ -20,10 +22,9 @@ import 'package:cat_calories/service/calorie_recommendation_service.dart';
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   final locator = GetIt.instance;
 
-  // FIXED: Removed cached nowDateTime - now using DateTime.now() directly
-  // to ensure we always get fresh data for the current day
-
   late ProductRepository productRepository = locator.get<ProductRepository>();
+  late ProductCategoryRepository productCategoryRepository =
+  locator.get<ProductCategoryRepository>();
   late CalorieItemRepository calorieItemRepository =
   locator.get<CalorieItemRepository>();
   late ProfileRepository profileRepository = locator.get<ProfileRepository>();
@@ -34,11 +35,16 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   double _preparedCaloriesValue = 0;
 
+  /// Store the last successful state for recovery
+  HomeFetched? _lastSuccessfulState;
+
   HomeBloc() : super(HomeFetchingInProgress()) {
     // Register all event handlers
     on<CalorieItemListFetchingInProgressEvent>(_onCalorieItemListFetching);
+    on<HomeErrorDismissedEvent>(_onErrorDismissed);
     on<CreatingCalorieItemEvent>(_onCreatingCalorieItem);
-    on<CreatingCalorieItemWithNutritionEvent>(_onCreatingCalorieItemWithNutrition);
+    on<CreatingCalorieItemWithNutritionEvent>(
+        _onCreatingCalorieItemWithNutrition);
     on<RemovingCalorieItemEvent>(_onRemovingCalorieItem);
     on<CalorieItemListResortingEvent>(_onCalorieItemListResorting);
     on<CalorieItemListUpdatingEvent>(_onCalorieItemListUpdating);
@@ -57,13 +63,19 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     on<DeleteProductEvent>(_onDeleteProduct);
     on<UpdateProductEvent>(_onUpdateProduct);
     on<EatProductEvent>(_onEatProduct);
+    on<EatEntirePackageEvent>(_onEatEntirePackage);
     on<ProductsResortEvent>(_onProductsResort);
+    // Category events
+    on<CreateProductCategoryEvent>(_onCreateProductCategory);
+    on<UpdateProductCategoryEvent>(_onUpdateProductCategory);
+    on<DeleteProductCategoryEvent>(_onDeleteProductCategory);
+    on<ProductCategoriesResortEvent>(_onProductCategoriesResort);
+    on<InitializeDefaultCategoriesEvent>(_onInitializeDefaultCategories);
   }
 
   _saveActiveProfile(ProfileModel profile) async {
     SharedPreferences prefs = await _prefs;
     prefs.setInt(ProfileResolver.activeProfileKey, profile.id!);
-    // Also update the ProfileResolver cache
     ProfileResolver.setActiveProfile(profile);
   }
 
@@ -119,13 +131,14 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       sortOrder: 0,
       eatenAt: DateTime.now(),
       createdAt: DateTime.now(),
-      description: null,
+      description: event.description,
       profileId: _activeProfile!.id!,
       wakingPeriodId: event.wakingPeriod.id!,
       weightGrams: event.weightGrams,
       proteinGrams: event.proteinGrams,
       fatGrams: event.fatGrams,
       carbGrams: event.carbGrams,
+      productId: event.productId,
     );
 
     await calorieItemRepository.offsetSortOrder();
@@ -239,7 +252,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       Emitter<AbstractHomeState> emit,
       ) async {
     await _ensureActiveProfile();
-    await calorieItemRepository.deleteByCreatedAtDay(event.date, event.profile);
+    await calorieItemRepository.deleteByCreatedAtDay(
+        event.date, event.profile);
     await _emitHomeData(emit);
   }
 
@@ -259,26 +273,13 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
 
-    // FIXED: Fetch profiles BEFORE deletion to check count,
-    // then delete, then fetch again to get remaining profiles
-    final List<ProfileModel> profilesBeforeDelete = await profileRepository.fetchAll();
+    await profileRepository.delete(event.profile);
 
-    // Only allow deletion if there's more than one profile
-    if (profilesBeforeDelete.length > 1) {
-      // Delete the profile
-      await profileRepository.delete(event.profile);
+    final remainingProfiles = await profileRepository.fetchAll();
 
-      // Clear the ProfileResolver cache since we're changing profiles
-      ProfileResolver.clearCache();
-
-      // Fetch the remaining profiles AFTER deletion
-      final List<ProfileModel> remainingProfiles = await profileRepository.fetchAll();
-
-      // Set active profile to the first remaining profile
+    if (event.profile.id == _activeProfile!.id) {
       if (remainingProfiles.isNotEmpty) {
         _activeProfile = remainingProfiles.first;
-
-        // Update SharedPreferences with the new active profile
         await _saveActiveProfile(_activeProfile!);
       }
     }
@@ -299,87 +300,253 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       CreateProductEvent event,
       Emitter<AbstractHomeState> emit,
       ) async {
-    await _ensureActiveProfile();
+    try {
+      await _ensureActiveProfile();
 
-    final product = ProductModel(
-      id: null,
-      title: event.title,
-      description: event.description,
-      usesCount: 0,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-      profileId: _activeProfile!.id!,
-      barcode: event.barcode,
-      calorieContent: event.calorieContent,
-      proteins: event.proteins,
-      fats: event.fats,
-      carbohydrates: event.carbohydrates,
-      sortOrder: 0,
-    );
+      final product = ProductModel(
+        id: null,
+        profileId: _activeProfile!.id!,
+        title: event.title,
+        description: event.description,
+        usesCount: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        barcode: event.barcode,
+        caloriesPer100g: event.caloriesPer100g,
+        proteinsPer100g: event.proteinsPer100g,
+        fatsPer100g: event.fatsPer100g,
+        carbsPer100g: event.carbsPer100g,
+        packageWeightGrams: event.packageWeightGrams,
+        categoryId: event.categoryId,
+        sortOrder: 0,
+      );
 
-    await productRepository.insert(product);
-    await _emitHomeData(emit);
+      await productRepository.offsetSortOrder();
+      await productRepository.insert(product);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
   }
 
   Future<void> _onDeleteProduct(
       DeleteProductEvent event,
       Emitter<AbstractHomeState> emit,
       ) async {
-    await _ensureActiveProfile();
-    await productRepository.delete(event.product);
-    await _emitHomeData(emit);
+    try {
+      await _ensureActiveProfile();
+      await productRepository.delete(event.product);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
   }
 
   Future<void> _onUpdateProduct(
       UpdateProductEvent event,
       Emitter<AbstractHomeState> emit,
       ) async {
-    await _ensureActiveProfile();
-    await productRepository.update(event.product);
-    await _emitHomeData(emit);
+    try {
+      await _ensureActiveProfile();
+      await productRepository.update(event.product);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
   }
 
   Future<void> _onEatProduct(
       EatProductEvent event,
       Emitter<AbstractHomeState> emit,
       ) async {
-    await _ensureActiveProfile();
+    try {
+      await _ensureActiveProfile();
 
-    final CalorieItemModel calorieItem = CalorieItemModel(
-      id: null,
-      value: (event.product.calorieContent! / 100) *
-          ExpressionExecutor.execute(event.expression),
-      sortOrder: 0,
-      eatenAt: DateTime.now(),
-      createdAt: DateTime.now(),
-      description: event.product.title,
-      profileId: _activeProfile!.id!,
-      wakingPeriodId: event.wakingPeriod.id!,
-    );
+      final product = event.product;
+      final weightGrams = event.weightGrams;
 
-    event.product.usesCount = event.product.usesCount + 1;
+      // Calculate nutrition values based on weight
+      final calories = product.calculateCalories(weightGrams) ?? 0;
+      final protein = product.calculateProtein(weightGrams);
+      final fat = product.calculateFat(weightGrams);
+      final carbs = product.calculateCarbs(weightGrams);
 
-    await calorieItemRepository.offsetSortOrder();
-    await calorieItemRepository.insert(calorieItem);
-    await productRepository.update(event.product);
+      final CalorieItemModel calorieItem = CalorieItemModel(
+        id: null,
+        value: calories,
+        sortOrder: 0,
+        eatenAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        description: product.title,
+        profileId: _activeProfile!.id!,
+        wakingPeriodId: event.wakingPeriod.id!,
+        weightGrams: weightGrams,
+        proteinGrams: protein,
+        fatGrams: fat,
+        carbGrams: carbs,
+        productId: product.id,
+      );
 
-    event.callback(calorieItem);
-    await _emitHomeData(emit);
+      await calorieItemRepository.offsetSortOrder();
+      await calorieItemRepository.insert(calorieItem);
+
+      // Update product usage statistics
+      await productRepository.recordUsage(product);
+
+      event.callback(calorieItem);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  Future<void> _onEatEntirePackage(
+      EatEntirePackageEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+
+      final product = event.product;
+      if (!product.hasPackageWeight) {
+        throw Exception('Product does not have package weight defined');
+      }
+
+      final weightGrams = product.packageWeightGrams!;
+
+      // Calculate nutrition values based on package weight
+      final calories = product.calculateCalories(weightGrams) ?? 0;
+      final protein = product.calculateProtein(weightGrams);
+      final fat = product.calculateFat(weightGrams);
+      final carbs = product.calculateCarbs(weightGrams);
+
+      final CalorieItemModel calorieItem = CalorieItemModel(
+        id: null,
+        value: calories,
+        sortOrder: 0,
+        eatenAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        description: '${product.title} (entire package)',
+        profileId: _activeProfile!.id!,
+        wakingPeriodId: event.wakingPeriod.id!,
+        weightGrams: weightGrams,
+        proteinGrams: protein,
+        fatGrams: fat,
+        carbGrams: carbs,
+        productId: product.id,
+      );
+
+      await calorieItemRepository.offsetSortOrder();
+      await calorieItemRepository.insert(calorieItem);
+
+      // Update product usage statistics
+      await productRepository.recordUsage(product);
+
+      event.callback(calorieItem);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
   }
 
   Future<void> _onProductsResort(
       ProductsResortEvent event,
       Emitter<AbstractHomeState> emit,
       ) async {
-    await _ensureActiveProfile();
-    await productRepository.resort(event.products);
-    await _emitHomeData(emit);
+    try {
+      await _ensureActiveProfile();
+      await productRepository.resort(event.products);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  // ============================================================================
+  // Category Event Handlers
+  // ============================================================================
+
+  Future<void> _onCreateProductCategory(
+      CreateProductCategoryEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+
+      final category = ProductCategoryModel(
+        id: null,
+        name: event.name,
+        iconName: event.iconName,
+        colorHex: event.colorHex,
+        sortOrder: 0,
+        profileId: _activeProfile!.id!,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await productCategoryRepository.insert(category);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  Future<void> _onUpdateProductCategory(
+      UpdateProductCategoryEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+      await productCategoryRepository.update(event.category);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  Future<void> _onDeleteProductCategory(
+      DeleteProductCategoryEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+      await productCategoryRepository.delete(event.category);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  Future<void> _onProductCategoriesResort(
+      ProductCategoriesResortEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+      await productCategoryRepository.resort(event.categories);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
+  }
+
+  Future<void> _onInitializeDefaultCategories(
+      InitializeDefaultCategoriesEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    try {
+      await _ensureActiveProfile();
+      await productCategoryRepository.createDefaultCategoriesIfNeeded(
+          _activeProfile!);
+      await _emitHomeData(emit);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
+    }
   }
 
   EqualizationSettingsModel _equalizationSettings = EqualizationSettingsModel();
 
   /// Fetch calorie items for the rolling window (last 48 hours).
-  /// This covers any 24-hour window the user might need, plus buffer.
   Future<List<CalorieItemModel>> _fetchRollingWindowItems() async {
     final now = DateTime.now();
     final List<CalorieItemModel> allItems = [];
@@ -390,12 +557,14 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
     // Fetch yesterday's items
     final yesterday = now.subtract(const Duration(days: 1));
-    final yesterdayItems = await calorieItemRepository.fetchByCreatedAtDay(yesterday);
+    final yesterdayItems =
+    await calorieItemRepository.fetchByCreatedAtDay(yesterday);
     allItems.addAll(yesterdayItems);
 
     // Fetch day before yesterday (to ensure full 48h coverage for edge cases)
     final dayBeforeYesterday = now.subtract(const Duration(days: 2));
-    final dayBeforeItems = await calorieItemRepository.fetchByCreatedAtDay(dayBeforeYesterday);
+    final dayBeforeItems =
+    await calorieItemRepository.fetchByCreatedAtDay(dayBeforeYesterday);
     allItems.addAll(dayBeforeItems);
 
     // Remove duplicates by ID (in case of overlap)
@@ -414,100 +583,149 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   }
 
   Future<void> _emitHomeData(Emitter<AbstractHomeState> emit) async {
-    final ProfileModel activeProfile = _activeProfile!;
+    try {
+      final ProfileModel activeProfile = _activeProfile!;
 
-    final DateTime nowDateTime = DateTime.now();
+      final DateTime nowDateTime = DateTime.now();
 
-    // Calculate recommendation
-    final recommendationService = CalorieRecommendationService(
-      EqualizationSettingsModel(
-        baseCalorieGoal: activeProfile.caloriesLimitGoal,
-      ),
-    );
+      // Calculate recommendation
+      final recommendationService = CalorieRecommendationService(
+        EqualizationSettingsModel(
+          baseCalorieGoal: activeProfile.caloriesLimitGoal,
+        ),
+      );
 
-    // FIXED: Using fresh nowDateTime to fetch today's items
-    List<CalorieItemModel> todayCalorieItems =
-    await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
+      List<CalorieItemModel> todayCalorieItems =
+      await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
 
-    // Fetch rolling window items (last 48 hours) for the new rolling tracker
-    List<CalorieItemModel> rollingWindowCalorieItems =
-    await _fetchRollingWindowItems();
+      List<CalorieItemModel> rollingWindowCalorieItems =
+      await _fetchRollingWindowItems();
 
-    DateTime? lastMealTime;
-    if (todayCalorieItems.isNotEmpty) {
-      final sortedItems = todayCalorieItems
-          .where((item) => item.eatenAt != null)
-          .toList()
-        ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
-      if (sortedItems.isNotEmpty) {
-        lastMealTime = sortedItems.first.eatenAt;
+      DateTime? lastMealTime;
+      if (todayCalorieItems.isNotEmpty) {
+        final sortedItems = todayCalorieItems
+            .where((item) => item.eatenAt != null)
+            .toList()
+          ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
+        if (sortedItems.isNotEmpty) {
+          lastMealTime = sortedItems.first.eatenAt;
+        }
       }
-    }
 
-    // Also check rolling window for last meal time (might be from yesterday)
-    if (lastMealTime == null && rollingWindowCalorieItems.isNotEmpty) {
-      final sortedItems = rollingWindowCalorieItems
-          .where((item) => item.eatenAt != null)
-          .toList()
-        ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
-      if (sortedItems.isNotEmpty) {
-        lastMealTime = sortedItems.first.eatenAt;
+      if (lastMealTime == null && rollingWindowCalorieItems.isNotEmpty) {
+        final sortedItems = rollingWindowCalorieItems
+            .where((item) => item.eatenAt != null)
+            .toList()
+          ..sort((a, b) => b.eatenAt!.compareTo(a.eatenAt!));
+        if (sortedItems.isNotEmpty) {
+          lastMealTime = sortedItems.first.eatenAt;
+        }
       }
+
+      final List<DayResultModel> _dayResultsList30days =
+      await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
+
+      final recommendation = recommendationService.calculate(
+        historicalDays: _dayResultsList30days,
+        consumedToday: todayCalorieItems.fold<double>(
+          0,
+              (sum, item) => sum + (item.isEaten() ? item.value : 0),
+        ),
+        now: nowDateTime,
+        lastMealTime: lastMealTime,
+      );
+
+      final List<DayResultModel> _dayResultsList2days =
+      await calorieItemRepository.fetchDaysByProfile(activeProfile, 2);
+
+      final List<ProfileModel> _profiles = await profileRepository.fetchAll();
+      final List<WakingPeriodModel> wakingPeriods =
+      await wakingPeriodRepository.fetchByProfile(activeProfile);
+      final List<ProductModel> products =
+      await productRepository.fetchByProfile(activeProfile);
+      final List<ProductCategoryModel> productCategories =
+      await productCategoryRepository.fetchByProfile(activeProfile);
+
+      final WakingPeriodModel? currentWakingPeriod =
+      await wakingPeriodRepository.findActual(activeProfile);
+      final DateTime startDate =
+      DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day);
+      final DateTime endDate =
+      DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day)
+          .add(Duration(days: 1));
+
+      List<CalorieItemModel> _calorieItems = [];
+
+      if (currentWakingPeriod != null) {
+        _calorieItems = await calorieItemRepository.fetchByWakingPeriodAndProfile(
+            currentWakingPeriod, activeProfile);
+      }
+
+      final newState = HomeFetched(
+        nowDateTime: nowDateTime,
+        periodCalorieItems: _calorieItems,
+        todayCalorieItems: todayCalorieItems,
+        rollingWindowCalorieItems: rollingWindowCalorieItems,
+        days30: _dayResultsList30days,
+        days2: _dayResultsList2days,
+        profiles: _profiles,
+        wakingPeriods: wakingPeriods,
+        activeProfile: activeProfile,
+        startDate: startDate,
+        endDate: endDate,
+        currentWakingPeriod: currentWakingPeriod,
+        preparedCaloriesValue: _preparedCaloriesValue,
+        products: products,
+        productCategories: productCategories,
+        recommendation: recommendation,
+        equalizationSettings: _equalizationSettings,
+      );
+
+      _lastSuccessfulState = newState;
+      emit(newState);
+    } catch (e, stackTrace) {
+      _emitError(emit, e, stackTrace);
     }
+  }
 
-    final List<DayResultModel> _dayResultsList30days =
-    await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
+  /// Emit an error state with real error message and stack trace
+  void _emitError(
+      Emitter<AbstractHomeState> emit,
+      dynamic error,
+      StackTrace stackTrace,
+      ) {
+    final errorDetails = StringBuffer();
+    errorDetails.writeln('${error.runtimeType}: $error');
+    errorDetails.writeln('');
+    errorDetails.writeln('Stack trace:');
+    errorDetails.writeln(stackTrace.toString());
 
-    final recommendation = recommendationService.calculate(
-      historicalDays: _dayResultsList30days,
-      consumedToday: todayCalorieItems.fold<double>(
-        0,
-            (sum, item) => sum + (item.isEaten() ? item.value : 0),
-      ),
-      now: nowDateTime,
-      lastMealTime: lastMealTime,
-    );
-
-    final List<DayResultModel> _dayResultsList2days =
-    await calorieItemRepository.fetchDaysByProfile(activeProfile, 2);
-
-    final List<ProfileModel> _profiles = await profileRepository.fetchAll();
-    final List<WakingPeriodModel> wakingPeriods =
-    await wakingPeriodRepository.fetchByProfile(activeProfile);
-    final List<ProductModel> products = await productRepository.fetchAll();
-
-    final WakingPeriodModel? currentWakingPeriod =
-    await wakingPeriodRepository.findActual(activeProfile);
-    final DateTime startDate =
-    DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day);
-    final DateTime endDate =
-    DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day)
-        .add(Duration(days: 1));
-
-    List<CalorieItemModel> _calorieItems = [];
-
-    if (currentWakingPeriod != null) {
-      _calorieItems = await calorieItemRepository.fetchByWakingPeriodAndProfile(
-          currentWakingPeriod, activeProfile);
-    }
-
-    emit(HomeFetched(
-      nowDateTime: nowDateTime,
-      periodCalorieItems: _calorieItems,
-      todayCalorieItems: todayCalorieItems,
-      rollingWindowCalorieItems: rollingWindowCalorieItems,
-      days30: _dayResultsList30days,
-      days2: _dayResultsList2days,
-      profiles: _profiles,
-      wakingPeriods: wakingPeriods,
-      activeProfile: activeProfile,
-      startDate: startDate,
-      endDate: endDate,
-      currentWakingPeriod: currentWakingPeriod,
-      preparedCaloriesValue: _preparedCaloriesValue,
-      products: products,
-      recommendation: recommendation,
-      equalizationSettings: _equalizationSettings,
+    emit(HomeError(
+      message: error.toString(),
+      technicalDetails: errorDetails.toString(),
+      originalError: error,
+      stackTrace: stackTrace,
+      canRetry: true,
+      previousState: _lastSuccessfulState,
     ));
+  }
+
+  /// Handle error dismissed event
+  Future<void> _onErrorDismissed(
+      HomeErrorDismissedEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    if (event.retry) {
+      // Retry loading data
+      emit(HomeFetchingInProgress());
+      await _emitHomeData(emit);
+    } else if (_lastSuccessfulState != null) {
+      // Restore previous state
+      emit(_lastSuccessfulState!);
+    } else {
+      // No previous state, try loading
+      emit(HomeFetchingInProgress());
+      await _emitHomeData(emit);
+    }
   }
 }

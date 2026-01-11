@@ -35,10 +35,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
     titleController.text = product.title;
     descriptionController.text = product.description == null ? '' : product.description.toString();
     barcodeController.text = product.barcode == null ? '' : product.barcode.toString();
-    calorieContentController.text = product.calorieContent == null ? '' : product.calorieContent.toString();
-    proteinsController.text = product.proteins == null ? '' : product.proteins.toString();
-    fatsController.text = product.fats == null ? '' : product.fats.toString();
-    carbohydratesController.text = product.carbohydrates == null ? '' : product.carbohydrates.toString();
+    calorieContentController.text = product.caloriesPer100g == null ? '' : product.caloriesPer100g.toString();
+    proteinsController.text = product.proteinsPer100g == null ? '' : product.proteinsPer100g.toString();
+    fatsController.text = product.fatsPer100g == null ? '' : product.fatsPer100g.toString();
+    carbohydratesController.text = product.carbsPer100g == null ? '' : product.carbsPer100g.toString();
 
     super.initState();
   }
@@ -73,12 +73,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
               product.title = titleController.text;
               product.description = descriptionController.text.length > 0 ? descriptionController.text : null;
-              product.barcode = barcodeController.text.length == 0 ? null : int.parse(barcodeController.text);
-              product.calorieContent =
+              product.barcode = barcodeController.text.length == 0 ? null : (barcodeController.text);
+              product.carbsPer100g =
                   calorieContentController.text.length > 0 ? double.parse(calorieContentController.text) : null;
-              product.proteins = proteinsController.text.length > 0 ? double.parse(proteinsController.text) : null;
-              product.fats = fatsController.text.length > 0 ? double.parse(fatsController.text) : null;
-              product.carbohydrates = carbohydratesController.text.length > 0 ? double.parse(carbohydratesController.text) : null;
+              product.proteinsPer100g = proteinsController.text.length > 0 ? double.parse(proteinsController.text) : null;
+              product.fatsPer100g = fatsController.text.length > 0 ? double.parse(fatsController.text) : null;
+              product.carbsPer100g = carbohydratesController.text.length > 0 ? double.parse(carbohydratesController.text) : null;
 
               BlocProvider.of<HomeBloc>(context).add(UpdateProductEvent(product));
 

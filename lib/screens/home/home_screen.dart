@@ -6,10 +6,12 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/screens/calories_history.dart';
 import 'package:cat_calories/screens/create_product_screen.dart';
+import 'package:cat_calories/screens/home/tabs/products_tab.dart';
 import 'package:cat_calories/screens/home/tabs/tracking_tab.dart';
 import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/widgets/calorie_chip.dart';
 import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
+import 'package:cat_calories/screens/products/categories_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../service/calorie_exporter.dart';
@@ -232,12 +234,20 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       const PopupMenuDivider(),
       const PopupMenuItem<String>(
+        value: 'categories',
+        child: ListTile(
+          leading: Icon(Icons.category),
+          title: Text('Manage Categories'),
+        ),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<String>(
         value: 'calories',
         child: ListTile(title: Text('Calories')),
       ),
       const PopupMenuItem<String>(
         value: 'create_product',
-        child: ListTile(title: Text('Create product')),
+        child: ListTile(title: Text('Create product (legacy)')),
       ),
       const PopupMenuItem<String>(
         value: 'days',
@@ -262,6 +272,7 @@ class _HomeScreenState extends State<HomeScreen>
         'calories': () => DayCaloriesPage(state.startDate),
         'days': () => DaysScreen(),
         'periods': () => WakingPeriodsScreen(),
+        'categories': () => const ProductCategoriesScreen(),
       };
 
       final builder = routes[value];
@@ -272,12 +283,14 @@ class _HomeScreenState extends State<HomeScreen>
 
     const tabMenuItems = [
       Tab(text: 'Tracking'),
+      Tab(text: 'Products'),
       Tab(text: 'kCal'),
       Tab(text: 'Info'),
     ];
 
     var tabViews = [
       TrackingTab(),
+      const ProductsTab(),
       AllCaloriesHistoryScreen(),
       MainInfoView(),
     ];
@@ -372,6 +385,11 @@ class _ExportSummaryWidget extends StatelessWidget {
           _SummaryRow(
             label: 'Products',
             value: '${state.products.length} items',
+          ),
+          const SizedBox(height: 4),
+          _SummaryRow(
+            label: 'Categories',
+            value: '${state.productCategories.length} items',
           ),
         ],
       ),
