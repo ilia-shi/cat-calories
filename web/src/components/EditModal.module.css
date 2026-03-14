@@ -1,0 +1,123 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #1e1e3a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-width: 90vw;
+}
+
+.modal h2 {
+  color: #fff;
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.modal label {
+  display: block;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.modal input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: #0f0f23;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.modal input:focus {
+  outline: none;
+  border-color: #4dabf7;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.row label {
+  flex: 1;
+}
+
+.error {
+  background: #ff6b6b22;
+  border: 1px solid #ff6b6b;
+  color: #ff6b6b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.rightActions {
+  display: flex;
+  gap: 8px;
+}
+
+.saveBtn,
+.cancelBtn,
+.deleteBtn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.saveBtn {
+  background: #4dabf7;
+  color: #fff;
+}
+
+.saveBtn:hover {
+  background: #339af0;
+}
+
+.cancelBtn {
+  background: #333;
+  color: #aaa;
+}
+
+.cancelBtn:hover {
+  background: #444;
+}
+
+.deleteBtn {
+  background: transparent;
+  color: #ff6b6b;
+  border: 1px solid #ff6b6b44;
+}
+
+.deleteBtn:hover {
+  background: #ff6b6b22;
+}
+
+.saveBtn:disabled,
+.cancelBtn:disabled,
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

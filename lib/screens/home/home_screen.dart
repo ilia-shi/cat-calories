@@ -12,8 +12,10 @@ import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/widgets/calorie_chip.dart';
 import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
+import 'package:cat_calories/service/web_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import '../../service/calorie_exporter.dart';
 import '../days_screen.dart';
 import '../waking_periods_screen.dart';
@@ -305,6 +307,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             appBar: AppBar(
               actions: [
+                _WebServerIndicator(),
                 BlocBuilder<HomeBloc, AbstractHomeState>(
                     builder: (context, state) {
                       if (state is HomeFetched) {
@@ -452,6 +455,167 @@ class _CompactCalorieDisplay extends StatelessWidget {
         ),
         const SizedBox(width: 8),
       ],
+    );
+  }
+}
+
+class _WebServerIndicator extends StatefulWidget {
+  @override
+  State<_WebServerIndicator> createState() => _WebServerIndicatorState();
+}
+
+class _WebServerIndicatorState extends State<_WebServerIndicator> {
+  final _webServer = GetIt.instance.get<WebServerService>();
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_webServer.isRunning) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => _showMenu(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Icon(
+          Icons.lan,
+          size: 16,
+          color: Colors.green.shade400,
+        ),
+      ),
+    );
+  }
+
+  void _showMenu(BuildContext context) {
+    final address = _webServer.address ?? 'unknown';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lan, color: Colors.green.shade400, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Web Server',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Running',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green.shade400,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+
+                // Address
+                ListTile(
+                  leading: const Icon(Icons.link, size: 20),
+                  title: const Text('Address', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: SelectableText(
+                    'http://$address',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+
+                // Port
+                ListTile(
+                  leading: const Icon(Icons.numbers, size: 20),
+                  title: const Text('Port', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: Text(
+                    '${WebServerService.defaultPort}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ),
+
+                // Hint
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Open the address on any device in the same network',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+
+                // Disconnect
+                ListTile(
+                  leading: Icon(Icons.stop_circle_outlined, color: Colors.red.shade400, size: 22),
+                  title: Text('Stop server', style: TextStyle(color: Colors.red.shade400)),
+                  onTap: () async {
+                    await _webServer.stop();
+                    if (mounted) setState(() {});
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

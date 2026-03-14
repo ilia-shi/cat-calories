@@ -2,9 +2,11 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/service/web_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final ProfileModel profile;
@@ -313,6 +315,12 @@ class EditProfileScreenState extends State<EditProfileScreen>
                         _buildSectionTitle('Daily Goals', isDark),
                         const SizedBox(height: 16),
                         _buildGoalsCard(isDark, primaryColor),
+
+                        const SizedBox(height: 28),
+
+                        _buildSectionTitle('Web Server', isDark),
+                        const SizedBox(height: 16),
+                        _WebServerSettingsCard(isDark: isDark, primaryColor: primaryColor),
 
                         const SizedBox(height: 32),
 
@@ -698,5 +706,141 @@ class EditProfileScreenState extends State<EditProfileScreen>
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[date.month - 1]} ${date.year}';
+  }
+}
+
+class _WebServerSettingsCard extends StatefulWidget {
+  final bool isDark;
+  final Color primaryColor;
+
+  const _WebServerSettingsCard({
+    required this.isDark,
+    required this.primaryColor,
+  });
+
+  @override
+  State<_WebServerSettingsCard> createState() => _WebServerSettingsCardState();
+}
+
+class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
+  final _webServer = GetIt.instance.get<WebServerService>();
+  int _selectedMinutes = WebServerService.defaultTimeoutMinutes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTimeout();
+  }
+
+  Future<void> _loadTimeout() async {
+    final minutes = await _webServer.getTimeoutMinutes();
+    if (mounted) setState(() => _selectedMinutes = minutes);
+  }
+
+  String _formatTimeout(int minutes) {
+    if (minutes == 0) return 'Never';
+    if (minutes == 1) return '1 minute';
+    return '$minutes minutes';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: widget.isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Screen timeout',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: widget.isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.grey.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _selectedMinutes,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: widget.isDark ? Colors.white54 : Colors.black45,
+                  ),
+                  dropdownColor: widget.isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: widget.isDark ? Colors.white : Colors.black87,
+                  ),
+                  items: WebServerService.timeoutOptions.map((minutes) {
+                    return DropdownMenuItem<int>(
+                      value: minutes,
+                      child: Row(
+                        children: [
+                          Icon(
+                            minutes == 0 ? Icons.visibility : Icons.timer_outlined,
+                            size: 18,
+                            color: widget.primaryColor,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(_formatTimeout(minutes)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _selectedMinutes = value);
+                    _webServer.setTimeoutMinutes(value);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: widget.isDark ? Colors.white38 : Colors.black38,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Turn off screen after inactivity while the web server is running',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: widget.isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

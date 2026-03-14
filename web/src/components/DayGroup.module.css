@@ -1,0 +1,25 @@
+.dayHeader {
+  background: #16213e;
+  cursor: pointer;
+}
+
+.dayHeader:hover {
+  background: #1a2744;
+}
+
+.itemRow {
+  background: #0f0f23;
+  cursor: pointer;
+}
+
+.itemRow:hover {
+  background: #1a1a3e;
+}
+
+.num {
+  text-align: right;
+}
+
+.over {
+  color: #ff6b6b;
+}

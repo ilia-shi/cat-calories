@@ -7,9 +7,11 @@ import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/screens/calories_history.dart';
 import 'package:cat_calories/screens/create_profile_screen.dart';
 import 'package:cat_calories/screens/edit_profile_screen.dart';
+import 'package:cat_calories/service/web_server_service.dart';
 import 'package:cat_calories/utils/cat_avatar_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 class HomeAppDrawer extends StatelessWidget {
   const HomeAppDrawer({Key? key}) : super(key: key);
@@ -28,6 +30,8 @@ class HomeAppDrawer extends StatelessWidget {
                 _CreateProfileTile(),
                 Divider(),
                 _CalorieHistoryTile(),
+                Divider(),
+                _WebServerTile(),
                 Divider(),
                 _ThemeSwitcherTile(),
                 Divider(),
@@ -167,6 +171,69 @@ class _CalorieHistoryTile extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _WebServerTile extends StatefulWidget {
+  const _WebServerTile();
+
+  @override
+  State<_WebServerTile> createState() => _WebServerTileState();
+}
+
+class _WebServerTileState extends State<_WebServerTile> {
+  final _webServer = GetIt.instance.get<WebServerService>();
+  bool _starting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRunning = _webServer.isRunning;
+    final address = _webServer.address;
+
+    return ListTile(
+      leading: Icon(
+        isRunning ? Icons.lan : Icons.lan_outlined,
+        color: isRunning ? Colors.green : null,
+      ),
+      title: Text(isRunning ? 'Web Server ON' : 'Web Server'),
+      subtitle: isRunning
+          ? SelectableText('http://$address')
+          : const Text('View records from PC browser'),
+      trailing: _starting
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Switch(
+              value: isRunning,
+              onChanged: (value) => _toggle(value),
+            ),
+    );
+  }
+
+  Future<void> _toggle(bool start) async {
+    if (start) {
+      setState(() => _starting = true);
+      try {
+        final homeBloc = context.read<HomeBloc>();
+        _webServer.onDataChanged = () {
+          homeBloc.add(CalorieItemListFetchingInProgressEvent());
+        };
+        await _webServer.start();
+        setState(() => _starting = false);
+      } catch (e) {
+        setState(() => _starting = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to start server: $e')),
+          );
+        }
+      }
+    } else {
+      await _webServer.stop();
+      setState(() {});
+    }
   }
 }
 
