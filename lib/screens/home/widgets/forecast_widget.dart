@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../tracking/calorie_tracker.dart';
+import '../../../service/calorie_tracker.dart';
 
 /// Widget displaying budget forecast over the next several hours
 class ForecastWidget extends StatelessWidget {

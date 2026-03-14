@@ -4,8 +4,9 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
-import 'package:cat_calories/screens/calories_history.dart';
-import 'package:cat_calories/screens/create_product_screen.dart';
+import 'package:cat_calories/screens/calories/calories_history.dart';
+import 'package:cat_calories/screens/home/tabs/main_info_tab.dart';
+import 'package:cat_calories/screens/products/create_product_screen.dart';
 import 'package:cat_calories/screens/home/tabs/products_tab.dart';
 import 'package:cat_calories/screens/home/tabs/tracking_tab.dart';
 import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
@@ -17,9 +18,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../../service/calorie_exporter.dart';
-import '../days_screen.dart';
-import '../waking_periods_screen.dart';
-import 'tabs/main_info_tab.dart';
+import '../calories/days_screen.dart';
+import '../waking_periods/waking_periods_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key);

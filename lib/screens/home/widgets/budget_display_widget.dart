@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../tracking/calorie_tracker.dart';
+import '../../../service/calorie_tracker.dart';
 
 class BudgetDisplayWidget extends StatelessWidget {
   final MealRecommendation recommendation;

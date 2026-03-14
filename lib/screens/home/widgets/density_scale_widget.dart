@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import '../../../tracking/calorie_tracker.dart';
+import '../../../service/calorie_tracker.dart';
 
 class DensityScaleWidget extends StatelessWidget {
   final List<CalorieEntry> entries;

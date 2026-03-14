@@ -1,4 +1,4 @@
-import 'package:cat_calories/models/product/product.dart';
+import 'package:cat_calories/models/product.dart';
 
 // ============================================================
 // VEGETABLES - Base products

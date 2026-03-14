@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../tracking/calorie_tracker.dart';
+import '../../../service/calorie_tracker.dart';
 
 /// Widget displaying recent calorie entries within the 24h window
 class RecentEntriesWidget extends StatelessWidget {

@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../blocs/home/home_bloc.dart';
 import '../../../blocs/home/home_event.dart';
 import '../../../blocs/home/home_state.dart';
-import '../../../tracking/calorie_tracker.dart';
+import '../../../service/calorie_tracker.dart';
 import '../widgets/budget_display_widget.dart';
 import '../widgets/density_scale_widget.dart';
 import '../widgets/forecast_widget.dart';

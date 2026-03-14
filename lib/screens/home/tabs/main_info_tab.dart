@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
-import 'package:cat_calories/screens/edit_waking_period_screen.dart';
+import 'package:cat_calories/screens/waking_periods/edit_waking_period_screen.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';

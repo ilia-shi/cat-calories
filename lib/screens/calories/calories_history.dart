@@ -4,7 +4,7 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/repositories/calorie_item_repository.dart';
-import 'package:cat_calories/screens/edit_calorie_item_screen.dart';
+import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
