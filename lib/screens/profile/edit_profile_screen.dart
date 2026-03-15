@@ -2,6 +2,7 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -723,21 +724,35 @@ class _WebServerSettingsCard extends StatefulWidget {
 }
 
 class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
-  final _webServer = GetIt.instance.get<WebServerService>();
-  int _selectedMinutes = WebServerService.defaultTimeoutMinutes;
+  final _screenEnergy = GetIt.instance.get<WebServerService>().screenEnergy;
+  int _selectedMinutes = ScreenEnergyService.defaultTimeoutMinutes;
+  int _selectedDimMinutes = ScreenEnergyService.defaultDimMinutes;
 
   @override
   void initState() {
     super.initState();
-    _loadTimeout();
+    _loadSettings();
   }
 
-  Future<void> _loadTimeout() async {
-    final minutes = await _webServer.getTimeoutMinutes();
-    if (mounted) setState(() => _selectedMinutes = minutes);
+  Future<void> _loadSettings() async {
+    final minutes = await _screenEnergy.getTimeoutMinutes();
+    final dimMinutes = await _screenEnergy.getDimTimeoutMinutes();
+    if (mounted) {
+      setState(() {
+        _selectedMinutes = minutes;
+        _selectedDimMinutes = dimMinutes;
+      });
+    }
   }
 
   String _formatTimeout(int minutes) {
+    if (minutes == 0) return 'Never';
+    if (minutes == 1) return '1 minute';
+    return '$minutes minutes';
+  }
+
+  String _formatDimTimeout(int minutes) {
+    if (minutes == -1) return 'Default';
     if (minutes == 0) return 'Never';
     if (minutes == 1) return '1 minute';
     return '$minutes minutes';
@@ -794,7 +809,7 @@ class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
                     fontSize: 16,
                     color: widget.isDark ? Colors.white : Colors.black87,
                   ),
-                  items: WebServerService.timeoutOptions.map((minutes) {
+                  items: ScreenEnergyService.timeoutOptions.map((minutes) {
                     return DropdownMenuItem<int>(
                       value: minutes,
                       child: Row(
@@ -813,7 +828,7 @@ class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
                   onChanged: (value) {
                     if (value == null) return;
                     setState(() => _selectedMinutes = value);
-                    _webServer.setTimeoutMinutes(value);
+                    _screenEnergy.setTimeoutMinutes(value);
                   },
                 ),
               ),
@@ -830,6 +845,81 @@ class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
                 Expanded(
                   child: Text(
                     'Turn off screen after inactivity while the web server is running',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: widget.isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Dim brightness',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: widget.isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.grey.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _selectedDimMinutes,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: widget.isDark ? Colors.white54 : Colors.black45,
+                  ),
+                  dropdownColor: widget.isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: widget.isDark ? Colors.white : Colors.black87,
+                  ),
+                  items: ScreenEnergyService.dimTimeoutOptions.map((minutes) {
+                    return DropdownMenuItem<int>(
+                      value: minutes,
+                      child: Row(
+                        children: [
+                          Icon(
+                            minutes == 0 ? Icons.brightness_high : Icons.brightness_low,
+                            size: 18,
+                            color: widget.primaryColor,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(_formatDimTimeout(minutes)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _selectedDimMinutes = value);
+                    _screenEnergy.setDimTimeoutMinutes(value);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: widget.isDark ? Colors.white38 : Colors.black38,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Reduce screen brightness before turning off. Default uses device screen timeout.',
                     style: TextStyle(
                       fontSize: 12,
                       color: widget.isDark ? Colors.white38 : Colors.black38,

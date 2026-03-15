@@ -5,24 +5,17 @@ import 'dart:io';
 import 'package:cat_calories/models/calorie_item_model.dart';
 import 'package:cat_calories/repositories/calorie_item_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
+import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class WebServerService {
   static const int defaultPort = 18080;
-  static const _wakelockChannel = MethodChannel('com.sywer.cat_calories/wakelock');
-  static const String screenTimeoutKey = 'web_server_screen_timeout_minutes';
-  static const int defaultTimeoutMinutes = 5;
-
-  /// Available timeout options in minutes. 0 means never (always on).
-  static const List<int> timeoutOptions = [0, 1, 2, 5, 10, 15, 30];
 
   HttpServer? _server;
   String? _address;
   final _locator = GetIt.instance;
-  Timer? _inactivityTimer;
-  bool _wakelockEnabled = false;
+  final ScreenEnergyService screenEnergy = ScreenEnergyService();
 
   /// Called after a write operation so the mobile UI can refresh.
   void Function()? onDataChanged;
@@ -46,56 +39,17 @@ class WebServerService {
     final ip = await _getLocalIp();
     _address = '$ip:$port';
 
-    await _enableWakelock();
-    _resetInactivityTimer();
+    await screenEnergy.start();
 
     return _address!;
   }
 
   Future<void> stop() async {
-    _inactivityTimer?.cancel();
-    _inactivityTimer = null;
     await _server?.close();
     _server = null;
     _address = null;
 
-    await _disableWakelock();
-  }
-
-  Future<int> getTimeoutMinutes() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(screenTimeoutKey) ?? defaultTimeoutMinutes;
-  }
-
-  Future<void> setTimeoutMinutes(int minutes) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(screenTimeoutKey, minutes);
-    if (isRunning) _resetInactivityTimer();
-  }
-
-  void _resetInactivityTimer() async {
-    _inactivityTimer?.cancel();
-    final minutes = await getTimeoutMinutes();
-    if (minutes == 0) return; // 0 = never turn off
-    _inactivityTimer = Timer(Duration(minutes: minutes), () async {
-      await _disableWakelock();
-    });
-  }
-
-  Future<void> _enableWakelock() async {
-    if (_wakelockEnabled) return;
-    try {
-      await _wakelockChannel.invokeMethod('enable');
-      _wakelockEnabled = true;
-    } catch (_) {}
-  }
-
-  Future<void> _disableWakelock() async {
-    if (!_wakelockEnabled) return;
-    try {
-      await _wakelockChannel.invokeMethod('disable');
-      _wakelockEnabled = false;
-    } catch (_) {}
+    await screenEnergy.stop();
   }
 
   Future<void> _loadAssets() async {
@@ -146,8 +100,10 @@ class WebServerService {
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
-    _enableWakelock();
-    _resetInactivityTimer();
+    // Only write requests (POST/PUT/DELETE) from the web count as user activity
+    if (request.method == 'POST' || request.method == 'PUT' || request.method == 'DELETE') {
+      screenEnergy.onUserActivity();
+    }
 
     // Handle CORS preflight
     if (request.method == 'OPTIONS') {
@@ -165,6 +121,7 @@ class WebServerService {
       final recordMatch = RegExp(r'^/api/records/(\d+)$').firstMatch(path);
 
       if (path == '/api/records' && request.method == 'GET') {
+        screenEnergy.onClientPoll();
         await _handleGetRecords(request);
       } else if (path == '/api/records' && request.method == 'POST') {
         await _handleCreateRecord(request);
