@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cat_calories/ui/colors.dart';
 import '../../../service/calorie_tracker.dart';
 
 /// Widget showing meal recommendations and timing
@@ -79,6 +80,7 @@ class MealRecommendationWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appColors = AppColors.of(context);
     final status = _getTimingStatus();
 
     return Container(
@@ -101,16 +103,16 @@ class MealRecommendationWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: status.backgroundColor,
+              color: appColors.tintedSurface(status.color, alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: status.color.withValues(alpha: 0.2)),
+              border: Border.all(color: appColors.tintedSurface(status.color, alpha: 0.2)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: status.color.withValues(alpha: 0.2),
+                    color: appColors.tintedSurface(status.color, alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -163,7 +165,7 @@ class MealRecommendationWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: appColors.infoSurface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -172,7 +174,7 @@ class MealRecommendationWidget extends StatelessWidget {
                 Icon(
                   Icons.info_outline,
                   size: 18,
-                  color: Colors.blue.shade700,
+                  color: appColors.infoIcon,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -182,7 +184,7 @@ class MealRecommendationWidget extends StatelessWidget {
                       Text(
                         recommendation.reasoning,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.blue.shade800,
+                          color: appColors.infoText,
                         ),
                       ),
                       if (recommendation.lastMealTime != null) ...[
@@ -192,13 +194,13 @@ class MealRecommendationWidget extends StatelessWidget {
                             Icon(
                               Icons.history,
                               size: 14,
-                              color: Colors.blue.shade600,
+                              color: appColors.infoIcon,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Last meal: ${_formatLastMeal()}',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: Colors.blue.shade600,
+                                color: appColors.infoIcon,
                               ),
                             ),
                           ],
@@ -217,6 +219,7 @@ class MealRecommendationWidget extends StatelessWidget {
 
   Widget _buildPortionScale(BuildContext context) {
     final theme = Theme.of(context);
+    final appColors = AppColors.of(context);
     final minKcal = recommendation.recommendedMin.round();
     final maxKcal = recommendation.recommendedMax.round();
     final idealKcal = ((minKcal + maxKcal) / 2).round();
@@ -257,7 +260,7 @@ class MealRecommendationWidget extends StatelessWidget {
             Text(
               'Too small',
               style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.grey.shade500,
+                color: appColors.textTertiary,
                 fontSize: 10,
               ),
             ),
@@ -272,7 +275,7 @@ class MealRecommendationWidget extends StatelessWidget {
             Text(
               'Too large',
               style: theme.textTheme.labelSmall?.copyWith(
-                color: Colors.grey.shade500,
+                color: appColors.textTertiary,
                 fontSize: 10,
               ),
             ),
@@ -283,10 +286,11 @@ class MealRecommendationWidget extends StatelessWidget {
   }
 
   Widget _buildScaleMarker(BuildContext context, String value, String label, Color color) {
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appColors.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
@@ -308,7 +312,7 @@ class MealRecommendationWidget extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.grey.shade500,
+              color: appColors.textTertiary,
               fontSize: 9,
             ),
           ),

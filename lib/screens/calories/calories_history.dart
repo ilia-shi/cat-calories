@@ -209,6 +209,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildEmptyState() {
+    final appColors = AppColors.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -216,13 +217,13 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: appColors.surfaceSubtle,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.restaurant_menu,
               size: 64,
-              color: Colors.grey.shade400,
+              color: appColors.textDisabled,
             ),
           ),
           const SizedBox(height: 24),
@@ -231,7 +232,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
+              color: appColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -240,7 +241,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: appColors.textTertiary,
             ),
           ),
         ],
@@ -428,6 +429,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildDateGroup(DateTime date) {
+    final appColors = AppColors.of(context);
     final items = _groupedCalories[date] ?? [];
     final summary = _daySummaries[date]!;
     final isExpanded = _expandedDates.contains(date);
@@ -502,7 +504,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                             end: Alignment.bottomRight,
                           )
                               : null,
-                          color: isToday ? null : Colors.grey.shade100,
+                          color: isToday ? null : appColors.surfaceSubtle,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -513,7 +515,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: isToday ? Colors.white : Colors.black87,
+                                color: isToday ? Colors.white : appColors.textPrimary,
                               ),
                             ),
                             Text(
@@ -523,7 +525,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                                 fontWeight: FontWeight.w600,
                                 color: isToday
                                     ? Colors.white.withValues(alpha: 0.9)
-                                    : Colors.grey.shade600,
+                                    : appColors.textSecondary,
                               ),
                             ),
                           ],
@@ -541,7 +543,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                                 fontSize: 16,
                                 fontWeight:
                                 isToday ? FontWeight.bold : FontWeight.w600,
-                                color: Colors.black87,
+                                color: appColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -592,7 +594,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                             'kcal',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500,
+                              color: appColors.textTertiary,
                             ),
                           ),
                         ],
@@ -603,7 +605,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                         duration: const Duration(milliseconds: 200),
                         child: Icon(
                           Icons.keyboard_arrow_down,
-                          color: Colors.grey.shade400,
+                          color: appColors.textDisabled,
                         ),
                       ),
                     ],
@@ -624,7 +626,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               children: [
                 Container(
                   height: 1,
-                  color: Colors.grey.shade200,
+                  color: appColors.border,
                 ),
                 ...items.asMap().entries.map((entry) {
                   final index = entry.key;
@@ -645,10 +647,11 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildDayMacroSummary(_DaySummary summary) {
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: appColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -665,6 +668,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildMacroChip(String label, double value, bool hasData, Color color) {
+    final appColors = AppColors.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -672,7 +676,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           width: 18,
           height: 18,
           decoration: BoxDecoration(
-            color: hasData ? color.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15),
+            color: appColors.macroCircleBg(color, hasData),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -681,7 +685,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
-                color: hasData ? color : Colors.grey,
+                color: appColors.macroCircleText(color, hasData),
               ),
             ),
           ),
@@ -692,7 +696,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: hasData ? Colors.grey.shade700 : Colors.grey.shade400,
+            color: appColors.macroValueText(hasData),
           ),
         ),
       ],
@@ -700,10 +704,11 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildStatChip(String value, String label, Color color) {
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: appColors.tintedSurface(color),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -711,13 +716,14 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: color.withValues(alpha: 0.8),
+          color: appColors.tintedText(color),
         ),
       ),
     );
   }
 
   Widget _buildCalorieItem(CalorieItemModel item, bool isLast) {
+    final appColors = AppColors.of(context);
     final hasMacros = item.proteinGrams != null ||
         item.fatGrams != null ||
         item.carbGrams != null;
@@ -731,7 +737,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               ? null
               : Border(
             bottom: BorderSide(
-              color: Colors.grey.shade100,
+              color: appColors.borderSubtle,
             ),
           ),
         ),
@@ -752,7 +758,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
+                            color: appColors.textSecondary,
                           ),
                         ),
                         if (item.isEaten())
@@ -783,14 +789,14 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
+                              color: appColors.border,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'Planned',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: Colors.grey.shade600,
+                                color: appColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -830,7 +836,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                             'No description',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade400,
+                              color: appColors.textDisabled,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -871,13 +877,14 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildItemMacros(CalorieItemModel item) {
+    final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(left: 80),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: appColors.surfaceMuted,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: appColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -904,7 +911,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
             Container(
               height: 12,
               width: 1,
-              color: Colors.grey.shade300,
+              color: appColors.border,
             ),
             const SizedBox(width: 12),
             Row(
@@ -913,14 +920,14 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 Icon(
                   Icons.scale,
                   size: 12,
-                  color: Colors.grey.shade500,
+                  color: appColors.textTertiary,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   '${item.weightGrams!.round()}g',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: appColors.textSecondary,
                   ),
                 ),
               ],
@@ -932,6 +939,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildItemMacroIndicator(String label, double? value, Color color) {
+    final appColors = AppColors.of(context);
     final hasValue = value != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -940,9 +948,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           width: 14,
           height: 14,
           decoration: BoxDecoration(
-            color: hasValue
-                ? color.withValues(alpha: 0.15)
-                : Colors.grey.withValues(alpha: 0.1),
+            color: appColors.macroCircleBg(color, hasValue),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -951,7 +957,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               style: TextStyle(
                 fontSize: 8,
                 fontWeight: FontWeight.bold,
-                color: hasValue ? color : Colors.grey.shade400,
+                color: appColors.macroCircleText(color, hasValue),
               ),
             ),
           ),
@@ -962,7 +968,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: hasValue ? Colors.grey.shade700 : Colors.grey.shade400,
+            color: appColors.macroValueText(hasValue),
           ),
         ),
       ],
@@ -970,6 +976,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   void _showItemOptions(CalorieItemModel item) {
+    final appColors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -988,7 +995,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: appColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -997,7 +1004,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: appColors.surfaceSubtle,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1026,7 +1033,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                                     item.description!,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: appColors.textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1038,7 +1045,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                             DateFormat('MMM d, HH:mm').format(item.createdAt),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500,
+                              color: appColors.textTertiary,
                             ),
                           ),
                         ],
@@ -1058,7 +1065,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: appColors.tintedSurface(Colors.blue),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.edit, color: Colors.blue, size: 20),

@@ -1,3 +1,4 @@
+import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 
 import '../../../service/calorie_tracker.dart';
@@ -171,12 +172,12 @@ class RecentEntriesWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isExpiringSoon
-            ? Colors.green.shade50
+            ? AppColors.of(context).tintedSurface(Colors.green, alpha: 0.08)
             : theme.colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isExpiringSoon
-              ? Colors.green.shade200
+              ? AppColors.of(context).tintedSurface(Colors.green, alpha: 0.3)
               : theme.dividerColor.withValues(alpha: 0.5),
         ),
       ),

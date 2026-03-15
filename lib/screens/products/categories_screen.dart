@@ -368,7 +368,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                         shape: BoxShape.circle,
                         border: isSelected
                             ? Border.all(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           width: 3,
                         )
                             : null,

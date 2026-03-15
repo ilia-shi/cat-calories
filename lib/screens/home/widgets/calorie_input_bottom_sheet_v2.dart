@@ -185,10 +185,11 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appColors = AppColors.of(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        color: appColors.surfaceElevated,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       padding: EdgeInsets.only(bottom: bottomPadding),
@@ -221,22 +222,24 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   }
 
   Widget _buildHandle() {
+    final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 12),
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: Colors.grey[400],
+        color: appColors.textDisabled,
         borderRadius: BorderRadius.circular(2),
       ),
     );
   }
 
   Widget _buildModeToggle(bool isDarkMode) {
+    final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+        color: appColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -279,10 +282,11 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   }
 
   Widget _buildSimpleInputField(bool isDarkMode) {
+    final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : const Color(0xFFEEEEEE),
+        color: appColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(8),
       ),
       child: TextField(
@@ -305,7 +309,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
           border: InputBorder.none,
           hintText: '0',
           hintStyle: TextStyle(
-            color: Colors.grey[500],
+            color: appColors.textTertiary,
             fontSize: 24,
           ),
           prefixIcon: const Padding(
@@ -326,7 +330,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
               'kcal',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: appColors.textSecondary,
               ),
             ),
           ),
@@ -362,6 +366,8 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    final unselectedColor = appColors.textSecondary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -377,7 +383,7 @@ class _TabButton extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: isSelected ? Colors.white : Colors.grey[600],
+              color: isSelected ? Colors.white : unselectedColor,
             ),
             const SizedBox(width: 8),
             Text(
@@ -385,7 +391,7 @@ class _TabButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey[600],
+                color: isSelected ? Colors.white : unselectedColor,
               ),
             ),
           ],

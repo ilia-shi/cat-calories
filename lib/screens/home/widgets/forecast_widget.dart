@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:cat_calories/ui/colors.dart';
 import '../../../service/calorie_tracker.dart';
 
 /// Widget displaying budget forecast over the next several hours
@@ -25,6 +26,7 @@ class ForecastWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appColors = AppColors.of(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -56,13 +58,13 @@ class ForecastWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: appColors.tintedSurface(Colors.blue, alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Next 12 hours',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: Colors.blue.shade700,
+                    color: appColors.tintedText(Colors.blue.shade700),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -96,8 +98,8 @@ class ForecastWidget extends StatelessWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
                             color: isFirst
-                                ? Colors.green.shade700
-                                : Colors.grey.shade600,
+                                ? appColors.tintedText(Colors.green.shade700)
+                                : appColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -141,8 +143,8 @@ class ForecastWidget extends StatelessWidget {
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontSize: 9,
                             color: isFirst
-                                ? Colors.green.shade600
-                                : Colors.grey.shade500,
+                                ? appColors.tintedText(Colors.green.shade600)
+                                : appColors.textTertiary,
                             fontWeight: isFirst
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -174,7 +176,7 @@ class ForecastWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: appColors.surfaceMuted,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -182,14 +184,14 @@ class ForecastWidget extends StatelessWidget {
                 Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: Colors.grey.shade600,
+                  color: appColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'As meals age past 24h, budget frees up automatically',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: appColors.textSecondary,
                     ),
                   ),
                 ),
@@ -216,7 +218,7 @@ class ForecastWidget extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Colors.grey.shade600,
+            color: AppColors.of(context).textSecondary,
           ),
         ),
       ],

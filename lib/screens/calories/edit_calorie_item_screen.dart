@@ -2,6 +2,7 @@ import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/calorie_item_model.dart';
+import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -188,6 +189,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
       ),
       body: BlocBuilder<HomeBloc, AbstractHomeState>(
           builder: (BuildContext context, state) {
+            final appColors = AppColors.of(context);
             return Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -251,7 +253,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: appColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -263,7 +265,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -281,7 +283,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                                     'Date',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: appColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -299,7 +301,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                             Icon(
                               Icons.arrow_forward_ios,
                               size: 16,
-                              color: Colors.grey.shade400,
+                              color: appColors.textDisabled,
                             ),
                           ],
                         ),
@@ -315,7 +317,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -333,7 +335,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                                     'Time',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: appColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -350,7 +352,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                             Icon(
                               Icons.arrow_forward_ios,
                               size: 16,
-                              color: Colors.grey.shade400,
+                              color: appColors.textDisabled,
                             ),
                           ],
                         ),
@@ -365,7 +367,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade600,
+                        color: appColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -392,18 +394,20 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                     const SizedBox(height: 32),
 
                     // Info Card
-                    Container(
+                    Builder(builder: (context) {
+                      final appColors = AppColors.of(context);
+                      return Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: appColors.infoSurface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade100),
+                        border: Border.all(color: appColors.tintedSurface(Colors.blue, alpha: 0.2)),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.info_outline,
-                            color: Colors.blue.shade700,
+                            color: appColors.infoIcon,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -411,13 +415,14 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                               'Changing the date will move this entry to the selected day in your history.',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.blue.shade700,
+                                color: appColors.infoText,
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
+                    );
+                    }),
                   ],
                 ),
               ),
@@ -427,6 +432,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   }
 
   Widget _buildNutritionSection() {
+    final appColors = AppColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -454,7 +460,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: appColors.textSecondary,
                     ),
                   ),
                 ),
@@ -462,14 +468,14 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: appColors.surfaceSubtle,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'Optional',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade600,
+                      color: appColors.textSecondary,
                     ),
                   ),
                 ),
@@ -479,7 +485,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                   duration: const Duration(milliseconds: 200),
                   child: Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    color: appColors.textSecondary,
                   ),
                 ),
               ],
@@ -501,13 +507,14 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   }
 
   Widget _buildNutritionFields() {
+    final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: appColors.tintedSurface(Colors.green, alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade100),
+        border: Border.all(color: appColors.tintedSurface(Colors.green, alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -581,6 +588,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
     required String suffix,
     required IconData icon,
   }) {
+    final appColors = AppColors.of(context);
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -590,12 +598,12 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
         suffixText: suffix,
         prefixIcon: Icon(icon, size: 20),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: appColors.surfaceElevated,
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).dividerColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -645,12 +653,13 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
         _fatController.text.isNotEmpty &&
         _carbController.text.isNotEmpty;
 
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appColors.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,14 +667,14 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
           Row(
             children: [
               Icon(Icons.calculate_outlined,
-                  size: 16, color: Colors.grey.shade600),
+                  size: 16, color: appColors.textSecondary),
               const SizedBox(width: 6),
               Text(
                 'Macro Summary',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  color: appColors.textSecondary,
                 ),
               ),
             ],
@@ -681,7 +690,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
           ),
           if (hasAllMacros && calculatedCalories > 0) ...[
             const SizedBox(height: 12),
-            Divider(height: 1, color: Colors.grey.shade200),
+            Divider(height: 1, color: appColors.border),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -690,7 +699,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                   'Calculated from macros:',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: appColors.textSecondary,
                   ),
                 ),
                 Text(
@@ -698,7 +707,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                    color: appColors.textPrimary,
                   ),
                 ),
               ],
@@ -710,20 +719,20 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: appColors.tintedSurface(Colors.amber, alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.info_outline,
-                        size: 14, color: Colors.amber.shade700),
+                        size: 14, color: appColors.tintedText(Colors.amber.shade700)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Differs from entered calories by ${(calculatedCalories - enteredCalories).abs().toStringAsFixed(0)} kcal',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.amber.shade800,
+                          color: appColors.tintedText(Colors.amber.shade700),
                         ),
                       ),
                     ),
@@ -738,10 +747,11 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   }
 
   Widget _buildMacroChip(String label, double value, Color color) {
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: appColors.tintedSurface(color),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -771,7 +781,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: color.withValues(alpha: 0.8),
+              color: appColors.tintedText(color),
             ),
           ),
         ],
@@ -780,6 +790,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   }
 
   Widget _buildQuickDateChip(String label, DateTime date) {
+    final appColors = AppColors.of(context);
     final isSelected = _selectedDate.year == date.year &&
         _selectedDate.month == date.month &&
         _selectedDate.day == date.day;
@@ -788,17 +799,17 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
       label: Text(label),
       backgroundColor: isSelected
           ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
-          : Colors.grey.shade100,
+          : appColors.surfaceSubtle,
       labelStyle: TextStyle(
         color: isSelected
             ? Theme.of(context).primaryColor
-            : Colors.grey.shade700,
+            : appColors.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
         color: isSelected
             ? Theme.of(context).primaryColor
-            : Colors.grey.shade300,
+            : Theme.of(context).dividerColor,
       ),
       onPressed: () {
         setState(() {

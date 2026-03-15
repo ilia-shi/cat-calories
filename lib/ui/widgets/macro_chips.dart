@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cat_calories/ui/colors.dart';
 
 /// A compact chip widget displaying a macronutrient label and value
 class MacroChip extends StatelessWidget {
@@ -18,16 +19,17 @@ class MacroChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) {
-      return _buildCompact();
+      return _buildCompact(context);
     }
-    return _buildNormal();
+    return _buildNormal(context);
   }
 
-  Widget _buildNormal() {
+  Widget _buildNormal(BuildContext context) {
+    final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: appColors.tintedSurface(color),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -57,7 +59,7 @@ class MacroChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: color,
+              color: appColors.tintedText(color),
             ),
           ),
         ],
@@ -65,12 +67,13 @@ class MacroChip extends StatelessWidget {
     );
   }
 
-  Widget _buildCompact() {
+  Widget _buildCompact(BuildContext context) {
+    final appColors = AppColors.of(context);
     return Text(
       '$label: ${value?.toStringAsFixed(0) ?? '-'}',
       style: TextStyle(
         fontSize: 11,
-        color: color,
+        color: appColors.tintedText(color),
         fontWeight: FontWeight.w500,
       ),
     );
@@ -99,12 +102,13 @@ class MacrosRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) {
-      return _buildCompactRow();
+      return _buildCompactRow(context);
     }
-    return _buildChipRow();
+    return _buildChipRow(context);
   }
 
-  Widget _buildChipRow() {
+  Widget _buildChipRow(BuildContext context) {
+    final appColors = AppColors.of(context);
     return Wrap(
       spacing: 4,
       runSpacing: 4,
@@ -113,7 +117,7 @@ class MacrosRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: appColors.tintedSurface(Colors.orange),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -121,18 +125,19 @@ class MacrosRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.orange[700],
+                color: appColors.tintedText(Colors.orange),
               ),
             ),
           ),
-        MacroChip(label: 'P', value: protein, color: Colors.red),
-        MacroChip(label: 'F', value: fat, color: Colors.amber.shade700),
-        MacroChip(label: 'C', value: carbs, color: Colors.green),
+        MacroChip(label: 'P', value: protein, color: MacroProteinColor),
+        MacroChip(label: 'F', value: fat, color: MacroFatColor),
+        MacroChip(label: 'C', value: carbs, color: MacroCarbColor),
       ],
     );
   }
 
-  Widget _buildCompactRow() {
+  Widget _buildCompactRow(BuildContext context) {
+    final appColors = AppColors.of(context);
     return Wrap(
       spacing: 6,
       runSpacing: 2,
@@ -143,12 +148,12 @@ class MacrosRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.orange[700],
+              color: appColors.tintedText(Colors.orange),
             ),
           ),
-        MacroChip(label: 'P', value: protein, color: Colors.red, compact: true),
-        MacroChip(label: 'F', value: fat, color: Colors.amber.shade700, compact: true),
-        MacroChip(label: 'C', value: carbs, color: Colors.green, compact: true),
+        MacroChip(label: 'P', value: protein, color: MacroProteinColor, compact: true),
+        MacroChip(label: 'F', value: fat, color: MacroFatColor, compact: true),
+        MacroChip(label: 'C', value: carbs, color: MacroCarbColor, compact: true),
       ],
     );
   }
@@ -169,20 +174,21 @@ class MacrosInline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
     return Text.rich(
       TextSpan(
         children: [
           TextSpan(
             text: 'P: ${protein?.toStringAsFixed(0) ?? '-'} ',
-            style: TextStyle(fontSize: 11, color: Colors.red[400]),
+            style: TextStyle(fontSize: 11, color: appColors.tintedText(MacroProteinColor)),
           ),
           TextSpan(
             text: 'F: ${fat?.toStringAsFixed(0) ?? '-'} ',
-            style: TextStyle(fontSize: 11, color: Colors.amber[700]),
+            style: TextStyle(fontSize: 11, color: appColors.tintedText(MacroFatColor)),
           ),
           TextSpan(
             text: 'C: ${carbs?.toStringAsFixed(0) ?? '-'}',
-            style: TextStyle(fontSize: 11, color: Colors.green[600]),
+            style: TextStyle(fontSize: 11, color: appColors.tintedText(MacroCarbColor)),
           ),
         ],
       ),
