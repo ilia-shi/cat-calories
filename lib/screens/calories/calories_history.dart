@@ -7,6 +7,7 @@ import 'package:cat_calories/repositories/calorie_item_repository.dart';
 import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';
+import 'package:cat_calories/ui/widgets/proportional_edit_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -1061,6 +1062,23 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
+                if (item.weightGrams != null && item.weightGrams! > 0)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.scale, color: Colors.teal, size: 20),
+                    ),
+                    title: const Text('Adjust Weight'),
+                    subtitle: const Text('Scale all values proportionally'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showProportionalEdit(item);
+                    },
+                  ),
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
@@ -1140,6 +1158,50 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           ),
         );
       },
+    );
+  }
+
+  void _showProportionalEdit(CalorieItemModel item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return ProportionalEditBottomSheet(
+          item: item,
+          onSave: (result) {
+            Navigator.pop(sheetContext);
+            _applyProportionalEdit(item, result);
+          },
+        );
+      },
+    );
+  }
+
+  void _applyProportionalEdit(
+      CalorieItemModel item, ProportionalEditResult result) {
+    item.weightGrams = result.weightGrams;
+    item.value = result.calories;
+    item.proteinGrams = result.proteinGrams;
+    item.fatGrams = result.fatGrams;
+    item.carbGrams = result.carbGrams;
+
+    BlocProvider.of<HomeBloc>(context).add(
+      CalorieItemListUpdatingEvent(item, [], () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Updated to ${result.weightGrams.toStringAsFixed(0)}g \u2022 ${result.calories.toStringAsFixed(0)} kcal'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+        _loadAllCalories();
+      }),
     );
   }
 
