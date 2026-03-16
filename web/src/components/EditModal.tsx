@@ -9,9 +9,16 @@ interface Props {
   onSaved: () => void;
 }
 
+function toLocalDatetime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function EditModal({ record, onClose, onSaved }: Props) {
   const [value, setValue] = useState(String(record.value));
   const [description, setDescription] = useState(record.description ?? '');
+  const [eatenAt, setEatenAt] = useState(toLocalDatetime(record.eaten_at ?? record.created_at));
   const [weightGrams, setWeightGrams] = useState(record.weight_grams != null ? String(record.weight_grams) : '');
   const [proteinGrams, setProteinGrams] = useState(record.protein_grams != null ? String(record.protein_grams) : '');
   const [fatGrams, setFatGrams] = useState(record.fat_grams != null ? String(record.fat_grams) : '');
@@ -29,9 +36,12 @@ export function EditModal({ record, onClose, onSaved }: Props) {
     setSaving(true);
     setError('');
     try {
+      const eatenAtIso = eatenAt ? new Date(eatenAt).toISOString() : null;
       await updateRecord(record.id, {
         value: numValue,
         description: description || null,
+        eaten_at: eatenAtIso,
+        created_at: eatenAtIso ?? undefined,
         weight_grams: weightGrams ? parseFloat(weightGrams) : null,
         protein_grams: proteinGrams ? parseFloat(proteinGrams) : null,
         fat_grams: fatGrams ? parseFloat(fatGrams) : null,
@@ -62,6 +72,15 @@ export function EditModal({ record, onClose, onSaved }: Props) {
         <h2>Edit Record</h2>
 
         {error && <div className={styles.error}>{error}</div>}
+
+        <label>
+          Date & Time
+          <input
+            type="datetime-local"
+            value={eatenAt}
+            onChange={e => setEatenAt(e.target.value)}
+          />
+        </label>
 
         <label>
           Calories (kcal)

@@ -90,6 +90,14 @@ class RecordsController extends Controller {
     if (data.containsKey('protein_grams')) item.proteinGrams = (data['protein_grams'] as num?)?.toDouble();
     if (data.containsKey('fat_grams')) item.fatGrams = (data['fat_grams'] as num?)?.toDouble();
     if (data.containsKey('carb_grams')) item.carbGrams = (data['carb_grams'] as num?)?.toDouble();
+    if (data.containsKey('eaten_at')) {
+      final raw = data['eaten_at'] as String?;
+      item.eatenAt = raw != null ? DateTime.parse(raw) : null;
+    }
+    if (data.containsKey('created_at')) {
+      final raw = data['created_at'] as String?;
+      if (raw != null) item.createdAt = DateTime.parse(raw);
+    }
 
     await repo.update(item);
     onDataChanged?.call();

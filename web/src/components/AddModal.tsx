@@ -10,6 +10,7 @@ interface Props {
 export function AddModal({ onClose, onSaved }: Props) {
   const [value, setValue] = useState('');
   const [description, setDescription] = useState('');
+  const [eatenAt, setEatenAt] = useState('');
   const [weightGrams, setWeightGrams] = useState('');
   const [proteinGrams, setProteinGrams] = useState('');
   const [fatGrams, setFatGrams] = useState('');
@@ -30,6 +31,7 @@ export function AddModal({ onClose, onSaved }: Props) {
       await createRecord({
         value: numValue,
         description: description || null,
+        eaten_at: eatenAt || null,
         weight_grams: weightGrams ? parseFloat(weightGrams) : null,
         protein_grams: proteinGrams ? parseFloat(proteinGrams) : null,
         fat_grams: fatGrams ? parseFloat(fatGrams) : null,
@@ -65,6 +67,15 @@ export function AddModal({ onClose, onSaved }: Props) {
             type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
+          />
+        </label>
+
+        <label>
+          Date & Time
+          <input
+            type="datetime-local"
+            value={eatenAt}
+            onChange={e => setEatenAt(e.target.value)}
           />
         </label>
 

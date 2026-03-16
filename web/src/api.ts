@@ -8,7 +8,7 @@ export async function fetchRecords(): Promise<ApiResponse> {
 
 export async function updateRecord(
   id: number,
-  data: Partial<Pick<CalorieRecord, 'value' | 'description' | 'weight_grams' | 'protein_grams' | 'fat_grams' | 'carb_grams'>>,
+  data: Partial<Pick<CalorieRecord, 'value' | 'description' | 'weight_grams' | 'protein_grams' | 'fat_grams' | 'carb_grams' | 'eaten_at' | 'created_at'>>,
 ): Promise<void> {
   const res = await fetch(`/api/records/${id}`, {
     method: 'PUT',
@@ -21,6 +21,7 @@ export async function updateRecord(
 export async function createRecord(data: {
   value: number;
   description?: string | null;
+  eaten_at?: string | null;
   weight_grams?: number | null;
   protein_grams?: number | null;
   fat_grams?: number | null;
