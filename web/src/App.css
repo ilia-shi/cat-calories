@@ -1,7 +1,92 @@
 .app {
-  padding: 20px;
+  display: flex;
+  min-height: 100vh;
 }
 
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: #16213e;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 20px 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid #222;
+}
+
+.sidebar-nav {
+  list-style: none;
+  padding: 8px 0;
+}
+
+.sidebar-nav li a {
+  display: block;
+  padding: 10px 16px;
+  color: #aaa;
+  text-decoration: none;
+  font-size: 14px;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-nav li a:hover {
+  background: #1a2744;
+  color: #e0e0e0;
+}
+
+.sidebar-nav li a.active {
+  color: #4dabf7;
+  border-left-color: #4dabf7;
+  background: #1a2744;
+}
+
+/* Main content */
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-x: auto;
+  position: relative;
+}
+
+/* Spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #333;
+  border-top-color: #4dabf7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.page-spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.page-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 46, 0.7);
+  z-index: 10;
+}
+
+/* Calories page (previously in .app) */
 header {
   margin-bottom: 20px;
 }
