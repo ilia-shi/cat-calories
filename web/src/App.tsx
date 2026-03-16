@@ -25,6 +25,11 @@ function App() {
     });
   }, []);
 
+  const setHomeLoading = useCallback(
+    (loading: boolean) => setPageLoading('/', loading),
+    [setPageLoading],
+  );
+
   const setCaloriesLoading = useCallback(
     (loading: boolean) => setPageLoading('/calories', loading),
     [setPageLoading],
@@ -42,7 +47,7 @@ function App() {
           </div>
         )}
         <div style={{ display: visiblePath === '/' ? 'block' : 'none' }}>
-          <HomePage />
+          <HomePage onLoadingChange={setHomeLoading} />
         </div>
         <div style={{ display: visiblePath === '/calories' ? 'block' : 'none' }}>
           <CaloriesPage onLoadingChange={setCaloriesLoading} />

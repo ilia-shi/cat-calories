@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cat_calories/service/screen_energy_service.dart';
+import 'package:cat_calories/service/web_server/home_controller.dart';
 import 'package:cat_calories/service/web_server/records_controller.dart';
 import 'package:cat_calories/service/web_server/router.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,7 @@ class WebServerService {
   final ScreenEnergyService screenEnergy = ScreenEnergyService();
   final Router _router = Router();
   final RecordsController _recordsController = RecordsController();
+  final HomeController _homeController = HomeController();
 
   /// Cached asset files loaded from the Flutter asset bundle.
   final Map<String, _CachedAsset> _assetCache = {};
@@ -28,6 +30,7 @@ class WebServerService {
 
   WebServerService() {
     _router.register(_recordsController);
+    _router.register(_homeController);
   }
 
   Future<String> start({int port = defaultPort}) async {

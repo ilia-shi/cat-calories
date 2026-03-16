@@ -1,4 +1,4 @@
-import type { ApiResponse, CalorieRecord } from './types';
+import type { ApiResponse, CalorieRecord, HomeDashboard } from './types';
 
 export async function fetchRecords(): Promise<ApiResponse> {
   const res = await fetch('/api/records');
@@ -37,4 +37,10 @@ export async function createRecord(data: {
 export async function deleteRecord(id: number): Promise<void> {
   const res = await fetch(`/api/records/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+export async function fetchHome(): Promise<HomeDashboard> {
+  const res = await fetch('/api/home');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }

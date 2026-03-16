@@ -150,3 +150,77 @@ td {
   padding: 6px 12px;
   border-bottom: 1px solid #222;
 }
+
+/* Home page */
+.home-indicators {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.home-indicator {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-indicator.over .home-indicator-value,
+.home-indicator.over .home-indicator-pct {
+  color: #ff6b6b;
+}
+
+.home-indicator-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.home-indicator-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.home-indicator-pct {
+  font-size: 12px;
+  color: #4dabf7;
+}
+
+.home-indicator-bar {
+  height: 4px;
+  background: #222;
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
+.home-indicator-fill {
+  height: 100%;
+  background: #4dabf7;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.home-indicator.over .home-indicator-fill {
+  background: #ff6b6b;
+}
+
+.home-recent h2 {
+  font-size: 16px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.home-empty {
+  color: #555;
+  font-size: 14px;
+}
+
+.home-meal-time {
+  color: #888;
+  white-space: nowrap;
+}
