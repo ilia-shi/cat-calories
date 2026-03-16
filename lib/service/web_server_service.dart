@@ -1,30 +1,34 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/repositories/calorie_item_repository.dart';
-import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/screen_energy_service.dart';
+import 'package:cat_calories/service/web_server/records_controller.dart';
+import 'package:cat_calories/service/web_server/router.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 
 class WebServerService {
   static const int defaultPort = 18080;
 
   HttpServer? _server;
   String? _address;
-  final _locator = GetIt.instance;
   final ScreenEnergyService screenEnergy = ScreenEnergyService();
-
-  /// Called after a write operation so the mobile UI can refresh.
-  void Function()? onDataChanged;
+  final Router _router = Router();
+  final RecordsController _recordsController = RecordsController();
 
   /// Cached asset files loaded from the Flutter asset bundle.
   final Map<String, _CachedAsset> _assetCache = {};
 
   bool get isRunning => _server != null;
   String? get address => _address;
+
+  /// Called after a write operation so the mobile UI can refresh.
+  void Function()? get onDataChanged => _recordsController.onDataChanged;
+  set onDataChanged(void Function()? callback) {
+    _recordsController.onDataChanged = callback;
+  }
+
+  WebServerService() {
+    _router.register(_recordsController);
+  }
 
   Future<String> start({int port = defaultPort}) async {
     if (_server != null) {
@@ -116,21 +120,12 @@ class WebServerService {
 
     try {
       final path = request.uri.path;
+      final match = _router.resolve(request.method, path);
 
-      // Match /api/records/:id
-      final recordMatch = RegExp(r'^/api/records/(\d+)$').firstMatch(path);
-
-      if (path == '/api/records' && request.method == 'GET') {
-        screenEnergy.onClientPoll();
-        await _handleGetRecords(request);
-      } else if (path == '/api/records' && request.method == 'POST') {
-        await _handleCreateRecord(request);
-      } else if (recordMatch != null && request.method == 'PUT') {
-        final id = int.parse(recordMatch.group(1)!);
-        await _handleUpdateRecord(request, id);
-      } else if (recordMatch != null && request.method == 'DELETE') {
-        final id = int.parse(recordMatch.group(1)!);
-        await _handleDeleteRecord(request, id);
+      if (match != null) {
+        final (handler, params) = match;
+        if (request.method == 'GET') screenEnergy.onClientPoll();
+        await handler(request, params);
       } else {
         _handleStaticFile(request);
       }
@@ -168,119 +163,6 @@ class WebServerService {
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type');
   }
-
-  void _respondJson(HttpRequest request, int statusCode, Map<String, dynamic> body) {
-    _addCorsHeaders(request.response);
-    request.response
-      ..statusCode = statusCode
-      ..headers.contentType = ContentType.json
-      ..write(jsonEncode(body))
-      ..close();
-  }
-
-  Future<void> _handleGetRecords(HttpRequest request) async {
-    final repo = _locator.get<CalorieItemRepository>();
-    final profile = await ProfileResolver().resolve();
-    final items = await repo.fetchAllByProfile(profile, orderBy: 'created_at DESC');
-
-    final jsonItems = items.map((item) => _itemToJson(item)).toList();
-
-    _respondJson(request, HttpStatus.ok, {
-      'profile': {
-        'name': profile.name,
-        'calories_limit_goal': profile.caloriesLimitGoal,
-      },
-      'records': jsonItems,
-    });
-  }
-
-  Future<void> _handleCreateRecord(HttpRequest request) async {
-    final repo = _locator.get<CalorieItemRepository>();
-    final profile = await ProfileResolver().resolve();
-
-    final body = await utf8.decoder.bind(request).join();
-    final data = jsonDecode(body) as Map<String, dynamic>;
-
-    final value = (data['value'] as num?)?.toDouble();
-    if (value == null) {
-      _respondJson(request, HttpStatus.badRequest, {'error': 'value is required'});
-      return;
-    }
-
-    final now = DateTime.now();
-    final item = CalorieItemModel(
-      id: null,
-      value: value,
-      description: data['description'] as String?,
-      sortOrder: 0,
-      eatenAt: now,
-      createdAt: now,
-      profileId: profile.id!,
-      wakingPeriodId: null,
-      weightGrams: (data['weight_grams'] as num?)?.toDouble(),
-      proteinGrams: (data['protein_grams'] as num?)?.toDouble(),
-      fatGrams: (data['fat_grams'] as num?)?.toDouble(),
-      carbGrams: (data['carb_grams'] as num?)?.toDouble(),
-    );
-
-    await repo.offsetSortOrder();
-    final inserted = await repo.insert(item);
-    onDataChanged?.call();
-
-    _respondJson(request, HttpStatus.created, {'record': _itemToJson(inserted)});
-  }
-
-  Future<void> _handleUpdateRecord(HttpRequest request, int id) async {
-    final repo = _locator.get<CalorieItemRepository>();
-    final item = await repo.find(id);
-
-    if (item == null) {
-      _respondJson(request, HttpStatus.notFound, {'error': 'Record not found'});
-      return;
-    }
-
-    final body = await utf8.decoder.bind(request).join();
-    final data = jsonDecode(body) as Map<String, dynamic>;
-
-    if (data.containsKey('value')) item.value = (data['value'] as num).toDouble();
-    if (data.containsKey('description')) item.description = data['description'] as String?;
-    if (data.containsKey('weight_grams')) item.weightGrams = (data['weight_grams'] as num?)?.toDouble();
-    if (data.containsKey('protein_grams')) item.proteinGrams = (data['protein_grams'] as num?)?.toDouble();
-    if (data.containsKey('fat_grams')) item.fatGrams = (data['fat_grams'] as num?)?.toDouble();
-    if (data.containsKey('carb_grams')) item.carbGrams = (data['carb_grams'] as num?)?.toDouble();
-
-    await repo.update(item);
-    onDataChanged?.call();
-
-    _respondJson(request, HttpStatus.ok, {'record': _itemToJson(item)});
-  }
-
-  Future<void> _handleDeleteRecord(HttpRequest request, int id) async {
-    final repo = _locator.get<CalorieItemRepository>();
-    final item = await repo.find(id);
-
-    if (item == null) {
-      _respondJson(request, HttpStatus.notFound, {'error': 'Record not found'});
-      return;
-    }
-
-    await repo.delete(item);
-    onDataChanged?.call();
-
-    _respondJson(request, HttpStatus.ok, {'deleted': true});
-  }
-
-  Map<String, dynamic> _itemToJson(CalorieItemModel item) => {
-    'id': item.id,
-    'value': item.value,
-    'description': item.description,
-    'created_at': item.createdAt.toIso8601String(),
-    'eaten_at': item.eatenAt?.toIso8601String(),
-    'weight_grams': item.weightGrams,
-    'protein_grams': item.proteinGrams,
-    'fat_grams': item.fatGrams,
-    'carb_grams': item.carbGrams,
-  };
 }
 
 class _CachedAsset {
