@@ -887,37 +887,36 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: appColors.border),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _buildItemMacroIndicator(
             'P',
             item.proteinGrams,
             Colors.blue.shade600,
           ),
-          const SizedBox(width: 10),
           _buildItemMacroIndicator(
             'F',
             item.fatGrams,
             Colors.orange.shade600,
           ),
-          const SizedBox(width: 10),
           _buildItemMacroIndicator(
             'C',
             item.carbGrams,
             Colors.green.shade600,
           ),
-          if (item.weightGrams != null) ...[
-            const SizedBox(width: 12),
-            Container(
-              height: 12,
-              width: 1,
-              color: appColors.border,
-            ),
-            const SizedBox(width: 12),
+          if (item.weightGrams != null)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Container(
+                  height: 12,
+                  width: 1,
+                  color: appColors.border,
+                ),
+                const SizedBox(width: 12),
                 Icon(
                   Icons.scale,
                   size: 12,
@@ -933,7 +932,6 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 ),
               ],
             ),
-          ],
         ],
       ),
     );
