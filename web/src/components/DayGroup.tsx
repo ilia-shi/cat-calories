@@ -14,6 +14,9 @@ export function DayGroup({ day, records, caloriesGoal, onEdit }: Props) {
 
   const positiveTotal = records.reduce((s, r) => s + (r.value > 0 ? r.value : 0), 0);
   const netTotal = records.reduce((s, r) => s + r.value, 0);
+  const proteinTotal = records.reduce((s, r) => s + (r.protein_grams ?? 0), 0);
+  const fatTotal = records.reduce((s, r) => s + (r.fat_grams ?? 0), 0);
+  const carbTotal = records.reduce((s, r) => s + (r.carb_grams ?? 0), 0);
   const isOver = positiveTotal > caloriesGoal;
 
   return (
@@ -22,9 +25,9 @@ export function DayGroup({ day, records, caloriesGoal, onEdit }: Props) {
         <td colSpan={2}><strong>{day}</strong></td>
         <td className={`${styles.num} ${isOver ? styles.over : ''}`}>{positiveTotal.toFixed(0)}</td>
         <td className={styles.num}>{netTotal.toFixed(0)}</td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td className={styles.num}>{proteinTotal.toFixed(1)}</td>
+        <td className={styles.num}>{fatTotal.toFixed(1)}</td>
+        <td className={styles.num}>{carbTotal.toFixed(1)}</td>
       </tr>
       {expanded && records.map((item) => {
         const t = new Date(item.created_at);
