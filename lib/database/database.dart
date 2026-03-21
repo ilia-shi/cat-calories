@@ -82,7 +82,7 @@ class DBProvider {
 
         await db.execute('''
           CREATE TABLE calorie_items (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id TEXT PRIMARY KEY NOT NULL,
             value REAL,
             title TEXT NULL,
             description TEXT NULL,

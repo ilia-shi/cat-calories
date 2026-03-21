@@ -4,6 +4,7 @@ import 'package:cat_calories/models/day_result.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/models/waking_period_model.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 class CalorieItemRepository {
   static const String tableName = 'calorie_items';
@@ -107,7 +108,7 @@ class CalorieItemRepository {
         .toList();
   }
 
-  Future<CalorieItemModel?> find(int id) async {
+  Future<CalorieItemModel?> find(String id) async {
     final calorieItemsResult = await DBProvider.db
         .query(tableName, where: 'id = ?', whereArgs: [id], limit: 1);
 
@@ -140,8 +141,10 @@ class CalorieItemRepository {
   }
 
   Future<CalorieItemModel> insert(CalorieItemModel calorieItem) async {
-    calorieItem.id =
-        await DBProvider.db.insert('calorie_items', calorieItem.toJson());
+    if (calorieItem.id == null) {
+      calorieItem.id = const Uuid().v4();
+    }
+    await DBProvider.db.insert('calorie_items', calorieItem.toJson());
 
     return calorieItem;
   }

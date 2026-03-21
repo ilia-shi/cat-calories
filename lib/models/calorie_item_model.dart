@@ -1,5 +1,5 @@
 final class CalorieItemModel {
-  int? id;
+  String? id;
   double value;
   String? description;
   int sortOrder;
@@ -68,7 +68,7 @@ final class CalorieItemModel {
         'protein_grams': proteinGrams,
         'fat_grams': fatGrams,
         'carb_grams': carbGrams,
-        'product_Id': productId,
+        'product_id': productId,
       };
 
   bool isEaten() {
