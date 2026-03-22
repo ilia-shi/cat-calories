@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/web_server/controller.dart';

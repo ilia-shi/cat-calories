@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
 import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';

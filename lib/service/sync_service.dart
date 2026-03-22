@@ -6,10 +6,10 @@ import 'package:cat_calories/features/products/domain/product_category_model.dar
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
-import 'package:cat_calories/features/products/product_category_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
+import 'package:cat_calories/features/products/data/sqlite/product_category_repository.dart';
 import 'package:cat_calories/features/products/product_repository.dart';
-import 'package:cat_calories/features/profile/profile_repository.dart';
+import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get_it/get_it.dart';

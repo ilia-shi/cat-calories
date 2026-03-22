@@ -5,7 +5,7 @@ import 'package:cat_calories/features/waking_periods/domain/waking_period_model.
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-import 'domain/calorie_record.dart';
+import '../../domain/calorie_record.dart';
 
 class CalorieRecordRepository {
   static const String tableName = 'calorie_items';

@@ -1,5 +1,5 @@
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/profile/profile_repository.dart';
+import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

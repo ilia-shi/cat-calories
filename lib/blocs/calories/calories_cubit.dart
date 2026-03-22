@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/calories/calories_state.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

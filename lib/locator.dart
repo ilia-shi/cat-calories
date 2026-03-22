@@ -1,9 +1,9 @@
 import 'package:cat_calories/database/database.dart';
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
 import 'package:cat_calories/features/products/product_repository.dart';
-import 'package:cat_calories/features/products/product_category_repository.dart';
-import 'package:cat_calories/features/profile/profile_repository.dart';
+import 'package:cat_calories/features/products/data/sqlite/product_category_repository.dart';
+import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
