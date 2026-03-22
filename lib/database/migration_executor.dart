@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
   /// Current database version
-  static const int currentVersion = 8;
+  static const int currentVersion = 9;
 
   /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
@@ -46,6 +46,9 @@ class MigrationExecutor {
         break;
       case 8:
         await _migrateProfilesToUuid(db);
+        break;
+      case 9:
+        await _migrateWakingPeriodsToUuid(db);
         break;
     }
   }
@@ -237,6 +240,105 @@ class MigrationExecutor {
     }
   }
 
+  /// Migration to version 9: Migrate waking_periods from INTEGER id to TEXT UUID
+  Future<void> _migrateWakingPeriodsToUuid(Database db) async {
+    final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='waking_periods'"
+    );
+
+    if (tables.isEmpty) {
+      return; // Table doesn't exist, onCreate will handle it
+    }
+
+    // Check if id column is already TEXT
+    final tableInfo = await db.rawQuery('PRAGMA table_info(waking_periods)');
+    String? idType;
+    for (final row in tableInfo) {
+      if (row['name'] == 'id') {
+        idType = (row['type'] as String?)?.toUpperCase() ?? '';
+        break;
+      }
+    }
+
+    final isTextId = idType != null && idType.isNotEmpty && idType.contains('TEXT');
+    if (isTextId) {
+      print('waking_periods already has TEXT id, skipping migration');
+      return;
+    }
+
+    print('Migrating waking_periods table to UUID schema (current id type: "$idType")...');
+
+    try {
+      await db.execute('DROP TABLE IF EXISTS waking_periods_new');
+
+      await db.execute('''
+        CREATE TABLE waking_periods_new (
+          id TEXT PRIMARY KEY NOT NULL,
+          description TEXT NULL,
+          created_at INT,
+          updated_at INT,
+          started_at INT,
+          ended_at INT NULL,
+          calories_value REAL,
+          profile_id TEXT,
+          expected_waking_time_seconds INT,
+          calories_limit_goal REAL,
+          FOREIGN KEY(profile_id) REFERENCES profiles(id)
+        )
+      ''');
+
+      // Read existing waking periods and build id mapping
+      final oldPeriods = await db.query('waking_periods');
+      final idMapping = <String, String>{}; // old int id (as string) -> new UUID
+
+      for (final period in oldPeriods) {
+        final oldId = period['id'].toString();
+        final uuidResult = await db.rawQuery('''
+          SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' ||
+                substr(hex(randomblob(2)),2) || '-' ||
+                substr('89ab', abs(random()) % 4 + 1, 1) ||
+                substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) as uuid
+        ''');
+        final newId = uuidResult.first['uuid'] as String;
+        idMapping[oldId] = newId;
+
+        await db.insert('waking_periods_new', {
+          'id': newId,
+          'description': period['description'],
+          'created_at': period['created_at'],
+          'updated_at': period['updated_at'],
+          'started_at': period['started_at'],
+          'ended_at': period['ended_at'],
+          'calories_value': period['calories_value'],
+          'profile_id': period['profile_id'],
+          'expected_waking_time_seconds': period['expected_waking_time_seconds'],
+          'calories_limit_goal': period['calories_limit_goal'],
+        });
+      }
+
+      // Drop old table and rename
+      await db.execute('DROP TABLE waking_periods');
+      await db.execute('ALTER TABLE waking_periods_new RENAME TO waking_periods');
+
+      // Update waking_period_id foreign keys in calorie_items
+      for (final entry in idMapping.entries) {
+        final oldIdInt = int.parse(entry.key);
+        await db.execute(
+          'UPDATE calorie_items SET waking_period_id = ? WHERE waking_period_id = ?',
+          [entry.value, oldIdInt],
+        );
+      }
+
+      print('waking_periods table migrated to UUID successfully');
+    } catch (e) {
+      print('Error during waking_periods table migration: $e');
+      try {
+        await db.execute('DROP TABLE IF EXISTS waking_periods_new');
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
   /// Repair stale integer profile_id values in child tables.
   /// After migrating profiles to UUID, child tables may still have old integer
   /// profile_id values if the migration had a type mismatch bug.
@@ -351,7 +453,7 @@ class MigrationExecutor {
           created_at_day INT,
           eaten_at INT NULL,
           profile_id TEXT,
-          waking_period_id INT,
+          waking_period_id TEXT,
           weight_grams REAL NULL,
           protein_grams REAL NULL,
           fat_grams REAL NULL,
@@ -723,6 +825,9 @@ class MigrationExecutor {
 
     // Check if profiles table needs to be migrated from INTEGER to TEXT UUID id
     await executor._migrateProfilesToUuid(db);
+
+    // Check if waking_periods table needs to be migrated from INTEGER to TEXT UUID id
+    await executor._migrateWakingPeriodsToUuid(db);
 
     // Repair stale integer profile_id values in child tables
     // This fixes databases where migration v8 ran with a bug that failed to update

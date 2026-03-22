@@ -67,7 +67,7 @@ class DBProvider implements DatabaseClient {
 
         await db.execute('''
           CREATE TABLE waking_periods (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id TEXT PRIMARY KEY NOT NULL,
             description TEXT NULL,
             created_at INT,
             updated_at INT,
@@ -92,7 +92,7 @@ class DBProvider implements DatabaseClient {
             created_at_day INT,
             eaten_at INT NULL,
             profile_id TEXT,
-            waking_period_id INT,
+            waking_period_id TEXT,
             weight_grams REAL NULL,
             protein_grams REAL NULL,
             fat_grams REAL NULL,

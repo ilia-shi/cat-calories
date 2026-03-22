@@ -1,8 +1,10 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:uuid/uuid.dart';
 
 class WakingPeriodRepository {
+  static const _uuid = Uuid();
   final DatabaseClient _db;
 
   WakingPeriodRepository(this._db);
@@ -23,7 +25,10 @@ class WakingPeriodRepository {
   }
 
   Future<WakingPeriodModel> insert(WakingPeriodModel wakingPeriod) async {
-    wakingPeriod.id = await _db.insert('waking_periods', wakingPeriod.toJson());
+    if (wakingPeriod.id == null) {
+      wakingPeriod.id = _uuid.v4();
+    }
+    await _db.insert('waking_periods', wakingPeriod.toJson());
 
     return wakingPeriod;
   }

@@ -363,7 +363,7 @@ class SyncService {
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
       profileId: json['profile_id']?.toString() ?? '',
-      wakingPeriodId: json['waking_period_id'] as int?,
+      wakingPeriodId: json['waking_period_id']?.toString(),
       weightGrams: (json['weight_grams'] as num?)?.toDouble(),
       proteinGrams: (json['protein_grams'] as num?)?.toDouble(),
       fatGrams: (json['fat_grams'] as num?)?.toDouble(),

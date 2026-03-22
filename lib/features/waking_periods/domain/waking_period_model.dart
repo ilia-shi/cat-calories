@@ -1,5 +1,5 @@
 class WakingPeriodModel {
-  int? id;
+  String? id;
   String? description;
   final DateTime createdAt;
   DateTime updatedAt;
