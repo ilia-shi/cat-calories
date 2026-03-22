@@ -9,7 +9,7 @@ import '../../../service/calorie_tracker.dart';
 import '../widgets/budget_display_widget.dart';
 import '../widgets/density_scale_widget.dart';
 import '../widgets/forecast_widget.dart';
-import '../widgets/indicators_widget.dart';
+import '../../../features/calorie_tracking/ui/indicators_widget.dart';
 import '../widgets/meal_recommendation_widget.dart';
 import '../widgets/recent_entries_widget.dart';
 import '../widgets/time_control_widget.dart';
