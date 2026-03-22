@@ -3,6 +3,7 @@ import 'package:cat_calories/repositories/product_repository.dart';
 import 'package:cat_calories/repositories/product_category_repository.dart';
 import 'package:cat_calories/repositories/profile_repository.dart';
 import 'package:cat_calories/repositories/waking_period_repository.dart';
+import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:get_it/get_it.dart';
 
@@ -15,4 +16,5 @@ void registerServices() {
   locator.registerLazySingleton<ProductRepository>(() => ProductRepository());
   locator.registerLazySingleton<ProductCategoryRepository>(() => ProductCategoryRepository());
   locator.registerLazySingleton<WebServerService>(() => WebServerService());
+  locator.registerLazySingleton<SyncService>(() => SyncService());
 }

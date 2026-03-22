@@ -8,6 +8,7 @@ import 'package:cat_calories/repositories/product_category_repository.dart';
 import 'package:cat_calories/repositories/profile_repository.dart';
 import 'package:cat_calories/repositories/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
+import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/utils/expression_executor.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
@@ -173,6 +174,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       Emitter<AbstractHomeState> emit,
       ) async {
     await _ensureActiveProfile();
+    event.calorieItem.updatedAt = DateTime.now();
     await calorieItemRepository.update(event.calorieItem);
     await _emitHomeData(emit);
   }
@@ -262,7 +264,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       Emitter<AbstractHomeState> emit,
       ) async {
     await _ensureActiveProfile();
-    event.calorieItem.eatenAt = DateTime.now();
+    final now = DateTime.now();
+    event.calorieItem.eatenAt = now;
+    event.calorieItem.updatedAt = now;
     await calorieItemRepository.update(event.calorieItem);
     await _emitHomeData(emit);
   }
@@ -568,7 +572,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     allItems.addAll(dayBeforeItems);
 
     // Remove duplicates by ID (in case of overlap)
-    final seen = <int>{};
+    final seen = <String>{};
     final uniqueItems = <CalorieItemModel>[];
     for (final item in allItems) {
       if (item.id != null && !seen.contains(item.id)) {
@@ -683,6 +687,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
       _lastSuccessfulState = newState;
       emit(newState);
+
+      // Fire-and-forget sync (guarded by _syncing flag + enabled check)
+      locator.get<SyncService>().sync();
     } catch (e, stackTrace) {
       _emitError(emit, e, stackTrace);
     }

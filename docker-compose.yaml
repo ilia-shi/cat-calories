@@ -1,0 +1,34 @@
+services:
+  server:
+    build:
+      context: ./server
+      target: dev
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./server/.env
+    volumes:
+      - server-data:/data
+      - ./logs/server:/logs
+    environment:
+      DATABASE_PATH: /data/data.db
+      LOG_DIR: /logs
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: ./server
+
+  web:
+    build:
+      context: ./web
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+    profiles:
+      - web
+
+volumes:
+  server-data:

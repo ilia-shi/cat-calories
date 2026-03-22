@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchRecords } from '../api';
+import { fetchRecords, UnauthorizedError } from '../api';
 import type { ApiResponse } from '../types';
 
 const POLL_INTERVAL = 3000;
 
-export function useRecords() {
+export function useRecords(onAuthError?: (err: unknown) => void) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [online, setOnline] = useState(true);
 
@@ -13,10 +13,14 @@ export function useRecords() {
       const result = await fetchRecords();
       setData(result);
       setOnline(true);
-    } catch {
-      setOnline(false);
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onAuthError?.(err);
+      } else {
+        setOnline(false);
+      }
     }
-  }, []);
+  }, [onAuthError]);
 
   useEffect(() => {
     poll();

@@ -1,5 +1,5 @@
 export interface CalorieRecord {
-  id: number;
+  id: string;
   value: number;
   description: string | null;
   created_at: string;
@@ -21,7 +21,7 @@ export interface ApiResponse {
 }
 
 export interface RecentMeal {
-  id: number;
+  id: string;
   value: number;
   description: string | null;
   eaten_at: string;

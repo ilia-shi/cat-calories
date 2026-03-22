@@ -7,7 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://192.168.88.3:18080',
+        target: process.env.API_URL || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/auth': {
+        target: process.env.API_URL || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

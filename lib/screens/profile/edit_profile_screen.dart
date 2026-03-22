@@ -3,6 +3,7 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/models/profile_model.dart';
 import 'package:cat_calories/service/screen_energy_service.dart';
+import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -316,6 +317,12 @@ class EditProfileScreenState extends State<EditProfileScreen>
                         _buildSectionTitle('Daily Goals', isDark),
                         const SizedBox(height: 16),
                         _buildGoalsCard(isDark, primaryColor),
+
+                        const SizedBox(height: 28),
+
+                        _buildSectionTitle('Data Sync', isDark),
+                        const SizedBox(height: 16),
+                        _SyncSettingsCard(isDark: isDark, primaryColor: primaryColor),
 
                         const SizedBox(height: 28),
 
@@ -931,6 +938,429 @@ class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SyncSettingsCard extends StatefulWidget {
+  final bool isDark;
+  final Color primaryColor;
+
+  const _SyncSettingsCard({
+    required this.isDark,
+    required this.primaryColor,
+  });
+
+  @override
+  State<_SyncSettingsCard> createState() => _SyncSettingsCardState();
+}
+
+class _SyncSettingsCardState extends State<_SyncSettingsCard> {
+  final _syncService = GetIt.instance.get<SyncService>();
+  final _serverUrlController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool _syncEnabled = false;
+  bool _isLoggingIn = false;
+  bool _isSyncing = false;
+  String? _loginError;
+  String? _syncStatus;
+  bool _hasToken = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final enabled = await _syncService.isEnabled;
+    final url = await _syncService.serverUrl;
+    final tok = await _syncService.token;
+    if (mounted) {
+      setState(() {
+        _syncEnabled = enabled;
+        _serverUrlController.text = url;
+        _hasToken = tok.isNotEmpty;
+      });
+    }
+  }
+
+  Future<void> _doLogin() async {
+    final url = _serverUrlController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (url.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(() => _loginError = 'All fields are required');
+      return;
+    }
+
+    setState(() {
+      _isLoggingIn = true;
+      _loginError = null;
+    });
+
+    final token = await _syncService.login(url, email, password);
+
+    if (!mounted) return;
+
+    if (token != null) {
+      await _syncService.setEnabled(true);
+      setState(() {
+        _isLoggingIn = false;
+        _syncEnabled = true;
+        _hasToken = true;
+        _emailController.clear();
+        _passwordController.clear();
+      });
+      _doSync();
+    } else {
+      setState(() {
+        _isLoggingIn = false;
+        _loginError = 'Invalid credentials or server unreachable';
+      });
+    }
+  }
+
+  Future<void> _doSync() async {
+    setState(() {
+      _isSyncing = true;
+      _syncStatus = null;
+    });
+
+    final success = await _syncService.sync();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSyncing = false;
+      _syncStatus = success ? 'Sync completed' : 'Sync failed';
+    });
+  }
+
+  Future<void> _reconnect() async {
+    setState(() {
+      _isSyncing = true;
+      _syncStatus = null;
+    });
+
+    final success = await _syncService.reconnect();
+
+    if (!mounted) return;
+
+    if (success) {
+      await _syncService.setEnabled(true);
+      setState(() {
+        _isSyncing = false;
+        _syncEnabled = true;
+        _hasToken = true;
+      });
+      _doSync();
+    } else {
+      setState(() {
+        _isSyncing = false;
+        _syncStatus = 'Reconnect failed: server unreachable or no stored credentials';
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    await _syncService.setEnabled(false);
+    await _syncService.setToken('');
+    if (mounted) {
+      setState(() {
+        _syncEnabled = false;
+        _hasToken = false;
+        _syncStatus = null;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _serverUrlController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: widget.isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.sync_rounded,
+                      color: widget.primaryColor,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Remote Sync',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_hasToken)
+                  Switch(
+                    value: _syncEnabled,
+                    activeColor: widget.primaryColor,
+                    onChanged: (value) async {
+                      await _syncService.setEnabled(value);
+                      setState(() => _syncEnabled = value);
+                      if (value) _doSync();
+                    },
+                  ),
+              ],
+            ),
+
+            if (_hasToken) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: Colors.green.shade400,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Connected to ${_serverUrlController.text}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: widget.isDark ? Colors.white54 : Colors.black45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: _isSyncing ? null : _doSync,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: widget.primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: widget.primaryColor.withOpacity(0.5)),
+                    ),
+                    child: _isSyncing
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: widget.primaryColor,
+                            ),
+                          )
+                        : const Icon(Icons.sync_rounded, size: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: _isSyncing ? null : _reconnect,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                    ),
+                    child: const Text('Reconnect'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: _logout,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                    ),
+                    child: const Text('Disconnect'),
+                  ),
+                ],
+              ),
+              if (_syncStatus != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _syncStatus!,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _syncStatus == 'Sync completed'
+                        ? Colors.green.shade400
+                        : Colors.red.shade400,
+                  ),
+                ),
+              ],
+            ] else ...[
+              const SizedBox(height: 8),
+              Text(
+                'Connect to a remote server to sync your data across devices.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: widget.isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSyncInput(
+                controller: _serverUrlController,
+                label: 'Server URL',
+                hint: 'http://192.168.1.100:8080',
+                icon: Icons.dns_outlined,
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 16),
+              _buildSyncInput(
+                controller: _emailController,
+                label: 'Email',
+                hint: 'test@localhost',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              _buildSyncInput(
+                controller: _passwordController,
+                label: 'Password',
+                hint: 'Enter password',
+                icon: Icons.lock_outlined,
+                obscureText: true,
+              ),
+              if (_loginError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _loginError!,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.red.shade400,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoggingIn ? null : _doLogin,
+                  icon: _isLoggingIn
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.login_rounded, size: 20),
+                  label: Text(_isLoggingIn ? 'Connecting...' : 'Connect & Sync'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSyncInput({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: widget.isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          style: TextStyle(
+            fontSize: 16,
+            color: widget.isDark ? Colors.white : Colors.black87,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: widget.isDark ? Colors.white38 : Colors.black38,
+            ),
+            prefixIcon: Container(
+              margin: const EdgeInsets.only(right: 12),
+              child: Icon(icon, color: widget.primaryColor, size: 22),
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 48),
+            filled: true,
+            fillColor: widget.isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.grey.withOpacity(0.08),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: widget.primaryColor, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+        ),
+      ],
     );
   }
 }

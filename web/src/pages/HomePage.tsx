@@ -29,10 +29,11 @@ function MealRow({ meal }: { meal: RecentMeal }) {
 
 interface Props {
   onLoadingChange: (loading: boolean) => void;
+  onAuthError?: (err: unknown) => void;
 }
 
-export function HomePage({ onLoadingChange }: Props) {
-  const { data, online } = useHome();
+export function HomePage({ onLoadingChange, onAuthError }: Props) {
+  const { data, online } = useHome(onAuthError);
 
   const loading = !data;
   useEffect(() => {

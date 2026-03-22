@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: Cat Calories API
+  description: Shared API contract for the Cat Calories web frontend, Flutter device server, and Go backend server.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local Go server
+  - url: http://localhost:8085
+    description: Flutter device web server
+
+security:
+  - BearerAuth: []
+  - {}
+
+paths:
+  /api/records:
+    get:
+      operationId: listRecords
+      summary: List all calorie records for the current profile
+      responses:
+        '200':
+          description: Records list with profile info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createRecord
+      summary: Create a new calorie record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecordRequest'
+      responses:
+        '201':
+          description: Created record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleRecordResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/records/{id}:
+    put:
+      operationId: updateRecord
+      summary: Update a calorie record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRecordRequest'
+      responses:
+        '200':
+          description: Updated record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleRecordResponse'
+        '404':
+          description: Record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteRecord
+      summary: Delete a calorie record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Record deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/home:
+    get:
+      operationId: getHomeDashboard
+      summary: Get home dashboard with calorie stats
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeDashboardResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    CalorieRecord:
+      type: object
+      required:
+        - id
+        - value
+        - description
+        - created_at
+        - eaten_at
+        - weight_grams
+        - protein_grams
+        - fat_grams
+        - carb_grams
+      properties:
+        id:
+          type: string
+        value:
+          type: number
+          format: double
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        eaten_at:
+          type: string
+          format: date-time
+          nullable: true
+        weight_grams:
+          type: number
+          format: double
+          nullable: true
+        protein_grams:
+          type: number
+          format: double
+          nullable: true
+        fat_grams:
+          type: number
+          format: double
+          nullable: true
+        carb_grams:
+          type: number
+          format: double
+          nullable: true
+
+    Profile:
+      type: object
+      required:
+        - name
+        - calories_limit_goal
+      properties:
+        name:
+          type: string
+        calories_limit_goal:
+          type: number
+
+    RecentMeal:
+      type: object
+      required:
+        - id
+        - value
+        - description
+        - eaten_at
+      properties:
+        id:
+          type: string
+        value:
+          type: number
+          format: double
+        description:
+          type: string
+          nullable: true
+        eaten_at:
+          type: string
+          format: date-time
+
+    PeriodSummary:
+      type: object
+      required:
+        - calories
+        - goal
+      properties:
+        calories:
+          type: number
+          format: double
+        goal:
+          type: number
+          format: double
+
+    RecordsResponse:
+      type: object
+      required:
+        - profile
+        - records
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalorieRecord'
+
+    SingleRecordResponse:
+      type: object
+      required:
+        - record
+      properties:
+        record:
+          $ref: '#/components/schemas/CalorieRecord'
+
+    CreateRecordRequest:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: number
+          format: double
+        description:
+          type: string
+          nullable: true
+        eaten_at:
+          type: string
+          format: date-time
+          nullable: true
+        weight_grams:
+          type: number
+          format: double
+          nullable: true
+        protein_grams:
+          type: number
+          format: double
+          nullable: true
+        fat_grams:
+          type: number
+          format: double
+          nullable: true
+        carb_grams:
+          type: number
+          format: double
+          nullable: true
+
+    UpdateRecordRequest:
+      type: object
+      properties:
+        value:
+          type: number
+          format: double
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        eaten_at:
+          type: string
+          format: date-time
+          nullable: true
+        weight_grams:
+          type: number
+          format: double
+          nullable: true
+        protein_grams:
+          type: number
+          format: double
+          nullable: true
+        fat_grams:
+          type: number
+          format: double
+          nullable: true
+        carb_grams:
+          type: number
+          format: double
+          nullable: true
+
+    DeleteResponse:
+      type: object
+      required:
+        - deleted
+      properties:
+        deleted:
+          type: boolean
+
+    HomeDashboardResponse:
+      type: object
+      required:
+        - profile
+        - rolling_24h
+        - today
+        - yesterday
+        - avg_7_days
+        - period
+        - recent_meals
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+        rolling_24h:
+          type: number
+          format: double
+        today:
+          type: number
+          format: double
+        yesterday:
+          type: number
+          format: double
+        avg_7_days:
+          type: number
+          format: double
+        period:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/PeriodSummary'
+        recent_meals:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentMeal'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string

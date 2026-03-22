@@ -18,10 +18,11 @@ function groupByDay(records: CalorieRecord[]): Map<string, CalorieRecord[]> {
 
 interface Props {
   onLoadingChange: (loading: boolean) => void;
+  onAuthError?: (err: unknown) => void;
 }
 
-export function CaloriesPage({ onLoadingChange }: Props) {
-  const { data, online, refresh } = useRecords();
+export function CaloriesPage({ onLoadingChange, onAuthError }: Props) {
+  const { data, online, refresh } = useRecords(onAuthError);
   const [editing, setEditing] = useState<CalorieRecord | null>(null);
   const [adding, setAdding] = useState(false);
 

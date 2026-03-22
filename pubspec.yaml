@@ -18,10 +18,14 @@ dependencies:
   math_expressions: ^3.1.0
   get_it: ^9.2.0
   share_plus: ^12.0.1
+  uuid: ^4.5.1
+  http: ^1.2.2
+  connectivity_plus: ^6.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  yaml: ^3.1.2
 
 dependency_overrides:
   file: ^7.0.1

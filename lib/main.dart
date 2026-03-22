@@ -2,6 +2,7 @@ import 'package:cat_calories/blocs/calories/calories_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
 import 'package:cat_calories/locator.dart';
+import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:cat_calories/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   registerServices();
+  GetIt.instance<SyncService>().init();
   runApp(App());
 }
 

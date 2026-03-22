@@ -16,7 +16,7 @@ class Route {
     final paramNames = <String>[];
     final regexPattern = pattern.replaceAllMapped(RegExp(r':(\w+)'), (match) {
       paramNames.add(match.group(1)!);
-      return r'(\d+)';
+      return r'([a-zA-Z0-9_-]+)';
     });
     final regex = RegExp('^$regexPattern\$');
     return Route._(method, regex, paramNames, handler);

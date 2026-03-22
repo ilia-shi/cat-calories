@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
   /// Current database version
-  static const int currentVersion = 5;
+  static const int currentVersion = 7;
 
   /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
@@ -37,6 +37,12 @@ class MigrationExecutor {
         break;
       case 5:
         await _migrateToVersion5(db);
+        break;
+      case 6:
+        await _migrateCalorieItemsToUuid(db);
+        break;
+      case 7:
+        await _migrateToVersion7(db);
         break;
     }
   }
@@ -116,6 +122,14 @@ class MigrationExecutor {
     print('Migration to version 5 completed: Added product_id to calorie_items and created indexes');
   }
 
+  /// Migration to version 7: Add updated_at column to calorie_items
+  Future<void> _migrateToVersion7(Database db) async {
+    await _addColumnIfNotExists(db, 'calorie_items', 'updated_at', 'INT');
+    // Initialize updated_at from created_at for existing rows
+    await db.execute('UPDATE calorie_items SET updated_at = created_at WHERE updated_at IS NULL');
+    print('Migration to version 7 completed: Added updated_at to calorie_items');
+  }
+
   /// Helper method to check if a column exists
   Future<bool> _columnExists(Database db, String table, String column) async {
     final result = await db.rawQuery('PRAGMA table_info($table)');
@@ -128,6 +142,104 @@ class MigrationExecutor {
     if (!await _columnExists(db, table, column)) {
       print('Adding column $column to $table...');
       await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
+  }
+
+  /// Migration to version 6: Migrate calorie_items from INTEGER id to TEXT UUID
+  Future<void> _migrateCalorieItemsToUuid(Database db) async {
+    await _migrateCalorieItemsTableToUuid(db);
+    print('Migration to version 6 completed: calorie_items now uses UUID primary key');
+  }
+
+  /// Migrate calorie_items table from INTEGER id to TEXT UUID
+  Future<void> _migrateCalorieItemsTableToUuid(Database db) async {
+    final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='calorie_items'"
+    );
+
+    if (tables.isEmpty) {
+      return; // Table doesn't exist, onCreate will handle it
+    }
+
+    // Check if id column is already TEXT
+    final tableInfo = await db.rawQuery('PRAGMA table_info(calorie_items)');
+    String? idType;
+    for (final row in tableInfo) {
+      if (row['name'] == 'id') {
+        idType = (row['type'] as String?)?.toUpperCase() ?? '';
+        break;
+      }
+    }
+
+    final isTextId = idType != null && idType.isNotEmpty && idType.contains('TEXT');
+    if (isTextId) {
+      print('calorie_items already has TEXT id, skipping migration');
+      return;
+    }
+
+    print('Migrating calorie_items table to UUID schema (current id type: "$idType")...');
+
+    try {
+      await db.execute('DROP TABLE IF EXISTS calorie_items_new');
+
+      await db.execute('''
+        CREATE TABLE calorie_items_new (
+          id TEXT PRIMARY KEY NOT NULL,
+          value REAL,
+          title TEXT NULL,
+          description TEXT NULL,
+          sort_order INT,
+          created_at INT,
+          created_at_day INT,
+          eaten_at INT NULL,
+          profile_id INT,
+          waking_period_id INT,
+          weight_grams REAL NULL,
+          protein_grams REAL NULL,
+          fat_grams REAL NULL,
+          carb_grams REAL NULL,
+          product_id TEXT NULL,
+          FOREIGN KEY(profile_id) REFERENCES profiles(id),
+          FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
+          FOREIGN KEY(product_id) REFERENCES products(id)
+        )
+      ''');
+
+      // Get columns that exist in both old and new tables (excluding id)
+      final newTableInfo = await db.rawQuery('PRAGMA table_info(calorie_items_new)');
+      final newColumnNames = newTableInfo.map((r) => r['name'] as String).toSet();
+      final oldColumns = tableInfo
+          .map((r) => r['name'] as String)
+          .where((c) => c != 'id' && newColumnNames.contains(c))
+          .toList();
+      final columnList = oldColumns.join(', ');
+
+      // Copy data with generated UUIDs
+      await db.execute('''
+        INSERT INTO calorie_items_new (id, $columnList)
+        SELECT
+          lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' ||
+                substr(hex(randomblob(2)),2) || '-' ||
+                substr('89ab', abs(random()) % 4 + 1, 1) ||
+                substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))),
+          $columnList
+        FROM calorie_items
+      ''');
+
+      await db.execute('DROP TABLE calorie_items');
+      await db.execute('ALTER TABLE calorie_items_new RENAME TO calorie_items');
+
+      // Recreate indexes
+      await db.execute('CREATE INDEX IF NOT EXISTS calorie_items_created_at_day_idx ON calorie_items(created_at_day)');
+      await db.execute('CREATE INDEX IF NOT EXISTS calorie_items_product_id_idx ON calorie_items(product_id)');
+
+      print('calorie_items table migrated to UUID successfully');
+    } catch (e) {
+      print('Error during calorie_items table migration: $e');
+      try {
+        await db.execute('DROP TABLE IF EXISTS calorie_items_new');
+      } catch (_) {}
+      rethrow;
     }
   }
 
@@ -429,6 +541,9 @@ class MigrationExecutor {
     await executor._addColumnIfNotExists(db, 'calorie_items', 'fat_grams', 'REAL NULL');
     await executor._addColumnIfNotExists(db, 'calorie_items', 'carb_grams', 'REAL NULL');
     await executor._addColumnIfNotExists(db, 'calorie_items', 'product_id', 'TEXT NULL');
+    await executor._addColumnIfNotExists(db, 'calorie_items', 'updated_at', 'INT');
+    // Initialize updated_at from created_at for existing rows
+    await db.execute('UPDATE calorie_items SET updated_at = created_at WHERE updated_at IS NULL');
 
     // Check if products table needs to be migrated from INTEGER to TEXT id
     await executor._migrateProductsTableToUuid(db);
@@ -444,6 +559,9 @@ class MigrationExecutor {
 
     // Check if product_categories table needs to be migrated from INTEGER to TEXT id
     await executor._migrateProductCategoriesTableToUuid(db);
+
+    // Check if calorie_items table needs to be migrated from INTEGER to TEXT UUID id
+    await executor._migrateCalorieItemsTableToUuid(db);
 
     // Ensure product_categories has all required columns (for tables created with old schema)
     await executor._addColumnIfNotExists(db, 'product_categories', 'profile_id', 'INT NOT NULL DEFAULT 1');

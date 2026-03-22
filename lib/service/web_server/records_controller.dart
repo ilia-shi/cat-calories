@@ -74,7 +74,7 @@ class RecordsController extends Controller {
 
   Future<void> _update(HttpRequest request, Map<String, String> params) async {
     final repo = _locator.get<CalorieItemRepository>();
-    final id = int.parse(params['id']!);
+    final id = params['id']!;
     final item = await repo.find(id);
 
     if (item == null) {
@@ -99,6 +99,7 @@ class RecordsController extends Controller {
       if (raw != null) item.createdAt = DateTime.parse(raw);
     }
 
+    item.updatedAt = DateTime.now();
     await repo.update(item);
     onDataChanged?.call();
 
@@ -107,7 +108,7 @@ class RecordsController extends Controller {
 
   Future<void> _destroy(HttpRequest request, Map<String, String> params) async {
     final repo = _locator.get<CalorieItemRepository>();
-    final id = int.parse(params['id']!);
+    final id = params['id']!;
     final item = await repo.find(id);
 
     if (item == null) {

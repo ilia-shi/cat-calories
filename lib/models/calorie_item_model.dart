@@ -5,6 +5,7 @@ final class CalorieItemModel {
   int sortOrder;
   DateTime? eatenAt;
   DateTime createdAt;
+  DateTime updatedAt;
   int profileId;
   int? wakingPeriodId;
   double? weightGrams;
@@ -20,6 +21,7 @@ final class CalorieItemModel {
     required this.sortOrder,
     required this.eatenAt,
     required this.createdAt,
+    DateTime? updatedAt,
     required this.profileId,
     required this.wakingPeriodId,
     this.weightGrams = null,
@@ -27,7 +29,7 @@ final class CalorieItemModel {
     this.fatGrams = null,
     this.carbGrams = null,
     this.productId = null,
-  });
+  }) : updatedAt = updatedAt ?? createdAt;
 
   factory CalorieItemModel.fromJson(Map<String, dynamic> json) =>
       CalorieItemModel(
@@ -39,6 +41,9 @@ final class CalorieItemModel {
             ? null
             : DateTime.fromMillisecondsSinceEpoch(json['eaten_at']),
         createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at']),
+        updatedAt: json['updated_at'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(json['updated_at'])
+            : null,
         profileId: json['profile_id'],
         wakingPeriodId: json['waking_period_id'],
 
@@ -54,6 +59,7 @@ final class CalorieItemModel {
         'value': value,
         'description': description,
         'created_at': createdAt.millisecondsSinceEpoch,
+        'updated_at': updatedAt.millisecondsSinceEpoch,
         'created_at_day':
             (DateTime(createdAt.year, createdAt.month, createdAt.day)
                         .millisecondsSinceEpoch /

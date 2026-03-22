@@ -13,10 +13,13 @@ import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/widgets/calorie_chip.dart';
 import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
+import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
+import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../service/calorie_exporter.dart';
 import '../calories/days_screen.dart';
 import '../waking_periods/waking_periods_screen.dart';
@@ -148,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen>
       _showLoadingSnackBar(context, 'Preparing export...');
 
       // Combine all calorie items (today + period + rolling window)
-      final allItems = <int, dynamic>{};
+      final allItems = <String, dynamic>{};
       for (final item in state.todayCalorieItems) {
         if (item.id != null) allItems[item.id!] = item;
       }
@@ -308,6 +311,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             appBar: AppBar(
               actions: [
+                _SyncIndicator(),
                 _WebServerIndicator(),
                 BlocBuilder<HomeBloc, AbstractHomeState>(
                     builder: (context, state) {
@@ -610,6 +614,387 @@ class _WebServerIndicatorState extends State<_WebServerIndicator> {
                     await _webServer.stop();
                     if (mounted) setState(() {});
                     if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SyncIndicator extends StatefulWidget {
+  @override
+  State<_SyncIndicator> createState() => _SyncIndicatorState();
+}
+
+class _SyncIndicatorState extends State<_SyncIndicator> {
+  final _syncService = GetIt.instance.get<SyncService>();
+  late final Timer _timer;
+  bool _hasToken = false;
+  bool _syncEnabled = false;
+  String _serverUrl = '';
+  String _email = '';
+  String? _lastSyncedAt;
+  bool _isSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) _loadState();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadState() async {
+    final tok = await _syncService.token;
+    final enabled = await _syncService.isEnabled;
+    final url = await _syncService.serverUrl;
+    final em = await _syncService.email;
+    final prefs = await SharedPreferences.getInstance();
+    final lastSync = prefs.getString('sync_last_synced_at');
+    if (mounted) {
+      setState(() {
+        _hasToken = tok.isNotEmpty;
+        _syncEnabled = enabled;
+        _serverUrl = url;
+        _email = em;
+        _lastSyncedAt = lastSync;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _hasToken ? () => _doQuickSync(context) : () => _showDisconnectedMenu(context),
+      onLongPress: _hasToken ? () => _showConnectedMenu(context) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: _isSyncing
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.green.shade400,
+                ),
+              )
+            : Icon(
+                Icons.sync_rounded,
+                size: 18,
+                color: _hasToken && _syncEnabled
+                    ? Colors.green.shade400
+                    : Colors.grey.shade500,
+              ),
+      ),
+    );
+  }
+
+  Future<void> _doQuickSync(BuildContext context) async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    final success = await _syncService.sync();
+    await _loadState();
+    if (mounted) {
+      setState(() => _isSyncing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Sync completed' : 'Sync failed'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: success ? Colors.green.shade600 : Colors.red.shade600,
+        ),
+      );
+    }
+  }
+
+  String _formatLastSync() {
+    if (_lastSyncedAt == null) return 'Never';
+    try {
+      final dt = DateTime.parse(_lastSyncedAt!).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${dt.day}.${dt.month.toString().padLeft(2, '0')} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return _lastSyncedAt ?? 'Unknown';
+    }
+  }
+
+  void _showConnectedMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Icon(Icons.sync_rounded, color: Colors.green.shade400, size: 20),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Remote Sync',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _syncEnabled
+                                  ? Colors.green.withValues(alpha: 0.15)
+                                  : Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _syncEnabled ? 'Active' : 'Paused',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _syncEnabled ? Colors.green.shade400 : Colors.orange.shade400,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+
+                    // Server
+                    ListTile(
+                      leading: const Icon(Icons.dns_outlined, size: 20),
+                      title: const Text('Server', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      subtitle: Text(
+                        _serverUrl,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    // Email
+                    ListTile(
+                      leading: const Icon(Icons.email_outlined, size: 20),
+                      title: const Text('Email', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      subtitle: Text(
+                        _email.isNotEmpty ? _email : '—',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    // Last sync
+                    ListTile(
+                      leading: const Icon(Icons.schedule, size: 20),
+                      title: const Text('Last sync', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      subtitle: Text(
+                        _formatLastSync(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    const Divider(height: 1),
+
+                    // Enable/disable sync
+                    SwitchListTile(
+                      secondary: const Icon(Icons.autorenew, size: 20),
+                      title: const Text('Auto sync', style: TextStyle(fontSize: 15)),
+                      value: _syncEnabled,
+                      activeColor: Colors.green.shade400,
+                      onChanged: (value) async {
+                        await _syncService.setEnabled(value);
+                        setSheetState(() => _syncEnabled = value);
+                        setState(() => _syncEnabled = value);
+                      },
+                    ),
+
+                    const Divider(height: 1),
+
+                    // Sync now
+                    ListTile(
+                      leading: Icon(Icons.sync_rounded,
+                          color: _isSyncing ? Colors.grey : Theme.of(context).colorScheme.primary, size: 22),
+                      title: Text(
+                        _isSyncing ? 'Syncing...' : 'Sync now',
+                        style: TextStyle(
+                          color: _isSyncing ? Colors.grey : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      onTap: _isSyncing
+                          ? null
+                          : () async {
+                              setSheetState(() => _isSyncing = true);
+                              await _syncService.sync();
+                              await _loadState();
+                              if (sheetContext.mounted) {
+                                setSheetState(() => _isSyncing = false);
+                              }
+                            },
+                    ),
+
+                    // Reconnect
+                    ListTile(
+                      leading: Icon(Icons.refresh, color: Colors.orange.shade400, size: 22),
+                      title: Text('Reconnect', style: TextStyle(color: Colors.orange.shade400)),
+                      onTap: () async {
+                        Navigator.of(sheetContext).pop();
+                        final success = await _syncService.reconnect();
+                        if (success) {
+                          await _syncService.setEnabled(true);
+                          await _syncService.sync();
+                        }
+                        await _loadState();
+                      },
+                    ),
+
+                    // Disconnect
+                    ListTile(
+                      leading: Icon(Icons.link_off, color: Colors.red.shade400, size: 22),
+                      title: Text('Disconnect', style: TextStyle(color: Colors.red.shade400)),
+                      onTap: () async {
+                        await _syncService.setEnabled(false);
+                        await _syncService.setToken('');
+                        await _loadState();
+                        if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDisconnectedMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync_rounded, color: Colors.grey.shade500, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Remote Sync',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Not connected',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+
+                // Last sync
+                ListTile(
+                  leading: const Icon(Icons.schedule, size: 20),
+                  title: const Text('Last sync', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: Text(
+                    _formatLastSync(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                // Connect
+                BlocBuilder<HomeBloc, AbstractHomeState>(
+                  builder: (context, state) {
+                    return ListTile(
+                      leading: Icon(Icons.login_rounded,
+                          color: Theme.of(context).colorScheme.primary, size: 22),
+                      title: Text(
+                        'Connect to server',
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                      ),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        if (state is HomeFetched) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditProfileScreen(state.activeProfile),
+                            ),
+                          );
+                        }
+                      },
+                    );
                   },
                 ),
               ],
