@@ -1,9 +1,9 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
-import 'package:cat_calories/repositories/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
 import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';

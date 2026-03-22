@@ -1,11 +1,10 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/models/product_category_model.dart';
-import 'package:cat_calories/models/product_model.dart';
-import 'package:cat_calories/models/waking_period_model.dart';
-import 'package:cat_calories/repositories/product_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories/features/products/product_repository.dart';
 import 'package:cat_calories/screens/products/add_edit_product_screen.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
 import 'package:cat_calories/ui/widgets/error_state_widget.dart';
@@ -14,6 +13,8 @@ import 'package:cat_calories/ui/widgets/product_weight_input_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../features/products/domain/product_category_model.dart';
 
 /// Enum for product tab display mode
 enum ProductDisplayMode {

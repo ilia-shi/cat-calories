@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/models/product_category_model.dart';
-import 'package:cat_calories/models/product_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
-import 'package:cat_calories/models/waking_period_model.dart';
-import 'package:cat_calories/repositories/calorie_item_repository.dart';
-import 'package:cat_calories/repositories/product_category_repository.dart';
-import 'package:cat_calories/repositories/product_repository.dart';
-import 'package:cat_calories/repositories/profile_repository.dart';
-import 'package:cat_calories/repositories/waking_period_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/products/domain/product_category_model.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/products/product_category_repository.dart';
+import 'package:cat_calories/features/products/product_repository.dart';
+import 'package:cat_calories/features/profile/profile_repository.dart';
+import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;

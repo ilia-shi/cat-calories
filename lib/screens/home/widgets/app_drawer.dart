@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
-import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/screens/calories/calories_history.dart';
 import 'package:cat_calories/screens/profile/create_profile_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';

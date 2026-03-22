@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/models/day_result.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';

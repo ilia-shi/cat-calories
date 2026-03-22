@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
-import 'package:cat_calories/models/product_model.dart';
-import 'package:cat_calories/models/waking_period_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';

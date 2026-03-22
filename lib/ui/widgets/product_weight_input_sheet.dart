@@ -1,4 +1,4 @@
-import 'package:cat_calories/models/product_model.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:flutter/material.dart';
 
 /// Result from the product weight input dialog

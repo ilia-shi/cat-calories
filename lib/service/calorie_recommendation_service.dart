@@ -1,7 +1,7 @@
 import 'dart:math';
-import 'package:cat_calories/models/calorie_recommendation_model.dart';
-import 'package:cat_calories/models/day_result.dart';
-import 'package:cat_calories/models/equalization_settings_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_recommendation_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
 
 class CalorieRecommendationService {
   final EqualizationSettingsModel settings;

@@ -1,7 +1,8 @@
-import 'package:cat_calories/models/product.dart';
-import 'package:cat_calories/database/seeds/products_database_fruits.dart';
-import 'package:cat_calories/database/seeds/products_database_vegetables.dart';
-import 'package:cat_calories/database/seeds/products_database_other.dart';
+import './seeds/products_database_fruits.dart';
+import './seeds/products_database_other.dart';
+import './seeds/products_database_vegetables.dart';
+
+import './product.dart';
 
 class Products {
   static final Products _instance = Products._internal();

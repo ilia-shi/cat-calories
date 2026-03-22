@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/database/migration_executor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-class DBProvider {
+class DBProvider implements DatabaseClient {
   DBProvider._();
 
   static final DBProvider db = DBProvider._();

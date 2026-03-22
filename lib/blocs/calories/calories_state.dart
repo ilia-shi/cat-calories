@@ -1,4 +1,4 @@
-import 'package:cat_calories/models/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
 
 abstract class AbstractCaloriesState {}
 

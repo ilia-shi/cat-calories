@@ -1,6 +1,6 @@
-import 'package:cat_calories/database/database.dart';
-import 'package:cat_calories/models/product_category_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/database/database_client.dart';
+import 'package:cat_calories/features/products/domain/product_category_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,10 +8,13 @@ import 'package:uuid/uuid.dart';
 class ProductCategoryRepository {
   static const String tableName = 'product_categories';
   static const _uuid = Uuid();
+  final DatabaseClient _db;
+
+  ProductCategoryRepository(this._db);
 
   /// Fetch all categories for a given profile
   Future<List<ProductCategoryModel>> fetchByProfile(ProfileModel profile) async {
-    final result = await DBProvider.db.query(
+    final result = await _db.query(
       tableName,
       where: 'profile_id = ?',
       whereArgs: [profile.id],
@@ -23,7 +26,7 @@ class ProductCategoryRepository {
 
   /// Fetch a single category by UUID
   Future<ProductCategoryModel?> find(String id) async {
-    final result = await DBProvider.db.query(
+    final result = await _db.query(
       tableName,
       where: 'id = ?',
       whereArgs: [id],
@@ -39,14 +42,14 @@ class ProductCategoryRepository {
     if (category.id == null || category.id!.isEmpty) {
       category.id = _uuid.v4();
     }
-    await DBProvider.db.insert(tableName, category.toJson());
+    await _db.insert(tableName, category.toJson());
     return category;
   }
 
   /// Update an existing category
   Future<ProductCategoryModel> update(ProductCategoryModel category) async {
     category.updatedAt = DateTime.now();
-    await DBProvider.db.update(
+    await _db.update(
       tableName,
       category.toJson(),
       where: 'id = ?',
@@ -58,14 +61,14 @@ class ProductCategoryRepository {
   /// Delete a category
   Future<int> delete(ProductCategoryModel category) async {
     // First, remove category_id from all products using this category
-    await DBProvider.db.update(
+    await _db.update(
       'products',
       {'category_id': null},
       where: 'category_id = ?',
       whereArgs: [category.id],
     );
 
-    return await DBProvider.db.delete(
+    return await _db.delete(
       tableName,
       where: 'id = ?',
       whereArgs: [category.id],
@@ -74,7 +77,7 @@ class ProductCategoryRepository {
 
   /// Resort categories
   Future<void> resort(List<ProductCategoryModel> categories) async {
-    final Batch batch = await DBProvider.db.batch();
+    final Batch batch = await _db.batch();
 
     for (int i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -91,7 +94,7 @@ class ProductCategoryRepository {
 
   /// Get the count of products in a category
   Future<int> getProductCount(ProductCategoryModel category) async {
-    final result = await DBProvider.db.rawQuery(
+    final result = await _db.rawQuery(
       'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
       [category.id],
     );

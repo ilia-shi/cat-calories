@@ -1,8 +1,8 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/models/product_category_model.dart';
-import 'package:cat_calories/models/product_model.dart';
+import 'package:cat_calories/features/products/domain/product_category_model.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

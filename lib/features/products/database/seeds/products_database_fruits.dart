@@ -1,4 +1,4 @@
-import 'package:cat_calories/models/product.dart';
+import 'package:cat_calories/features/products/database/product.dart';
 
 const fruitsData = <Product>[
   // Apple (generic)

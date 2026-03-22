@@ -1,6 +1,6 @@
-import 'package:cat_calories/database/database.dart';
-import 'package:cat_calories/models/product_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/database/database_client.dart';
+import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,10 +19,13 @@ enum ProductSortOrder {
 class ProductRepository {
   static const String tableName = 'products';
   static const _uuid = Uuid();
+  final DatabaseClient _db;
+
+  ProductRepository(this._db);
 
   /// Fetch all products with default sorting
   Future<List<ProductModel>> fetchAll() async {
-    final productsResult = await DBProvider.db.query(
+    final productsResult = await _db.query(
       tableName,
       orderBy: 'sort_order ASC',
     );
@@ -71,7 +74,7 @@ class ProductRepository {
       whereArgs.add('%$searchQuery%');
     }
 
-    final productsResult = await DBProvider.db.query(
+    final productsResult = await _db.query(
       tableName,
       where: whereParts.join(' AND '),
       whereArgs: whereArgs,
@@ -118,7 +121,7 @@ class ProductRepository {
         break;
     }
 
-    final productsResult = await DBProvider.db.query(
+    final productsResult = await _db.query(
       tableName,
       where: 'profile_id = ? AND category_id IS NULL',
       whereArgs: [profile.id!],
@@ -157,7 +160,7 @@ class ProductRepository {
       ProfileModel profile, {
         int limit = 10,
       }) async {
-    final productsResult = await DBProvider.db.query(
+    final productsResult = await _db.query(
       tableName,
       where: 'profile_id = ? AND last_used_at IS NOT NULL',
       whereArgs: [profile.id!],
@@ -175,7 +178,7 @@ class ProductRepository {
       ProfileModel profile, {
         int limit = 10,
       }) async {
-    final productsResult = await DBProvider.db.query(
+    final productsResult = await _db.query(
       tableName,
       where: 'profile_id = ? AND uses_count > 0',
       whereArgs: [profile.id!],
@@ -190,7 +193,7 @@ class ProductRepository {
 
   /// Find a product by UUID
   Future<ProductModel?> find(String id) async {
-    final result = await DBProvider.db.query(
+    final result = await _db.query(
       tableName,
       where: 'id = ?',
       whereArgs: [id],
@@ -203,7 +206,7 @@ class ProductRepository {
 
   /// Find a product by barcode
   Future<ProductModel?> findByBarcode(ProfileModel profile, String barcode) async {
-    final result = await DBProvider.db.query(
+    final result = await _db.query(
       tableName,
       where: 'profile_id = ? AND barcode = ?',
       whereArgs: [profile.id!, barcode],
@@ -219,13 +222,13 @@ class ProductRepository {
     if (product.id == null || product.id!.isEmpty) {
       product.id = _uuid.v4();
     }
-    await DBProvider.db.insert(tableName, product.toJson());
+    await _db.insert(tableName, product.toJson());
     return product;
   }
 
   /// Delete a product
   Future<int> delete(ProductModel product) async {
-    return await DBProvider.db.delete(
+    return await _db.delete(
       tableName,
       where: 'id = ?',
       whereArgs: [product.id],
@@ -235,7 +238,7 @@ class ProductRepository {
   /// Update a product
   Future<ProductModel> update(ProductModel product) async {
     product.updatedAt = DateTime.now();
-    await DBProvider.db.update(
+    await _db.update(
       tableName,
       product.toJson(),
       where: 'id = ?',
@@ -250,7 +253,7 @@ class ProductRepository {
     product.lastUsedAt = DateTime.now();
     product.updatedAt = DateTime.now();
 
-    await DBProvider.db.update(
+    await _db.update(
       tableName,
       {
         'uses_count': product.usesCount,
@@ -266,7 +269,7 @@ class ProductRepository {
 
   /// Resort products
   Future<void> resort(List<ProductModel> products) async {
-    final Batch batch = await DBProvider.db.batch();
+    final Batch batch = await _db.batch();
 
     for (int i = 0; i < products.length; i++) {
       final ProductModel product = products[i];
@@ -283,14 +286,14 @@ class ProductRepository {
 
   /// Offset sort order for inserting at the beginning
   Future<void> offsetSortOrder() async {
-    await DBProvider.db.rawQuery(
+    await _db.rawQuery(
       'UPDATE $tableName SET sort_order = sort_order + 1',
     );
   }
 
   /// Get count of products by category
   Future<Map<String?, int>> getCountByCategory(ProfileModel profile) async {
-    final result = await DBProvider.db.rawQuery('''
+    final result = await _db.rawQuery('''
       SELECT category_id, COUNT(*) as count 
       FROM $tableName 
       WHERE profile_id = ? 

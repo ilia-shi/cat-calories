@@ -1,8 +1,8 @@
 import 'package:cat_calories/blocs/calories/calories_state.dart';
-import 'package:cat_calories/models/calorie_item_model.dart';
-import 'package:cat_calories/models/profile_model.dart';
-import 'package:cat_calories/repositories/calorie_item_repository.dart';
-import 'package:cat_calories/repositories/waking_period_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';

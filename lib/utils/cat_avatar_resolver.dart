@@ -1,4 +1,4 @@
-import 'package:cat_calories/models/profile_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:flutter/widgets.dart';
 
 class CatAvatarResolver {
