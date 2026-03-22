@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/web_server/controller.dart';
 import 'package:cat_calories/service/web_server/router.dart';
@@ -22,7 +22,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _index(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieItemRepository>();
+    final repo = _locator.get<CalorieRecordRepository>();
     final profile = await ProfileResolver().resolve();
     final items = await repo.fetchAllByProfile(profile, orderBy: 'created_at DESC');
 
@@ -38,7 +38,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _create(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieItemRepository>();
+    final repo = _locator.get<CalorieRecordRepository>();
     final profile = await ProfileResolver().resolve();
 
     final data = await parseJsonBody(request);
@@ -50,7 +50,7 @@ class RecordsController extends Controller {
     }
 
     final now = DateTime.now();
-    final item = CalorieItemModel(
+    final item = CalorieRecord(
       id: null,
       value: value,
       description: data['description'] as String?,
@@ -73,7 +73,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _update(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieItemRepository>();
+    final repo = _locator.get<CalorieRecordRepository>();
     final id = params['id']!;
     final item = await repo.find(id);
 
@@ -107,7 +107,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _destroy(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieItemRepository>();
+    final repo = _locator.get<CalorieRecordRepository>();
     final id = params['id']!;
     final item = await repo.find(id);
 
@@ -122,7 +122,7 @@ class RecordsController extends Controller {
     respondJson(request, HttpStatus.ok, {'deleted': true});
   }
 
-  Map<String, dynamic> _itemToJson(CalorieItemModel item) => {
+  Map<String, dynamic> _itemToJson(CalorieRecord item) => {
     'id': item.id,
     'value': item.value,
     'description': item.description,

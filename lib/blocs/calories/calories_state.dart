@@ -1,11 +1,11 @@
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 
 abstract class AbstractCaloriesState {}
 
 class CaloriesFetchInProgressState extends AbstractCaloriesState {}
 
 class CaloriesFetchSuccessState extends AbstractCaloriesState {
-  final Iterable<CalorieItemModel> calorieItems;
+  final Iterable<CalorieRecord> calorieItems;
 
   CaloriesFetchSuccessState(this.calorieItems);
 }

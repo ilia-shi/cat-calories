@@ -1,4 +1,4 @@
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +19,7 @@ class ProportionalEditResult {
 }
 
 class ProportionalEditBottomSheet extends StatefulWidget {
-  final CalorieItemModel item;
+  final CalorieRecord item;
   final void Function(ProportionalEditResult result) onSave;
 
   const ProportionalEditBottomSheet({

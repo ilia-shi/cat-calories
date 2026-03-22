@@ -5,24 +5,24 @@ import 'package:cat_calories/features/waking_periods/domain/waking_period_model.
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-import 'domain/calorie_item_model.dart';
+import 'domain/calorie_record.dart';
 
-class CalorieItemRepository {
+class CalorieRecordRepository {
   static const String tableName = 'calorie_items';
   final DatabaseClient _db;
 
-  CalorieItemRepository(this._db);
+  CalorieRecordRepository(this._db);
 
-  Future<List<CalorieItemModel>> findAll() async {
+  Future<List<CalorieRecord>> findAll() async {
     final calorieItemsResult =
         await _db.query(tableName, orderBy: 'sort_order ASC');
 
     return calorieItemsResult
-        .map((element) => CalorieItemModel.fromJson(element))
+        .map((element) => CalorieRecord.fromJson(element))
         .toList();
   }
 
-  Future<List<CalorieItemModel>> fetchAllByProfile(ProfileModel profile,
+  Future<List<CalorieRecord>> fetchAllByProfile(ProfileModel profile,
       {String orderBy = 'id ASC', int? limit, int? offset}) async {
     final calorieItemsResult = await _db.query(tableName,
         where: 'profile_id = ?',
@@ -32,11 +32,11 @@ class CalorieItemRepository {
         offset: offset);
 
     return calorieItemsResult
-        .map((element) => CalorieItemModel.fromJson(element))
+        .map((element) => CalorieRecord.fromJson(element))
         .toList();
   }
 
-  Future<List<CalorieItemModel>> fetchAllByProfileAndDay(ProfileModel profile,
+  Future<List<CalorieRecord>> fetchAllByProfileAndDay(ProfileModel profile,
       {String orderBy = 'id ASC',
       int? limit,
       int? offset,
@@ -57,11 +57,11 @@ class CalorieItemRepository {
         offset: offset);
 
     return calorieItemsResult
-        .map((element) => CalorieItemModel.fromJson(element))
+        .map((element) => CalorieRecord.fromJson(element))
         .toList();
   }
 
-  Future<List<CalorieItemModel>> fetchByCreatedAtDay(
+  Future<List<CalorieRecord>> fetchByCreatedAtDay(
       DateTime createdAtDay) async {
     final calorieItemsResult = await _db.query(
       'calorie_items',
@@ -75,7 +75,7 @@ class CalorieItemRepository {
     );
 
     return calorieItemsResult
-        .map((element) => CalorieItemModel.fromJson(element))
+        .map((element) => CalorieRecord.fromJson(element))
         .toList();
   }
 
@@ -95,7 +95,7 @@ class CalorieItemRepository {
     );
   }
 
-  Future<List<CalorieItemModel>> fetchByWakingPeriodAndProfile(
+  Future<List<CalorieRecord>> fetchByWakingPeriodAndProfile(
       WakingPeriodModel wakingPeriod, ProfileModel profile) async {
     final calorieItemsResult = await _db.query(
       tableName,
@@ -108,16 +108,16 @@ class CalorieItemRepository {
     );
 
     return calorieItemsResult
-        .map((element) => CalorieItemModel.fromJson(element))
+        .map((element) => CalorieRecord.fromJson(element))
         .toList();
   }
 
-  Future<CalorieItemModel?> find(String id) async {
+  Future<CalorieRecord?> find(String id) async {
     final calorieItemsResult = await _db
         .query(tableName, where: 'id = ?', whereArgs: [id], limit: 1);
 
     if (calorieItemsResult.length > 0) {
-      return CalorieItemModel.fromJson(calorieItemsResult[0]);
+      return CalorieRecord.fromJson(calorieItemsResult[0]);
     }
 
     return null;
@@ -144,7 +144,7 @@ class CalorieItemRepository {
     return result.map((element) => DayResultModel.fromJson(element)).toList();
   }
 
-  Future<CalorieItemModel> insert(CalorieItemModel calorieItem) async {
+  Future<CalorieRecord> insert(CalorieRecord calorieItem) async {
     if (calorieItem.id == null) {
       calorieItem.id = const Uuid().v4();
     }
@@ -158,14 +158,14 @@ class CalorieItemRepository {
         .rawQuery('UPDATE $tableName SET sort_order = sort_order + 1');
   }
 
-  Future<CalorieItemModel> update(CalorieItemModel calorieItem) async {
+  Future<CalorieRecord> update(CalorieRecord calorieItem) async {
     await _db.update('calorie_items', calorieItem.toJson(),
         where: 'id = ?', whereArgs: [calorieItem.id]);
 
     return calorieItem;
   }
 
-  Future<int> delete(CalorieItemModel calorieItem) async {
+  Future<int> delete(CalorieRecord calorieItem) async {
     return await _db
         .delete('calorie_items', where: 'id = ?', whereArgs: [calorieItem.id]);
   }
@@ -174,11 +174,11 @@ class CalorieItemRepository {
     return await _db.delete('calorie_items');
   }
 
-  Future resort(List<CalorieItemModel> items) async {
+  Future resort(List<CalorieRecord> items) async {
     Batch batch = await _db.batch();
 
     for (var i = 0; i < items.length; i++) {
-      final CalorieItemModel calorieItem = items[i];
+      final CalorieRecord calorieItem = items[i];
       batch.update('calorie_items', {'sort_order': i},
           where: 'id = ?', whereArgs: [calorieItem.id]);
     }

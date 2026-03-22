@@ -1,4 +1,4 @@
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -43,7 +43,7 @@ final class MacroData {
 
   /// Calculate macros from a list of calorie items
   factory MacroData.fromCalorieItems(
-      List<CalorieItemModel> items, {
+      List<CalorieRecord> items, {
         double? proteinGoal,
         double? fatGoal,
         double? carbGoal,
@@ -92,7 +92,7 @@ final class IndicatorData {
   final double dailyGoal;
   final double? periodGoal;
   final bool hasPeriod;
-  final List<CalorieItemModel> todayCalorieItems;
+  final List<CalorieRecord> todayCalorieItems;
   final DateTime now;
 
   /// Macronutrient data for today
@@ -558,7 +558,7 @@ final class IndicatorsWidget extends StatelessWidget {
     return Colors.red.shade600;
   }
 
-  CalorieItemModel? _firstTodayCalorieItem() {
+  CalorieRecord? _firstTodayCalorieItem() {
     if (data.todayCalorieItems.isEmpty) {
       return null;
     }
@@ -574,7 +574,7 @@ final class IndicatorsWidget extends StatelessWidget {
     earliest.eatenAt!.isBefore(current.eatenAt!) ? earliest : current);
   }
 
-  CalorieItemModel? _lastTodayCalorieItem() {
+  CalorieRecord? _lastTodayCalorieItem() {
     if (data.todayCalorieItems.isEmpty) {
       return null;
     }

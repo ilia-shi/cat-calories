@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
 import 'package:cat_calories/features/products/product_repository.dart';
@@ -170,7 +170,7 @@ class _ProductsTabState extends State<ProductsTab> {
       BuildContext context,
       ProductModel product,
       WakingPeriodModel wakingPeriod,
-      List<CalorieItemModel> calorieItems,
+      List<CalorieRecord> calorieItems,
       ) {
     if (!product.hasNutrition) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -243,7 +243,7 @@ class _ProductsTabState extends State<ProductsTab> {
       BuildContext context,
       ProductModel product,
       WakingPeriodModel? wakingPeriod,
-      List<CalorieItemModel> calorieItems,
+      List<CalorieRecord> calorieItems,
       ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final hasWakingPeriod = wakingPeriod != null;

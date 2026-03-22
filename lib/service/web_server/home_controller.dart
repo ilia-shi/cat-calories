@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/web_server/controller.dart';
@@ -16,7 +16,7 @@ class HomeController extends Controller {
   }
 
   Future<void> _index(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieItemRepository>();
+    final repo = _locator.get<CalorieRecordRepository>();
     final profile = await ProfileResolver().resolve();
     final now = DateTime.now();
 

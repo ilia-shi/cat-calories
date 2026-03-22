@@ -1,9 +1,9 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';
@@ -24,12 +24,12 @@ class AllCaloriesHistoryScreen extends StatefulWidget {
 class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     with AutomaticKeepAliveClientMixin {
   final locator = GetIt.instance;
-  late CalorieItemRepository calorieItemRepository =
-  locator.get<CalorieItemRepository>();
+  late CalorieRecordRepository calorieItemRepository =
+  locator.get<CalorieRecordRepository>();
 
   bool _isLoading = true;
   bool _isInitialLoad = true;
-  Map<DateTime, List<CalorieItemModel>> _groupedCalories = {};
+  Map<DateTime, List<CalorieRecord>> _groupedCalories = {};
   Map<DateTime, _DaySummary> _daySummaries = {};
   List<DateTime> _sortedDates = [];
   Set<DateTime> _expandedDates = {};
@@ -65,7 +65,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       );
 
       // Group by date
-      final Map<DateTime, List<CalorieItemModel>> grouped = {};
+      final Map<DateTime, List<CalorieRecord>> grouped = {};
       final Map<DateTime, _DaySummary> summaries = {};
       double total = 0;
       int itemCount = 0;
@@ -723,7 +723,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  Widget _buildCalorieItem(CalorieItemModel item, bool isLast) {
+  Widget _buildCalorieItem(CalorieRecord item, bool isLast) {
     final appColors = AppColors.of(context);
     final hasMacros = item.proteinGrams != null ||
         item.fatGrams != null ||
@@ -877,7 +877,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  Widget _buildItemMacros(CalorieItemModel item) {
+  Widget _buildItemMacros(CalorieRecord item) {
     final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(left: 80),
@@ -974,7 +974,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  void _showItemOptions(CalorieItemModel item) {
+  void _showItemOptions(CalorieRecord item) {
     final appColors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
@@ -1159,7 +1159,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  void _showProportionalEdit(CalorieItemModel item) {
+  void _showProportionalEdit(CalorieRecord item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1179,7 +1179,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   void _applyProportionalEdit(
-      CalorieItemModel item, ProportionalEditResult result) {
+      CalorieRecord item, ProportionalEditResult result) {
     item.weightGrams = result.weightGrams;
     item.value = result.calories;
     item.proteinGrams = result.proteinGrams;
@@ -1203,7 +1203,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  void _confirmDelete(CalorieItemModel item) {
+  void _confirmDelete(CalorieRecord item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

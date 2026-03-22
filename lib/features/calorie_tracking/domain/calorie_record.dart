@@ -1,4 +1,4 @@
-final class CalorieItemModel {
+final class CalorieRecord {
   String? id;
   double value;
   String? description;
@@ -14,7 +14,7 @@ final class CalorieItemModel {
   double? carbGrams;
   String? productId;
 
-  CalorieItemModel({
+  CalorieRecord({
     required this.id,
     required this.value,
     required this.description,
@@ -31,8 +31,8 @@ final class CalorieItemModel {
     this.productId = null,
   }) : updatedAt = updatedAt ?? createdAt;
 
-  factory CalorieItemModel.fromJson(Map<String, dynamic> json) =>
-      CalorieItemModel(
+  factory CalorieRecord.fromJson(Map<String, dynamic> json) =>
+      CalorieRecord(
         id: json['id'],
         value: json['value'],
         description: json['description'],

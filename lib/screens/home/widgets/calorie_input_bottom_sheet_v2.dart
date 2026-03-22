@@ -1,6 +1,6 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/calculator_widget.dart';
@@ -26,7 +26,7 @@ class _PrefsKeys {
 
 class CalorieInputBottomSheetV2 extends StatefulWidget {
   final WakingPeriodModel wakingPeriod;
-  final List<CalorieItemModel> calorieItems;
+  final List<CalorieRecord> calorieItems;
 
   const CalorieInputBottomSheetV2({
     Key? key,
@@ -153,7 +153,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
     );
   }
 
-  void _onCalorieItemCreated(CalorieItemModel calorieItem) {
+  void _onCalorieItemCreated(CalorieRecord calorieItem) {
     _simpleController.clear();
 
     setState(() {

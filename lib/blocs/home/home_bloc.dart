@@ -12,10 +12,10 @@ import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/utils/expression_executor.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../features/calorie_tracking/domain/calorie_item_model.dart';
+import '../../features/calorie_tracking/domain/calorie_record.dart';
 import 'home_event.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
 import 'package:cat_calories/service/calorie_recommendation_service.dart';
@@ -26,8 +26,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   late ProductRepository productRepository = locator.get<ProductRepository>();
   late ProductCategoryRepository productCategoryRepository =
   locator.get<ProductCategoryRepository>();
-  late CalorieItemRepository calorieItemRepository =
-  locator.get<CalorieItemRepository>();
+  late CalorieRecordRepository calorieItemRepository =
+  locator.get<CalorieRecordRepository>();
   late ProfileRepository profileRepository = locator.get<ProfileRepository>();
   late WakingPeriodRepository wakingPeriodRepository =
   locator.get<WakingPeriodRepository>();
@@ -100,7 +100,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
 
-    final CalorieItemModel calorieItem = CalorieItemModel(
+    final CalorieRecord calorieItem = CalorieRecord(
       id: null,
       value: _preparedCaloriesValue,
       sortOrder: 0,
@@ -126,7 +126,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
 
-    final CalorieItemModel calorieItem = CalorieItemModel(
+    final CalorieRecord calorieItem = CalorieRecord(
       id: null,
       value: event.calories,
       sortOrder: 0,
@@ -375,7 +375,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       final fat = product.calculateFat(weightGrams);
       final carbs = product.calculateCarbs(weightGrams);
 
-      final CalorieItemModel calorieItem = CalorieItemModel(
+      final CalorieRecord calorieItem = CalorieRecord(
         id: null,
         value: calories,
         sortOrder: 0,
@@ -424,7 +424,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       final fat = product.calculateFat(weightGrams);
       final carbs = product.calculateCarbs(weightGrams);
 
-      final CalorieItemModel calorieItem = CalorieItemModel(
+      final CalorieRecord calorieItem = CalorieRecord(
         id: null,
         value: calories,
         sortOrder: 0,
@@ -551,9 +551,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   EqualizationSettingsModel _equalizationSettings = EqualizationSettingsModel();
 
   /// Fetch calorie items for the rolling window (last 48 hours).
-  Future<List<CalorieItemModel>> _fetchRollingWindowItems() async {
+  Future<List<CalorieRecord>> _fetchRollingWindowItems() async {
     final now = DateTime.now();
-    final List<CalorieItemModel> allItems = [];
+    final List<CalorieRecord> allItems = [];
 
     // Fetch today's items
     final todayItems = await calorieItemRepository.fetchByCreatedAtDay(now);
@@ -573,7 +573,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
     // Remove duplicates by ID (in case of overlap)
     final seen = <String>{};
-    final uniqueItems = <CalorieItemModel>[];
+    final uniqueItems = <CalorieRecord>[];
     for (final item in allItems) {
       if (item.id != null && !seen.contains(item.id)) {
         seen.add(item.id!);
@@ -599,10 +599,10 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         ),
       );
 
-      List<CalorieItemModel> todayCalorieItems =
+      List<CalorieRecord> todayCalorieItems =
       await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
 
-      List<CalorieItemModel> rollingWindowCalorieItems =
+      List<CalorieRecord> rollingWindowCalorieItems =
       await _fetchRollingWindowItems();
 
       DateTime? lastMealTime;
@@ -658,7 +658,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day)
           .add(Duration(days: 1));
 
-      List<CalorieItemModel> _calorieItems = [];
+      List<CalorieRecord> _calorieItems = [];
 
       if (currentWakingPeriod != null) {
         _calorieItems = await calorieItemRepository.fetchByWakingPeriodAndProfile(

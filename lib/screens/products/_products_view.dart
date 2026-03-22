@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
 import 'package:cat_calories/ui/colors.dart';
@@ -23,7 +23,7 @@ class _ProductsViewState extends State<ProductsView> {
   List<ProductModel> _products = [];
 
 
-  _showBottomSheet(ProductModel product, List<CalorieItemModel> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
+  _showBottomSheet(ProductModel product, List<CalorieRecord> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
     showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
@@ -87,7 +87,7 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
-  _showToEatBottomSheet(ProductModel product, List<CalorieItemModel> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
+  _showToEatBottomSheet(ProductModel product, List<CalorieRecord> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
     showModalBottomSheet<dynamic>(
       barrierColor: Colors.black.withValues(alpha: 0.2),
       isScrollControlled: true,
@@ -138,7 +138,7 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
-  void _createCalorieItem(ProductModel product, List<CalorieItemModel> calorieItems, WakingPeriodModel wakingPeriod) {
+  void _createCalorieItem(ProductModel product, List<CalorieRecord> calorieItems, WakingPeriodModel wakingPeriod) {
     final String expression = productWeightController.text;
 
     if (expression.length == 0) {
@@ -146,7 +146,7 @@ class _ProductsViewState extends State<ProductsView> {
     }
 
     BlocProvider.of<HomeBloc>(context)
-        .add(EatProductEvent(product, 0, wakingPeriod, calorieItems, (CalorieItemModel calorieItem) {
+        .add(EatProductEvent(product, 0, wakingPeriod, calorieItems, (CalorieRecord calorieItem) {
       final snackBar = SnackBar(content: Text('${calorieItem.value.toStringAsFixed(2)} kcal added'));
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(snackBar);

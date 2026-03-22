@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 
 final class CalorieExporter {
   static Future<String> exportToJson({
-    required List<CalorieItemModel> calorieItems,
+    required List<CalorieRecord> calorieItems,
     required ProfileModel profile,
     List<ProductModel>? products,
     List<WakingPeriodModel>? wakingPeriods,
@@ -84,7 +84,7 @@ final class CalorieExporter {
 
   /// Export and share the JSON file using SharePlus 12.0.1
   static Future<ShareResult> exportAndShare({
-    required List<CalorieItemModel> calorieItems,
+    required List<CalorieRecord> calorieItems,
     required ProfileModel profile,
     List<ProductModel>? products,
     List<WakingPeriodModel>? wakingPeriods,
@@ -110,7 +110,7 @@ final class CalorieExporter {
 
   /// Export only today's calorie items
   static Future<ShareResult> exportTodayAndShare({
-    required List<CalorieItemModel> todayCalorieItems,
+    required List<CalorieRecord> todayCalorieItems,
     required ProfileModel profile,
   }) async {
     return await exportAndShare(
@@ -122,7 +122,7 @@ final class CalorieExporter {
 
   /// Export current period's calorie items
   static Future<ShareResult> exportPeriodAndShare({
-    required List<CalorieItemModel> periodCalorieItems,
+    required List<CalorieRecord> periodCalorieItems,
     required ProfileModel profile,
     WakingPeriodModel? currentWakingPeriod,
   }) async {
@@ -135,7 +135,7 @@ final class CalorieExporter {
   }
 
   /// Get export statistics summary
-  static Map<String, dynamic> getExportSummary(List<CalorieItemModel> items) {
+  static Map<String, dynamic> getExportSummary(List<CalorieRecord> items) {
     double totalCalories = 0;
     double positiveCalories = 0;
     double negativeCalories = 0;

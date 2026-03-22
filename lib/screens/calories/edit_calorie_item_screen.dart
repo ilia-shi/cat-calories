@@ -1,14 +1,14 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class EditCalorieItemScreen extends StatefulWidget {
-  final CalorieItemModel calorieItem;
+  final CalorieRecord calorieItem;
 
   EditCalorieItemScreen(this.calorieItem);
 
@@ -28,7 +28,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   TextEditingController _fatController = TextEditingController();
   TextEditingController _carbController = TextEditingController();
 
-  CalorieItemModel calorieItem;
+  CalorieRecord calorieItem;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   bool _showNutritionFields = false;

@@ -6,7 +6,7 @@ import 'package:cat_calories/features/waking_periods/domain/waking_period_model.
 import 'package:cat_calories/features/calorie_tracking/domain/calorie_recommendation_model.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
 
-import '../../features/calorie_tracking/domain/calorie_item_model.dart';
+import '../../features/calorie_tracking/domain/calorie_record.dart';
 
 abstract class AbstractHomeState {}
 
@@ -40,13 +40,13 @@ class HomeError extends AbstractHomeState {
 
 class HomeFetched extends AbstractHomeState {
   final DateTime nowDateTime;
-  final List<CalorieItemModel> periodCalorieItems;
-  final List<CalorieItemModel> todayCalorieItems;
+  final List<CalorieRecord> periodCalorieItems;
+  final List<CalorieRecord> todayCalorieItems;
 
   /// Calorie items from the last 48 hours for rolling window calculations.
   /// This enables the RollingCalorieTracker to work across irregular schedules
   /// without being tied to calendar day boundaries.
-  final List<CalorieItemModel> rollingWindowCalorieItems;
+  final List<CalorieRecord> rollingWindowCalorieItems;
 
   final List<DayResultModel> days30;
   final List<DayResultModel> days2;
@@ -85,7 +85,7 @@ class HomeFetched extends AbstractHomeState {
   double getPeriodCaloriesEatenSum() {
     double totalCalories = 0;
 
-    periodCalorieItems.forEach((CalorieItemModel calorieItem) {
+    periodCalorieItems.forEach((CalorieRecord calorieItem) {
       if (calorieItem.isEaten()) {
         totalCalories += calorieItem.value;
       }
@@ -99,7 +99,7 @@ class HomeFetched extends AbstractHomeState {
   double getTodayCaloriesEatenSum() {
     double totalCalories = 0;
 
-    todayCalorieItems.forEach((CalorieItemModel calorieItem) {
+    todayCalorieItems.forEach((CalorieRecord calorieItem) {
       if (calorieItem.isEaten()) {
         totalCalories += calorieItem.value;
       }

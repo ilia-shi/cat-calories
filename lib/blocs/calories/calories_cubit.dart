@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/calories/calories_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,8 +10,8 @@ import 'package:get_it/get_it.dart';
 class CaloriesCubit extends Cubit<AbstractCaloriesState> {
   final locator = GetIt.instance;
 
-  late CalorieItemRepository calorieItemRepository =
-      locator.get<CalorieItemRepository>();
+  late CalorieRecordRepository calorieItemRepository =
+      locator.get<CalorieRecordRepository>();
 
   late WakingPeriodRepository wakingPeriodRepository =
       locator.get<WakingPeriodRepository>();
@@ -30,7 +30,7 @@ class CaloriesCubit extends Cubit<AbstractCaloriesState> {
       double value, bool invertSortOrder, DateTime dayStart) async {
     ProfileModel profile = await ProfileResolver().resolve();
 
-    CalorieItemModel calorieItem = CalorieItemModel(
+    CalorieRecord calorieItem = CalorieRecord(
       id: null,
       value: value,
       description: null,
@@ -46,7 +46,7 @@ class CaloriesCubit extends Cubit<AbstractCaloriesState> {
     fetchCalorieItems(invertSortOrder, dayStart);
   }
 
-  void removeCalorieItem(CalorieItemModel calorieItem, bool invertSortOrder,
+  void removeCalorieItem(CalorieRecord calorieItem, bool invertSortOrder,
       DateTime dateTime) async {
     calorieItemRepository.delete(calorieItem);
 

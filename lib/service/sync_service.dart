@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_item_model.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/products/domain/product_category_model.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/calorie_tracking/calorie_item_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_record_repository.dart';
 import 'package:cat_calories/features/products/product_category_repository.dart';
 import 'package:cat_calories/features/products/product_repository.dart';
 import 'package:cat_calories/features/profile/profile_repository.dart';
@@ -164,7 +164,7 @@ class SyncService {
     final prefs = await SharedPreferences.getInstance();
     final lastSyncedStr = prefs.getString(_lastSyncedAtKey);
 
-    final calorieRepo = _locator.get<CalorieItemRepository>();
+    final calorieRepo = _locator.get<CalorieRecordRepository>();
     final profileRepo = _locator.get<ProfileRepository>();
     final wakingPeriodRepo = _locator.get<WakingPeriodRepository>();
     final productRepo = _locator.get<ProductRepository>();
@@ -334,7 +334,7 @@ class SyncService {
 
   // ---- CalorieItem serialization ----
 
-  Map<String, dynamic> _itemToSyncJson(CalorieItemModel item) {
+  Map<String, dynamic> _itemToSyncJson(CalorieRecord item) {
     return {
       'id': item.id,
       'profile_id': item.profileId,
@@ -353,8 +353,8 @@ class SyncService {
     };
   }
 
-  CalorieItemModel _itemFromSyncJson(Map<String, dynamic> json) {
-    return CalorieItemModel(
+  CalorieRecord _itemFromSyncJson(Map<String, dynamic> json) {
+    return CalorieRecord(
       id: json['id']?.toString(),
       value: (json['value'] as num).toDouble(),
       description: json['description'] as String?,
