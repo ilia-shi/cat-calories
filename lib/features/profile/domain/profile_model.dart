@@ -1,5 +1,5 @@
 final class ProfileModel {
-  int? id;
+  String? id;
   String name;
   int wakingTimeSeconds;
   double caloriesLimitGoal;
@@ -16,7 +16,7 @@ final class ProfileModel {
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) => ProfileModel(
-        id: json['id'],
+        id: json['id']?.toString(),
         name: json['name'],
         wakingTimeSeconds: json['waking_time_seconds'],
         caloriesLimitGoal: json['calories_limit_goal'],

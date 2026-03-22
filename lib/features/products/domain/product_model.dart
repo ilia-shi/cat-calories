@@ -7,7 +7,7 @@ final class ProductModel {
   int usesCount;
   DateTime createdAt;
   DateTime updatedAt;
-  int profileId;
+  String profileId;
   String? barcode;
   int sortOrder;
 
@@ -54,7 +54,7 @@ final class ProductModel {
         _parseInt(json['created_at']) ?? 0),
     updatedAt: DateTime.fromMillisecondsSinceEpoch(
         _parseInt(json['updated_at']) ?? 0),
-    profileId: _parseInt(json['profile_id']) ?? 1,
+    profileId: json['profile_id']?.toString() ?? '',
     barcode: json['barcode']?.toString(),
     sortOrder: _parseInt(json['sort_order']) ?? 0,
     // Support both old field names (for migration) and new field names
@@ -156,7 +156,7 @@ final class ProductModel {
     int? usesCount,
     DateTime? createdAt,
     DateTime? updatedAt,
-    int? profileId,
+    String? profileId,
     String? barcode,
     int? sortOrder,
     double? caloriesPer100g,

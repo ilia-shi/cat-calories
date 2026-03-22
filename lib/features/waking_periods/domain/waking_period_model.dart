@@ -6,7 +6,7 @@ class WakingPeriodModel {
   DateTime startedAt;
   DateTime? endedAt;
   double caloriesValue;
-  final int profileId;
+  final String profileId;
   int expectedWakingTimeSeconds;
   double caloriesLimitGoal;
 
@@ -31,7 +31,7 @@ class WakingPeriodModel {
         startedAt: DateTime.fromMillisecondsSinceEpoch(json['started_at']),
         endedAt: json['ended_at'] == null ? null : DateTime.fromMillisecondsSinceEpoch(json['ended_at']),
         caloriesValue: json['calories_value'],
-        profileId: json['profile_id'],
+        profileId: json['profile_id']?.toString() ?? '',
         expectedWakingTimeSeconds: json['expected_waking_time_seconds'],
         caloriesLimitGoal: json['calories_limit_goal'],
       );

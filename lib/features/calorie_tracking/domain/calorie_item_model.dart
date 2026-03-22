@@ -6,7 +6,7 @@ final class CalorieItemModel {
   DateTime? eatenAt;
   DateTime createdAt;
   DateTime updatedAt;
-  int profileId;
+  String profileId;
   int? wakingPeriodId;
   double? weightGrams;
   double? proteinGrams;
@@ -44,7 +44,7 @@ final class CalorieItemModel {
         updatedAt: json['updated_at'] != null
             ? DateTime.fromMillisecondsSinceEpoch(json['updated_at'])
             : null,
-        profileId: json['profile_id'],
+        profileId: json['profile_id']?.toString() ?? '',
         wakingPeriodId: json['waking_period_id'],
 
         weightGrams: json['weight_grams'] ?? null,

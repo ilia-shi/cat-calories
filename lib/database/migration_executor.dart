@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
   /// Current database version
-  static const int currentVersion = 7;
+  static const int currentVersion = 8;
 
   /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
@@ -43,6 +43,9 @@ class MigrationExecutor {
         break;
       case 7:
         await _migrateToVersion7(db);
+        break;
+      case 8:
+        await _migrateProfilesToUuid(db);
         break;
     }
   }
@@ -130,6 +133,161 @@ class MigrationExecutor {
     print('Migration to version 7 completed: Added updated_at to calorie_items');
   }
 
+  /// Migration to version 8: Migrate profiles from INTEGER id to TEXT UUID
+  Future<void> _migrateProfilesToUuid(Database db) async {
+    final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='profiles'"
+    );
+
+    if (tables.isEmpty) {
+      return; // Table doesn't exist, onCreate will handle it
+    }
+
+    // Check if id column is already TEXT
+    final tableInfo = await db.rawQuery('PRAGMA table_info(profiles)');
+    String? idType;
+    for (final row in tableInfo) {
+      if (row['name'] == 'id') {
+        idType = (row['type'] as String?)?.toUpperCase() ?? '';
+        break;
+      }
+    }
+
+    final isTextId = idType != null && idType.isNotEmpty && idType.contains('TEXT');
+    if (isTextId) {
+      print('profiles already has TEXT id, skipping migration');
+      return;
+    }
+
+    print('Migrating profiles table to UUID schema (current id type: "$idType")...');
+
+    try {
+      await db.execute('DROP TABLE IF EXISTS profiles_new');
+
+      await db.execute('''
+        CREATE TABLE profiles_new (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT,
+          created_at INT,
+          updated_at INT,
+          waking_time_seconds INT,
+          calories_limit_goal REAL
+        )
+      ''');
+
+      // Read existing profiles and build id mapping
+      final oldProfiles = await db.query('profiles');
+      final idMapping = <String, String>{}; // old int id (as string) -> new UUID
+
+      for (final profile in oldProfiles) {
+        final oldId = profile['id'].toString();
+        final uuidResult = await db.rawQuery('''
+          SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' ||
+                substr(hex(randomblob(2)),2) || '-' ||
+                substr('89ab', abs(random()) % 4 + 1, 1) ||
+                substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) as uuid
+        ''');
+        final newId = uuidResult.first['uuid'] as String;
+        idMapping[oldId] = newId;
+
+        await db.insert('profiles_new', {
+          'id': newId,
+          'name': profile['name'],
+          'created_at': profile['created_at'],
+          'updated_at': profile['updated_at'],
+          'waking_time_seconds': profile['waking_time_seconds'],
+          'calories_limit_goal': profile['calories_limit_goal'],
+        });
+      }
+
+      // Drop old table and rename
+      await db.execute('DROP TABLE profiles');
+      await db.execute('ALTER TABLE profiles_new RENAME TO profiles');
+
+      // Update profile_id foreign keys in all related tables
+      // Use int for WHERE clause since the old profile_id columns store integer values
+      // SQLite won't match text "1" against integer 1
+      for (final entry in idMapping.entries) {
+        final oldIdInt = int.parse(entry.key);
+        await db.execute(
+          'UPDATE waking_periods SET profile_id = ? WHERE profile_id = ?',
+          [entry.value, oldIdInt],
+        );
+        await db.execute(
+          'UPDATE calorie_items SET profile_id = ? WHERE profile_id = ?',
+          [entry.value, oldIdInt],
+        );
+        await db.execute(
+          'UPDATE products SET profile_id = ? WHERE profile_id = ?',
+          [entry.value, oldIdInt],
+        );
+        await db.execute(
+          'UPDATE product_categories SET profile_id = ? WHERE profile_id = ?',
+          [entry.value, oldIdInt],
+        );
+      }
+
+      print('profiles table migrated to UUID successfully');
+    } catch (e) {
+      print('Error during profiles table migration: $e');
+      try {
+        await db.execute('DROP TABLE IF EXISTS profiles_new');
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
+  /// Repair stale integer profile_id values in child tables.
+  /// After migrating profiles to UUID, child tables may still have old integer
+  /// profile_id values if the migration had a type mismatch bug.
+  Future<void> _repairProfileIdForeignKeys(Database db) async {
+    // Get all profiles with their UUID ids
+    final profiles = await db.query('profiles');
+    if (profiles.isEmpty) return;
+
+    // Check if any child table has integer profile_id values that don't match any UUID
+    final childTables = ['waking_periods', 'calorie_items', 'products', 'product_categories'];
+
+    for (final table in childTables) {
+      final tableExists = await _tableExists(db, table);
+      if (!tableExists) continue;
+
+      // Find rows where profile_id looks like an integer (doesn't contain '-')
+      final staleRows = await db.rawQuery(
+        "SELECT DISTINCT profile_id FROM $table WHERE profile_id NOT LIKE '%-%' AND profile_id IS NOT NULL AND profile_id != ''",
+      );
+
+      if (staleRows.isEmpty) continue;
+
+      print('Repairing $table: found ${staleRows.length} stale integer profile_id value(s)');
+
+      // If there's exactly one profile, assign all stale rows to it
+      if (profiles.length == 1) {
+        final uuid = profiles.first['id'] as String;
+        await db.execute(
+          "UPDATE $table SET profile_id = ? WHERE profile_id NOT LIKE '%-%'",
+          [uuid],
+        );
+        print('Assigned all stale profile_ids in $table to $uuid');
+      } else {
+        // Multiple profiles: try to match by old integer id order
+        // Sort profiles by created_at to match the original integer id order
+        final sortedProfiles = List<Map<String, dynamic>>.from(profiles)
+          ..sort((a, b) => (a['created_at'] as int).compareTo(b['created_at'] as int));
+
+        for (int i = 0; i < sortedProfiles.length; i++) {
+          final uuid = sortedProfiles[i]['id'] as String;
+          final oldIntId = i + 1; // INTEGER PRIMARY KEY starts at 1
+          await db.execute(
+            'UPDATE $table SET profile_id = ? WHERE CAST(profile_id AS INTEGER) = ?',
+            [uuid, oldIntId],
+          );
+        }
+        print('Repaired profile_ids in $table by matching integer order');
+      }
+    }
+  }
+
   /// Helper method to check if a column exists
   Future<bool> _columnExists(Database db, String table, String column) async {
     final result = await db.rawQuery('PRAGMA table_info($table)');
@@ -192,7 +350,7 @@ class MigrationExecutor {
           created_at INT,
           created_at_day INT,
           eaten_at INT NULL,
-          profile_id INT,
+          profile_id TEXT,
           waking_period_id INT,
           weight_grams REAL NULL,
           protein_grams REAL NULL,
@@ -276,7 +434,7 @@ class MigrationExecutor {
           created_at INT,
           updated_at INT,
           uses_count INT DEFAULT 0,
-          profile_id INT NOT NULL,
+          profile_id TEXT NOT NULL,
           sort_order INT DEFAULT 0,
           barcode TEXT NULL,
           calories_per_100g REAL NULL,
@@ -336,7 +494,7 @@ class MigrationExecutor {
           created_at INT,
           updated_at INT,
           uses_count INT DEFAULT 0,
-          profile_id INT NOT NULL DEFAULT 1,
+          profile_id TEXT NOT NULL DEFAULT '',
           sort_order INT DEFAULT 0,
           barcode TEXT NULL,
           calorie_content REAL NULL,
@@ -409,7 +567,7 @@ class MigrationExecutor {
 
   /// Ensure products table has all required columns
   Future<void> _ensureProductsColumns(Database db) async {
-    await _addColumnIfNotExists(db, 'products', 'profile_id', 'INT NOT NULL DEFAULT 1');
+    await _addColumnIfNotExists(db, 'products', 'profile_id', 'TEXT NOT NULL DEFAULT \'\'');
     await _addColumnIfNotExists(db, 'products', 'package_weight_grams', 'REAL NULL');
     await _addColumnIfNotExists(db, 'products', 'category_id', 'TEXT NULL');
     await _addColumnIfNotExists(db, 'products', 'last_used_at', 'INT NULL');
@@ -440,7 +598,7 @@ class MigrationExecutor {
           icon_name TEXT NULL,
           color_hex TEXT NULL,
           sort_order INT DEFAULT 0,
-          profile_id INT NOT NULL DEFAULT 1,
+          profile_id TEXT NOT NULL DEFAULT '',
           created_at INT NOT NULL DEFAULT 0,
           updated_at INT NOT NULL DEFAULT 0
         )
@@ -479,7 +637,7 @@ class MigrationExecutor {
         icon_name TEXT NULL,
         color_hex TEXT NULL,
         sort_order INT DEFAULT 0,
-        profile_id INT NOT NULL DEFAULT 1,
+        profile_id TEXT NOT NULL DEFAULT '',
         created_at INT NOT NULL DEFAULT 0,
         updated_at INT NOT NULL DEFAULT 0
       )
@@ -563,8 +721,16 @@ class MigrationExecutor {
     // Check if calorie_items table needs to be migrated from INTEGER to TEXT UUID id
     await executor._migrateCalorieItemsTableToUuid(db);
 
+    // Check if profiles table needs to be migrated from INTEGER to TEXT UUID id
+    await executor._migrateProfilesToUuid(db);
+
+    // Repair stale integer profile_id values in child tables
+    // This fixes databases where migration v8 ran with a bug that failed to update
+    // foreign keys (SQLite doesn't match integer 1 against text "1")
+    await executor._repairProfileIdForeignKeys(db);
+
     // Ensure product_categories has all required columns (for tables created with old schema)
-    await executor._addColumnIfNotExists(db, 'product_categories', 'profile_id', 'INT NOT NULL DEFAULT 1');
+    await executor._addColumnIfNotExists(db, 'product_categories', 'profile_id', 'TEXT NOT NULL DEFAULT \'\'');
     await executor._addColumnIfNotExists(db, 'product_categories', 'icon_name', 'TEXT NULL');
     await executor._addColumnIfNotExists(db, 'product_categories', 'color_hex', 'TEXT NULL');
     await executor._addColumnIfNotExists(db, 'product_categories', 'sort_order', 'INT DEFAULT 0');
@@ -635,7 +801,7 @@ class MigrationExecutor {
           icon_name TEXT NULL,
           color_hex TEXT NULL,
           sort_order INT DEFAULT 0,
-          profile_id INT NOT NULL DEFAULT 1,
+          profile_id TEXT NOT NULL DEFAULT '',
           created_at INT NOT NULL DEFAULT 0,
           updated_at INT NOT NULL DEFAULT 0
         )
@@ -655,7 +821,7 @@ class MigrationExecutor {
           created_at INT,
           updated_at INT,
           uses_count INT DEFAULT 0,
-          profile_id INT NOT NULL,
+          profile_id TEXT NOT NULL,
           sort_order INT DEFAULT 0,
           barcode TEXT NULL,
           calories_per_100g REAL NULL,

@@ -1,7 +1,9 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:uuid/uuid.dart';
 
 final class ProfileRepository {
+  static const _uuid = Uuid();
   final DatabaseClient _db;
 
   ProfileRepository(this._db);
@@ -15,7 +17,10 @@ final class ProfileRepository {
   }
 
   Future<ProfileModel> insert(ProfileModel profile) async {
-    profile.id = await _db.insert('profiles', profile.toJson());
+    if (profile.id == null || profile.id!.isEmpty) {
+      profile.id = _uuid.v4();
+    }
+    await _db.insert('profiles', profile.toJson());
 
     return profile;
   }

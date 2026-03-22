@@ -268,7 +268,7 @@ class SyncService {
 
   ProfileModel _profileFromSyncJson(Map<String, dynamic> json) {
     return ProfileModel(
-      id: json['id'] as int,
+      id: json['id']?.toString(),
       name: json['name'] as String? ?? '',
       wakingTimeSeconds: json['waking_time_seconds'] as int? ?? 0,
       caloriesLimitGoal: (json['calories_limit_goal'] as num?)?.toDouble() ?? 2000,
@@ -362,7 +362,7 @@ class SyncService {
       eatenAt: json['eaten_at'] != null ? DateTime.parse(json['eaten_at']) : null,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
-      profileId: json['profile_id'] as int,
+      profileId: json['profile_id']?.toString() ?? '',
       wakingPeriodId: json['waking_period_id'] as int?,
       weightGrams: (json['weight_grams'] as num?)?.toDouble(),
       proteinGrams: (json['protein_grams'] as num?)?.toDouble(),

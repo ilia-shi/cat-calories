@@ -76,7 +76,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
   _saveActiveProfile(ProfileModel profile) async {
     SharedPreferences prefs = await _prefs;
-    prefs.setInt(ProfileResolver.activeProfileKey, profile.id!);
+    prefs.setString(ProfileResolver.activeProfileKey, profile.id!);
     ProfileResolver.setActiveProfile(profile);
   }
 

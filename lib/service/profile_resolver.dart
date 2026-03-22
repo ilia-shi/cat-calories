@@ -17,7 +17,14 @@ class ProfileResolver {
     if (_activeProfile == null) {
       final List<ProfileModel> profiles = await _profileRepository.fetchAll();
 
-      final int? activeProfileId = prefs.getInt(activeProfileKey);
+      // Handle migration from int to string: old versions stored profile ID as int
+      String? activeProfileId;
+      try {
+        activeProfileId = prefs.getString(activeProfileKey);
+      } catch (_) {
+        // Old value was stored as int, remove it and fall through to first profile
+        await prefs.remove(activeProfileKey);
+      }
 
       if (activeProfileId == null) {
         // No saved preference - use first profile if available
@@ -36,7 +43,7 @@ class ProfileResolver {
         if (_activeProfile == null && profiles.isNotEmpty) {
           _activeProfile = profiles.first;
           // Update SharedPreferences to the new active profile
-          await prefs.setInt(activeProfileKey, _activeProfile!.id!);
+          await prefs.setString(activeProfileKey, _activeProfile!.id!);
         }
       }
     }
@@ -57,7 +64,7 @@ class ProfileResolver {
       _activeProfile = profiles.first;
 
       // Save the new profile as active
-      await prefs.setInt(activeProfileKey, _activeProfile!.id!);
+      await prefs.setString(activeProfileKey, _activeProfile!.id!);
     }
 
     return _activeProfile!;

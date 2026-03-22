@@ -56,7 +56,7 @@ class DBProvider implements DatabaseClient {
 
         await db.execute('''
           CREATE TABLE profiles(
-            id INTEGER PRIMARY KEY NOT NULL,
+            id TEXT PRIMARY KEY NOT NULL,
             name TEXT,
             created_at INT,
             updated_at INT,
@@ -74,7 +74,7 @@ class DBProvider implements DatabaseClient {
             started_at INT,
             ended_at INT NULL,
             calories_value REAL,
-            profile_id INT,
+            profile_id TEXT,
             expected_waking_time_seconds INT,
             calories_limit_goal REAL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id)
@@ -91,7 +91,7 @@ class DBProvider implements DatabaseClient {
             created_at INT,
             created_at_day INT,
             eaten_at INT NULL,
-            profile_id INT,
+            profile_id TEXT,
             waking_period_id INT,
             weight_grams REAL NULL,
             protein_grams REAL NULL,
@@ -111,7 +111,7 @@ class DBProvider implements DatabaseClient {
             icon_name TEXT NULL,
             color_hex TEXT NULL,
             sort_order INT DEFAULT 0,
-            profile_id INT NOT NULL,
+            profile_id TEXT NOT NULL,
             created_at INT NOT NULL,
             updated_at INT NOT NULL,
             FOREIGN KEY(profile_id) REFERENCES profiles(id)
@@ -126,7 +126,7 @@ class DBProvider implements DatabaseClient {
             created_at INT,
             updated_at INT,
             uses_count INT,
-            profile_id INT,
+            profile_id TEXT,
             sort_order INT DEFAULT 0,
             barcode TEXT NULL,
             calories_per_100g REAL NULL,

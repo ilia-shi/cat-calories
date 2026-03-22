@@ -6,7 +6,7 @@ final class ProductCategoryModel {
   String? iconName;
   String? colorHex;
   int sortOrder;
-  int profileId;
+  String profileId;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -28,7 +28,7 @@ final class ProductCategoryModel {
         iconName: json['icon_name']?.toString(),
         colorHex: json['color_hex']?.toString(),
         sortOrder: _parseInt(json['sort_order']) ?? 0,
-        profileId: _parseInt(json['profile_id']) ?? 1,
+        profileId: json['profile_id']?.toString() ?? '',
         createdAt: DateTime.fromMillisecondsSinceEpoch(
             _parseInt(json['created_at']) ?? 0),
         updatedAt: DateTime.fromMillisecondsSinceEpoch(
@@ -61,7 +61,7 @@ final class ProductCategoryModel {
     String? iconName,
     String? colorHex,
     int? sortOrder,
-    int? profileId,
+    String? profileId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
