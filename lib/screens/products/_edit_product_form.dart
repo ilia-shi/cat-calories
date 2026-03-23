@@ -1,4 +1,3 @@
-import 'package:cat_calories/utils/number_validator.dart';
 import 'package:flutter/material.dart';
 
 class EditProductForm extends StatelessWidget {
@@ -64,7 +63,7 @@ class EditProductForm extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               controller: barcodeController,
               validator: (String? value) {
-                if (value != null && value.isNotEmpty && !NumberValidator.isInteger(value)) {
+                if (value != null && value.isNotEmpty && int.tryParse(value) == null) {
                   return 'Please enter valid barcode';
                 }
 
@@ -81,7 +80,7 @@ class EditProductForm extends StatelessWidget {
               controller: calorieContentController,
               validator: (String? value) {
 
-                if (value != null && value.isNotEmpty && !NumberValidator.isNumeric(value)) {
+                if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                   return 'Please enter valid calories value';
                 }
 
@@ -96,7 +95,7 @@ class EditProductForm extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               controller: proteinsController,
               validator: (String? value) {
-                if (value != null && value.isNotEmpty && !NumberValidator.isNumeric(value)) {
+                if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                   return 'Please enter valid proteins value';
                 }
 
@@ -111,7 +110,7 @@ class EditProductForm extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               controller: fatsController,
               validator: (String? value) {
-                if (value != null  && value.isNotEmpty && !NumberValidator.isNumeric(value)) {
+                if (value != null  && value.isNotEmpty && double.tryParse(value) == null) {
                   return 'Please enter valid fats value';
                 }
 
@@ -126,7 +125,7 @@ class EditProductForm extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               controller: carbohydratesController,
               validator: (String? value) {
-                if (value != null && value.isNotEmpty && !NumberValidator.isNumeric(value)) {
+                if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                   return 'Please enter valid carbohydrates value';
                 }
 
