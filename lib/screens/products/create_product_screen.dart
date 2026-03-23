@@ -5,7 +5,7 @@ import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '_edit_product_form.dart';
+import '../../features/products/ui/_edit_product_form.dart';
 
 class CreateProductScreen extends StatefulWidget {
   final ProfileModel profile;
