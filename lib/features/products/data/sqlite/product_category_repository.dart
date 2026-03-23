@@ -1,11 +1,12 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/products/domain/product_category_model.dart';
+import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 /// Repository for managing product categories
-class ProductCategoryRepository {
+class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   static const String tableName = 'product_categories';
   static const _uuid = Uuid();
   final DatabaseClient _db;

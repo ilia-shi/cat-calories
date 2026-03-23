@@ -3,16 +3,16 @@ import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/products/domain/product_category_model.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/products/product_repository.dart';
-import 'package:cat_calories/features/products/data/sqlite/product_category_repository.dart';
-import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
-import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
+import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
+import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/utils/expression_executor.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/calorie_tracking/domain/calorie_record.dart';
@@ -23,14 +23,14 @@ import 'package:cat_calories/service/calorie_recommendation_service.dart';
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   final locator = GetIt.instance;
 
-  late ProductRepository productRepository = locator.get<ProductRepository>();
-  late ProductCategoryRepository productCategoryRepository =
-  locator.get<ProductCategoryRepository>();
-  late CalorieRecordRepository calorieItemRepository =
-  locator.get<CalorieRecordRepository>();
-  late ProfileRepository profileRepository = locator.get<ProfileRepository>();
-  late WakingPeriodRepository wakingPeriodRepository =
-  locator.get<WakingPeriodRepository>();
+  late ProductRepositoryInterface productRepository = locator.get<ProductRepositoryInterface>();
+  late ProductCategoryRepositoryInterface productCategoryRepository =
+  locator.get<ProductCategoryRepositoryInterface>();
+  late CalorieRecordRepositoryInterface calorieItemRepository =
+  locator.get<CalorieRecordRepositoryInterface>();
+  late ProfileRepositoryInterface profileRepository = locator.get<ProfileRepositoryInterface>();
+  late WakingPeriodRepositoryInterface wakingPeriodRepository =
+  locator.get<WakingPeriodRepositoryInterface>();
 
   ProfileModel? _activeProfile;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();

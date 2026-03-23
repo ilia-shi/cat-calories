@@ -1,5 +1,5 @@
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
+import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,7 +8,7 @@ class ProfileResolver {
   final locator = GetIt.instance;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   static ProfileModel? _activeProfile;
-  late ProfileRepository _profileRepository = locator.get<ProfileRepository>();
+  late ProfileRepositoryInterface _profileRepository = locator.get<ProfileRepositoryInterface>();
   static const String activeProfileKey = 'active_profile';
 
   Future<ProfileModel> resolve() async {

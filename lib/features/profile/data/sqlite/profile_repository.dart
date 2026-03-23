@@ -1,8 +1,9 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
 import 'package:uuid/uuid.dart';
 
-final class ProfileRepository {
+final class ProfileRepository implements ProfileRepositoryInterface {
   static const _uuid = Uuid();
   final DatabaseClient _db;
 

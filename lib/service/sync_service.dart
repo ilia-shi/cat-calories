@@ -6,11 +6,11 @@ import 'package:cat_calories/features/products/domain/product_category_model.dar
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
-import 'package:cat_calories/features/products/data/sqlite/product_category_repository.dart';
-import 'package:cat_calories/features/products/product_repository.dart';
-import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dart';
-import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
+import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -164,10 +164,10 @@ class SyncService {
     final prefs = await SharedPreferences.getInstance();
     final lastSyncedStr = prefs.getString(_lastSyncedAtKey);
 
-    final calorieRepo = _locator.get<CalorieRecordRepository>();
-    final profileRepo = _locator.get<ProfileRepository>();
-    final wakingPeriodRepo = _locator.get<WakingPeriodRepository>();
-    final productRepo = _locator.get<ProductRepository>();
+    final calorieRepo = _locator.get<CalorieRecordRepositoryInterface>();
+    final profileRepo = _locator.get<ProfileRepositoryInterface>();
+    final wakingPeriodRepo = _locator.get<WakingPeriodRepositoryInterface>();
+    final productRepo = _locator.get<ProductRepositoryInterface>();
     // Gather all local data
     final allItems = await calorieRepo.findAll();
     final allProfiles = await profileRepo.fetchAll();
@@ -243,9 +243,9 @@ class SyncService {
   }
 
   Future<List<ProductCategoryModel>> _fetchAllProductCategories() async {
-    final repo = _locator.get<ProductCategoryRepository>();
+    final repo = _locator.get<ProductCategoryRepositoryInterface>();
     // Fetch categories for all profiles
-    final profiles = await _locator.get<ProfileRepository>().fetchAll();
+    final profiles = await _locator.get<ProfileRepositoryInterface>().fetchAll();
     final categories = <ProductCategoryModel>[];
     for (final p in profiles) {
       categories.addAll(await repo.fetchByProfile(p));

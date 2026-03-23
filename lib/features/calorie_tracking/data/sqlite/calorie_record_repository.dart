@@ -1,4 +1,5 @@
 import 'package:cat_calories/database/database_client.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
@@ -7,7 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/calorie_record.dart';
 
-class CalorieRecordRepository {
+class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
   static const String tableName = 'calorie_items';
   final DatabaseClient _db;
 

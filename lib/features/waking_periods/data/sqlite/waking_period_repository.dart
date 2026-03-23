@@ -1,9 +1,10 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:uuid/uuid.dart';
 
-class WakingPeriodRepository {
+class WakingPeriodRepository implements WakingPeriodRepositoryInterface {
   static const _uuid = Uuid();
   final DatabaseClient _db;
 

@@ -4,7 +4,7 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/products/product_repository.dart';
+import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories/screens/products/add_edit_product_screen.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
 import 'package:cat_calories/ui/widgets/error_state_widget.dart';

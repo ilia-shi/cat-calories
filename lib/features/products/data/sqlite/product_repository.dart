@@ -1,22 +1,11 @@
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-/// Enum for product sorting options
-enum ProductSortOrder {
-  /// Sort by manual sort order
-  manual,
-  /// Sort by most used (uses_count descending)
-  mostUsed,
-  /// Sort by most recently used
-  recentlyUsed,
-  /// Sort alphabetically by title
-  alphabetical,
-}
-
-class ProductRepository {
+class ProductRepository implements ProductRepositoryInterface {
   static const String tableName = 'products';
   static const _uuid = Uuid();
   final DatabaseClient _db;

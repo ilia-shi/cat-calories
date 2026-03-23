@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
-import 'package:cat_calories/features/waking_periods/waking_period_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/web_server/controller.dart';
 import 'package:cat_calories/service/web_server/router.dart';
@@ -16,7 +16,7 @@ class HomeController extends Controller {
   }
 
   Future<void> _index(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepository>();
+    final repo = _locator.get<CalorieRecordRepositoryInterface>();
     final profile = await ProfileResolver().resolve();
     final now = DateTime.now();
 
@@ -56,7 +56,7 @@ class HomeController extends Controller {
         : relevantDays.fold(0.0, (sum, day) => sum + day.valueSum) / relevantDays.length;
 
     // Period (current waking period)
-    final wakingPeriodRepo = _locator.get<WakingPeriodRepository>();
+    final wakingPeriodRepo = _locator.get<WakingPeriodRepositoryInterface>();
     final currentPeriod = await wakingPeriodRepo.findActual(profile);
     double periodCalories = 0;
     double? periodGoal;
