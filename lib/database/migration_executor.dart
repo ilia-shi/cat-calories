@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
   /// Current database version
-  static const int currentVersion = 10;
+  static const int currentVersion = 11;
 
   /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
@@ -53,6 +53,9 @@ class MigrationExecutor {
       case 10:
         await _migrateToVersion10(db);
         break;
+      case 11:
+        await _migrateToVersion11(db);
+        break;
     }
   }
 
@@ -80,6 +83,20 @@ class MigrationExecutor {
         server_id TEXT NOT NULL,
         sync_enabled INT NOT NULL DEFAULT 1,
         linked_at INT NOT NULL,
+        FOREIGN KEY(server_id) REFERENCES sync_servers(id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  Future<void> _migrateToVersion11(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS auth_credentials (
+        id TEXT PRIMARY KEY NOT NULL,
+        server_id TEXT NOT NULL UNIQUE,
+        access_token TEXT NOT NULL,
+        token_type TEXT NOT NULL DEFAULT 'bearer',
+        created_at INT NOT NULL,
+        expires_at INT NULL,
         FOREIGN KEY(server_id) REFERENCES sync_servers(id) ON DELETE CASCADE
       )
     ''');

@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package sync.v1;
+
+option go_package = "cat-calories-server/internal/pb/syncv1";
+
+import "sync/v1/models.proto";
+
+// --- Sync protocol messages ---
+
+// SyncEntry wraps a single entity with version metadata.
+message SyncEntry {
+  string entity_id = 1;
+  int32 version = 2;
+  string hlc = 3;        // Hybrid Logical Clock timestamp from the client
+  bool is_deleted = 4;
+
+  // Entity payload — only present when is_deleted is false.
+  // Encoded as JSON bytes to keep the protocol generic.
+  optional bytes payload = 5;
+}
+
+// PushRequest is sent by the client to upload local changes.
+message PushRequest {
+  string idempotency_key = 1;
+  string entity_type = 2;       // e.g. "calorie_item"
+  repeated SyncEntry entries = 3;
+}
+
+// PushResponse is returned after a successful push.
+message PushResponse {
+  int32 accepted = 1;
+  int32 rejected = 2;
+  repeated SyncConflict conflicts = 3;
+  optional string server_timestamp = 4;
+}
+
+// SyncConflict describes a version conflict for a single entity.
+message SyncConflict {
+  string entity_id = 1;
+  SyncEntry local_version = 2;
+  SyncEntry server_version = 3;
+}
+
+// PullRequest parameters (sent as query params over REST).
+message PullRequest {
+  string entity_type = 1;
+  string since_hlc = 2;
+  int32 limit = 3;
+}
+
+// PullResponse contains entities changed since the requested HLC.
+message PullResponse {
+  repeated SyncEntry entries = 1;
+  bool has_more = 2;
+  optional string server_timestamp = 3;
+}
+
+// --- Server discovery ---
+
+// SyncConfig is returned at GET /.well-known/sync-config.
+message SyncConfig {
+  string server_name = 1;
+  string server_version = 2;
+  int32 protocol_version = 3;
+  AuthConfig auth = 4;
+  TransportConfig transports = 5;
+}
+
+message AuthConfig {
+  string type = 1;           // "casdoor", "token", "none"
+  optional string issuer = 2;
+  optional string auth_url = 3;
+  optional string token_url = 4;
+  optional string client_id = 5;
+}
+
+message TransportConfig {
+  RestTransport rest = 1;
+}
+
+message RestTransport {
+  string base_url = 1;
+}
+
+// --- Health check ---
+
+message HealthResponse {
+  string status = 1;     // "ok" or "degraded"
+  bool database = 2;
+  string version = 3;
+}

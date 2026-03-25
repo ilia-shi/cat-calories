@@ -98,6 +98,30 @@ func Migrate(db *sqlx.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_calorie_items_eaten_at ON calorie_items(eaten_at);
 	CREATE INDEX IF NOT EXISTS idx_products_profile       ON products(profile_id);
 	CREATE INDEX IF NOT EXISTS idx_products_category      ON products(category_id);
+
+	CREATE TABLE IF NOT EXISTS sync_entries (
+		entity_type TEXT    NOT NULL,
+		entity_id   TEXT    NOT NULL,
+		scope       TEXT    NOT NULL DEFAULT '',
+		user_id     TEXT    NOT NULL REFERENCES users(id),
+		client_hlc  TEXT    NOT NULL DEFAULT '',
+		server_hlc  TEXT    NOT NULL DEFAULT '',
+		version     INTEGER NOT NULL DEFAULT 1,
+		is_deleted  INTEGER NOT NULL DEFAULT 0,
+		payload     TEXT,
+		created_at  DATETIME NOT NULL DEFAULT (datetime('now')),
+		PRIMARY KEY (entity_type, entity_id)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_sync_entries_pull
+		ON sync_entries(user_id, entity_type, server_hlc);
+
+	CREATE TABLE IF NOT EXISTS sync_idempotency (
+		idempotency_key TEXT    PRIMARY KEY,
+		user_id         TEXT    NOT NULL,
+		accepted        INTEGER NOT NULL DEFAULT 0,
+		created_at      DATETIME NOT NULL DEFAULT (datetime('now'))
+	);
 	`)
 	if err != nil {
 		return err

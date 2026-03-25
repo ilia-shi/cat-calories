@@ -34,6 +34,7 @@ func GenerateToken(secret string, userID string) (string, error) {
 	return encoded + "." + sig, nil
 }
 
+// Middleware validates the old custom HMAC token format.
 func Middleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +74,44 @@ func Middleware(secret string) func(http.Handler) http.Handler {
 
 			ctx := context.WithValue(r.Context(), userIDKey, payload.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// CombinedMiddleware tries Casdoor JWT first, then falls back to the old HMAC token.
+// This allows both the mobile app (Casdoor) and web frontend (old auth) to work.
+func CombinedMiddleware(secret string, casdoor *CasdoorAuth, userLookup func(provider, subject string) (string, error)) func(http.Handler) http.Handler {
+	oldMiddleware := Middleware(secret)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := extractToken(r)
+			if token == "" {
+				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+				return
+			}
+
+			// Try Casdoor JWT first (JWTs have 3 dot-separated parts)
+			if casdoor != nil && strings.Count(token, ".") == 2 {
+				claims, err := casdoor.ValidateToken(token)
+				if err == nil {
+					// Look up or create the user by Casdoor subject
+					subject := claims.Subject
+					if subject == "" {
+						subject = claims.Name
+					}
+					userID, err := userLookup("casdoor", subject)
+					if err == nil && userID != "" {
+						ctx := context.WithValue(r.Context(), userIDKey, userID)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
+				// Casdoor validation failed — fall through to old auth
+			}
+
+			// Fall back to old HMAC token auth
+			oldMiddleware(next).ServeHTTP(w, r)
 		})
 	}
 }

@@ -11,6 +11,9 @@ import 'package:cat_calories/features/profile/data/sqlite/profile_repository.dar
 import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
 import 'package:cat_calories/features/waking_periods/data/sqlite/waking_period_repository.dart';
 import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
+import 'package:cat_calories/features/oauth/auth_client.dart';
+import 'package:cat_calories/features/oauth/data/sqlite/auth_credentials_repository.dart';
+import 'package:cat_calories/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories/features/sync/data/sqlite/scoped_server_repository.dart';
 import 'package:cat_calories/features/sync/data/sqlite/server_repository.dart';
 import 'package:cat_calories/features/sync/domain/scoped_server_link_repository.dart';
@@ -48,6 +51,10 @@ void registerServices() {
   locator.registerLazySingleton<ScopedServerLinkRepositoryInterface>(
     () => ScopedServerLinkRepository(locator<DatabaseClient>()),
   );
+  locator.registerLazySingleton<AuthCredentialsRepositoryInterface>(
+    () => AuthCredentialsRepository(locator<DatabaseClient>()),
+  );
+  locator.registerLazySingleton<AuthClient>(() => AuthClient());
   locator.registerLazySingleton<WebServerService>(() => WebServerService());
   locator.registerLazySingleton<SyncService>(() => SyncService());
   locator.registerLazySingleton<SyncAdapterRegistry>(

@@ -15,6 +15,19 @@ type Config struct {
 	FacebookClientID     string
 	FacebookClientSecret string
 	FacebookRedirectURL  string
+
+	// Casdoor OAuth
+	CasdoorEndpoint     string
+	CasdoorClientID     string
+	CasdoorClientSecret string
+	CasdoorOrganization string
+	CasdoorApplication  string
+	CasdoorCertificate  string
+
+	// Server identity for discovery
+	ServerName    string
+	ServerVersion string
+	ServerBaseURL string
 }
 
 func Load() *Config {
@@ -29,6 +42,17 @@ func Load() *Config {
 		FacebookClientID:     os.Getenv("FACEBOOK_CLIENT_ID"),
 		FacebookClientSecret: os.Getenv("FACEBOOK_CLIENT_SECRET"),
 		FacebookRedirectURL:  env("FACEBOOK_REDIRECT_URL", "http://localhost:8080/auth/facebook/callback"),
+
+		CasdoorEndpoint:     env("CASDOOR_ENDPOINT", "http://casdoor:8000"),
+		CasdoorClientID:     os.Getenv("CASDOOR_CLIENT_ID"),
+		CasdoorClientSecret: os.Getenv("CASDOOR_CLIENT_SECRET"),
+		CasdoorOrganization: env("CASDOOR_ORGANIZATION", "built-in"),
+		CasdoorApplication:  env("CASDOOR_APPLICATION", "cat-calories"),
+		CasdoorCertificate:  os.Getenv("CASDOOR_CERTIFICATE"),
+
+		ServerName:    env("SERVER_NAME", "Cat Calories Sync"),
+		ServerVersion: env("SERVER_VERSION", "2.0.0"),
+		ServerBaseURL: env("SERVER_BASE_URL", "http://localhost:8080"),
 	}
 }
 

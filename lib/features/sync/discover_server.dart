@@ -30,7 +30,11 @@ class SyncConfigResponse {
 String normalizeServerUrl(String input) {
   String url = input.trim();
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://$url';
+    // Use http for IP addresses (likely local/dev), https for hostnames
+    final hostPart = url.split(':').first;
+    final isIp = RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(hostPart);
+    final isLocalhost = hostPart == 'localhost' || hostPart.endsWith('.localhost');
+    url = (isIp || isLocalhost) ? 'http://$url' : 'https://$url';
   }
   if (url.endsWith('/')) {
     url = url.substring(0, url.length - 1);

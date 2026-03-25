@@ -11,6 +11,7 @@ import (
 	"cat-calories-server/internal/config"
 	"cat-calories-server/internal/database"
 	"cat-calories-server/internal/handler"
+	"cat-calories-server/internal/model"
 	"cat-calories-server/internal/repository/sqlite"
 	"cat-calories-server/internal/usecase"
 
@@ -47,6 +48,7 @@ func main() {
 	productRepo := &sqlite.ProductRepo{DB: db}
 	productCategoryRepo := &sqlite.ProductCategoryRepo{DB: db}
 	wakingPeriodRepo := &sqlite.WakingPeriodRepo{DB: db}
+	syncEntryRepo := &sqlite.SyncEntryRepo{DB: db, HLC: model.NewHLCGenerator()}
 
 	// Use cases
 	authUC := &usecase.AuthUseCase{Users: userRepo, Secret: cfg.ServerSecret}
@@ -57,6 +59,55 @@ func main() {
 		ProductCategories: productCategoryRepo,
 		WakingPeriods:     wakingPeriodRepo,
 	}
+	syncV2UC := &usecase.SyncV2UseCase{SyncEntries: syncEntryRepo}
+
+	// Records use case (web frontend)
+	recordsUC := &usecase.RecordsUseCase{
+		Profiles:      profileRepo,
+		CalorieItems:  calorieItemRepo,
+		WakingPeriods: wakingPeriodRepo,
+	}
+
+	// Casdoor auth (optional — only enabled if CASDOOR_CLIENT_ID is set)
+	var casdoorAuth *auth.CasdoorAuth
+	authType := "token"
+	if cfg.CasdoorClientID != "" {
+		casdoorAuth = auth.NewCasdoorAuth(auth.CasdoorConfig{
+			Endpoint:     cfg.CasdoorEndpoint,
+			ClientID:     cfg.CasdoorClientID,
+			ClientSecret: cfg.CasdoorClientSecret,
+			Organization: cfg.CasdoorOrganization,
+			Application:  cfg.CasdoorApplication,
+			Certificate:  cfg.CasdoorCertificate,
+		})
+		authType = "casdoor"
+		log.Printf("Casdoor auth enabled: endpoint=%s org=%s app=%s", cfg.CasdoorEndpoint, cfg.CasdoorOrganization, cfg.CasdoorApplication)
+	}
+
+	// User lookup for Casdoor: find or create user by provider/subject
+	userLookup := func(provider, subject string) (string, error) {
+		u, err := userRepo.FindByProviderSubject(provider, subject)
+		if err != nil {
+			return "", err
+		}
+		if u != nil {
+			return u.ID, nil
+		}
+		// Auto-create user on first Casdoor login
+		id, err := userRepo.Create(subject+"@casdoor", subject, "", provider, subject)
+		if err != nil {
+			return "", err
+		}
+		return id, nil
+	}
+
+	// Auth middleware: combined if Casdoor is enabled, old-style otherwise
+	var authMiddleware func(http.Handler) http.Handler
+	if casdoorAuth != nil {
+		authMiddleware = auth.CombinedMiddleware(cfg.ServerSecret, casdoorAuth, userLookup)
+	} else {
+		authMiddleware = auth.Middleware(cfg.ServerSecret)
+	}
 
 	// Handlers
 	authHandler := &handler.AuthHandler{Auth: authUC}
@@ -66,14 +117,23 @@ func main() {
 		Google:   auth.GoogleOAuthConfig(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL),
 		Facebook: auth.FacebookOAuthConfig(cfg.FacebookClientID, cfg.FacebookClientSecret, cfg.FacebookRedirectURL),
 	}
-	recordsUC := &usecase.RecordsUseCase{
-		Profiles:      profileRepo,
-		CalorieItems:  calorieItemRepo,
-		WakingPeriods: wakingPeriodRepo,
-	}
 
 	syncHandler := &handler.SyncHandler{Sync: syncUC}
+	syncV2Handler := &handler.SyncV2Handler{Sync: syncV2UC}
 	recordsHandler := &handler.RecordsHandler{Records: recordsUC}
+	healthHandler := &handler.HealthHandler{DB: db, Version: cfg.ServerVersion}
+	discoveryHandler := &handler.DiscoveryHandler{
+		ServerName:    cfg.ServerName,
+		ServerVersion: cfg.ServerVersion,
+		BaseURL:       cfg.ServerBaseURL,
+		AuthType:      authType,
+	}
+	if casdoorAuth != nil {
+		discoveryHandler.CasdoorIssuer = cfg.CasdoorEndpoint
+		discoveryHandler.CasdoorAuthURL = cfg.CasdoorEndpoint + "/login/oauth/authorize"
+		discoveryHandler.CasdoorTokenURL = cfg.CasdoorEndpoint + "/api/login/oauth/access_token"
+		discoveryHandler.CasdoorClientID = cfg.CasdoorClientID
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -91,14 +151,15 @@ func main() {
 	r.Get("/auth/facebook/login", oauthHandler.FacebookLogin)
 	r.Get("/auth/facebook/callback", oauthHandler.FacebookCallback)
 
-	// Health check
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+	// Public: Health check (with DB connectivity)
+	r.Get("/health", healthHandler.Health)
 
-	// Protected: API
+	// Public: Server discovery
+	r.Get("/.well-known/sync-config", discoveryHandler.SyncConfig)
+
+	// Protected: Legacy API (web frontend + old mobile sync)
 	r.Group(func(r chi.Router) {
-		r.Use(auth.Middleware(cfg.ServerSecret))
+		r.Use(authMiddleware)
 		r.Get("/api/me", meHandler.Handle)
 		r.Post("/api/sync", syncHandler.Handle)
 		r.Get("/api/records", recordsHandler.List)
@@ -106,6 +167,13 @@ func main() {
 		r.Put("/api/records/{id}", recordsHandler.Update)
 		r.Delete("/api/records/{id}", recordsHandler.Delete)
 		r.Get("/api/home", recordsHandler.Home)
+	})
+
+	// Protected: Sync v2 API (new mobile sync protocol)
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware)
+		r.Post("/api/v1/sync/push", syncV2Handler.Push)
+		r.Get("/api/v1/sync/pull", syncV2Handler.Pull)
 	})
 
 	// Serve web frontend static files if configured

@@ -1,3 +1,5 @@
+import 'package:cat_calories/features/oauth/domain/auth_credentials.dart';
+import 'package:cat_calories/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories/features/profile/domain/profile_model.dart';
 import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
 import 'package:cat_calories/features/sync/discover_server.dart';
@@ -6,13 +8,10 @@ import 'package:cat_calories/features/sync/domain/scoped_server_link_repository.
 import 'package:cat_calories/features/sync/domain/sync_server.dart';
 import 'package:cat_calories/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories/features/sync/transport/rest/config.dart';
+import 'package:cat_calories/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
-
-// ---------------------------------------------------------------------------
-// Server list screen
-// ---------------------------------------------------------------------------
 
 class EditServersScreen extends StatefulWidget {
   const EditServersScreen({super.key});
@@ -25,10 +24,13 @@ class EditServersScreenState extends State<EditServersScreen> {
   final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
   final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
   final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
+  final _credentialsRepo =
+      GetIt.instance<AuthCredentialsRepositoryInterface>();
 
   List<SyncServer> _servers = [];
   List<ProfileModel> _profiles = [];
   Map<String, List<ScopedServerLink>> _serverLinks = {};
+  Map<String, bool> _serverAuth = {};
   bool _isLoading = true;
 
   @override
@@ -43,15 +45,19 @@ class EditServersScreenState extends State<EditServersScreen> {
     final servers = await _serverRepo.findAll();
     final profiles = await _profileRepo.fetchAll();
     final links = <String, List<ScopedServerLink>>{};
+    final auth = <String, bool>{};
 
     for (final server in servers) {
       links[server.id] = await _linkRepo.findByServer(server.id);
+      final creds = await _credentialsRepo.findByServer(server.id);
+      auth[server.id] = creds != null;
     }
 
     setState(() {
       _servers = servers;
       _profiles = profiles;
       _serverLinks = links;
+      _serverAuth = auth;
       _isLoading = false;
     });
   }
@@ -138,7 +144,8 @@ class EditServersScreenState extends State<EditServersScreen> {
         itemBuilder: (context, index) {
           final server = _servers[index];
           final links = _serverLinks[server.id] ?? [];
-          return _buildServerCard(server, links, theme, isDark);
+          final isAuthenticated = _serverAuth[server.id] ?? false;
+          return _buildServerCard(server, links, isAuthenticated, theme, isDark);
         },
       ),
     );
@@ -147,6 +154,7 @@ class EditServersScreenState extends State<EditServersScreen> {
   Widget _buildServerCard(
     SyncServer server,
     List<ScopedServerLink> links,
+    bool isAuthenticated,
     ThemeData theme,
     bool isDark,
   ) {
@@ -268,6 +276,7 @@ class EditServersScreenState extends State<EditServersScreen> {
                                 'AUTH',
                             theme,
                           ),
+                        _buildAuthBadge(isAuthenticated, theme),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -319,6 +328,35 @@ class EditServersScreenState extends State<EditServersScreen> {
     );
   }
 
+  Widget _buildAuthBadge(bool isAuthenticated, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isAuthenticated
+            ? Colors.green.withValues(alpha: 0.15)
+            : Colors.orange.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isAuthenticated ? Icons.lock_open : Icons.lock_outline,
+            size: 12,
+            color: isAuthenticated ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isAuthenticated ? 'Logged in' : 'Not logged in',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isAuthenticated ? Colors.green : Colors.orange,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmDeleteServer(SyncServer server) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -343,6 +381,7 @@ class EditServersScreenState extends State<EditServersScreen> {
     );
 
     if (confirmed == true) {
+      await _credentialsRepo.deleteByServer(server.id);
       final links = _serverLinks[server.id] ?? [];
       for (final link in links) {
         await _linkRepo.delete(link);
@@ -382,6 +421,8 @@ class EditServerScreenState extends State<EditServerScreen> {
   final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
   final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
   final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
+  final _credentialsRepo =
+      GetIt.instance<AuthCredentialsRepositoryInterface>();
 
   final _urlController = TextEditingController();
   final _nameController = TextEditingController();
@@ -395,7 +436,14 @@ class EditServerScreenState extends State<EditServerScreen> {
   List<ProfileModel> _profiles = [];
   bool _isLoading = true;
 
+  /// Token obtained from login (for new servers, before save).
+  String? _authToken;
+
+  /// Whether existing server has stored credentials.
+  bool _hasCredentials = false;
+
   bool get _isEditing => widget.server != null;
+  bool get _isLoggedIn => _authToken != null || _hasCredentials;
 
   @override
   void initState() {
@@ -415,6 +463,8 @@ class EditServerScreenState extends State<EditServerScreen> {
       for (final link in links) {
         _selectedProfiles.add(link.scope);
       }
+      final creds = await _credentialsRepo.findByServer(widget.server!.id);
+      _hasCredentials = creds != null;
     }
 
     setState(() {
@@ -447,6 +497,14 @@ class EditServerScreenState extends State<EditServerScreen> {
     return pattern.hasMatch(host);
   }
 
+  String _serverBaseUrl() => normalizeServerUrl(_urlController.text.trim());
+
+  String _serverDisplayName() {
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) return name;
+    return _config?.serverName ?? _urlController.text.trim();
+  }
+
   Future<void> _connect() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -468,6 +526,11 @@ class EditServerScreenState extends State<EditServerScreen> {
         _config = config;
         _isConnecting = false;
       });
+
+      // After discovery, navigate to login
+      if (mounted) {
+        _navigateToLogin();
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -476,8 +539,73 @@ class EditServerScreenState extends State<EditServerScreen> {
     }
   }
 
+  Future<void> _navigateToLogin() async {
+    final result = await Navigator.push<LoginResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(
+          serverBaseUrl: _serverBaseUrl(),
+          serverName: _serverDisplayName(),
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() => _authToken = result.token);
+
+      // If editing an existing server, save credentials immediately
+      if (_isEditing) {
+        await _credentialsRepo.save(AuthCredentials(
+          id: const Uuid().v4(),
+          serverId: widget.server!.id,
+          accessToken: result.token,
+          createdAt: DateTime.now(),
+        ));
+        setState(() => _hasCredentials = true);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logged in successfully')),
+        );
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text('Remove stored credentials for this server?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (_isEditing) {
+        await _credentialsRepo.deleteByServer(widget.server!.id);
+      }
+      setState(() {
+        _authToken = null;
+        _hasCredentials = false;
+      });
+    }
+  }
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -489,7 +617,6 @@ class EditServerScreenState extends State<EditServerScreen> {
       String? serverVersion;
       Map<String, dynamic>? authConfig;
 
-      // Display name: use user input, fall back to server config or raw URL
       final displayName =
           rawName.isNotEmpty ? rawName : (_config?.serverName ?? rawUrl);
 
@@ -540,6 +667,16 @@ class EditServerScreenState extends State<EditServerScreen> {
         );
         await _serverRepo.insert(server);
         await _syncProfileLinks(server.id);
+
+        // Save credentials for the new server
+        if (_authToken != null) {
+          await _credentialsRepo.save(AuthCredentials(
+            id: const Uuid().v4(),
+            serverId: server.id,
+            accessToken: _authToken!,
+            createdAt: DateTime.now(),
+          ));
+        }
       }
 
       if (mounted) {
@@ -714,68 +851,15 @@ class EditServerScreenState extends State<EditServerScreen> {
                 ],
                 if (_config != null) ...[
                   const SizedBox(height: 8),
-                  Card(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                          color: Colors.green.withValues(alpha: 0.3)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.check_circle,
-                                  color: Colors.green, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Connected!',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _config!.serverName,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Version ${_config!.serverVersion}'
-                            ' \u2022 Protocol v${_config!.protocolVersion}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color:
-                                  isDark ? Colors.grey[400] : Colors.grey[600],
-                            ),
-                          ),
-                          if (_config!.auth.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Auth: ${_config!.auth['type'] ?? 'unknown'}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildConnectionCard(theme, isDark),
                 ],
                 if (_isEditing && _config == null) ...[
                   const SizedBox(height: 8),
                   _buildCurrentServerInfo(theme, isDark),
                 ],
+                // Auth section
+                const SizedBox(height: 24),
+                _buildAuthSection(theme, isDark),
                 const SizedBox(height: 24),
                 Text(
                   'Link Profiles',
@@ -813,6 +897,126 @@ class EditServerScreenState extends State<EditServerScreen> {
                   }),
               ],
             ),
+    );
+  }
+
+  Widget _buildConnectionCard(ThemeData theme, bool isDark) {
+    return Card(
+      color: Colors.green.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.green.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.check_circle,
+                    color: Colors.green, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Connected!',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _config!.serverName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Version ${_config!.serverVersion}'
+              ' \u2022 Protocol v${_config!.protocolVersion}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+            if (_config!.auth.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Auth: ${_config!.auth['type'] ?? 'unknown'}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthSection(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Authentication',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: isDark ? Colors.grey[900] : null,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  _isLoggedIn ? Icons.lock_open : Icons.lock_outline,
+                  color: _isLoggedIn ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isLoggedIn ? 'Logged in' : 'Not logged in',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: _isLoggedIn ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                      Text(
+                        _isLoggedIn
+                            ? 'Server requests are authenticated'
+                            : 'Login to sync data with this server',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isLoggedIn)
+                  TextButton(
+                    onPressed: _logout,
+                    child: const Text('Logout'),
+                  )
+                else if (_isValidServerUrl(_urlController.text.trim()))
+                  FilledButton.tonal(
+                    onPressed: _navigateToLogin,
+                    child: const Text('Login'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

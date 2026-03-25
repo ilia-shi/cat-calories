@@ -185,6 +185,18 @@ class DBProvider implements DatabaseClient {
           )
         ''');
 
+        await db.execute('''
+          CREATE TABLE auth_credentials(
+            id TEXT PRIMARY KEY NOT NULL,
+            server_id TEXT NOT NULL UNIQUE,
+            access_token TEXT NOT NULL,
+            token_type TEXT NOT NULL DEFAULT 'bearer',
+            created_at INT NOT NULL,
+            expires_at INT NULL,
+            FOREIGN KEY(server_id) REFERENCES sync_servers(id) ON DELETE CASCADE
+          )
+        ''');
+
         print('Database tables created successfully!');
       },
       onUpgrade: MigrationExecutor().upgrade,
