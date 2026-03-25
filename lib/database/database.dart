@@ -158,6 +158,33 @@ class DBProvider implements DatabaseClient {
           CREATE INDEX products_last_used_at_idx ON products(last_used_at)
         ''');
 
+        await db.execute('''
+          CREATE TABLE sync_servers(
+            id TEXT PRIMARY KEY NOT NULL,
+            display_name TEXT NOT NULL,
+            server_url TEXT NOT NULL,
+            transport_type TEXT NOT NULL DEFAULT 'rest',
+            transport_json TEXT NOT NULL,
+            is_active INT NOT NULL DEFAULT 1,
+            created_at INT NOT NULL,
+            last_seen_at INT NULL,
+            protocol_version INT NOT NULL DEFAULT 1,
+            server_version TEXT NULL,
+            auth_json TEXT NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE scoped_server_links(
+            id TEXT PRIMARY KEY NOT NULL,
+            scope TEXT NOT NULL,
+            server_id TEXT NOT NULL,
+            sync_enabled INT NOT NULL DEFAULT 1,
+            linked_at INT NOT NULL,
+            FOREIGN KEY(server_id) REFERENCES sync_servers(id) ON DELETE CASCADE
+          )
+        ''');
+
         print('Database tables created successfully!');
       },
       onUpgrade: MigrationExecutor().upgrade,

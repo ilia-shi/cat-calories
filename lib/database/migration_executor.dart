@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Handles database migrations for the Cat Calories app
 class MigrationExecutor {
   /// Current database version
-  static const int currentVersion = 9;
+  static const int currentVersion = 10;
 
   /// Upgrade the database schema
   Future<void> upgrade(Database db, int oldVersion, int newVersion) async {
@@ -50,7 +50,39 @@ class MigrationExecutor {
       case 9:
         await _migrateWakingPeriodsToUuid(db);
         break;
+      case 10:
+        await _migrateToVersion10(db);
+        break;
     }
+  }
+
+  Future<void> _migrateToVersion10(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_servers (
+        id TEXT PRIMARY KEY NOT NULL,
+        display_name TEXT NOT NULL,
+        server_url TEXT NOT NULL,
+        transport_type TEXT NOT NULL DEFAULT 'rest',
+        transport_json TEXT NOT NULL,
+        is_active INT NOT NULL DEFAULT 1,
+        created_at INT NOT NULL,
+        last_seen_at INT NULL,
+        protocol_version INT NOT NULL DEFAULT 1,
+        server_version TEXT NULL,
+        auth_json TEXT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS scoped_server_links (
+        id TEXT PRIMARY KEY NOT NULL,
+        scope TEXT NOT NULL,
+        server_id TEXT NOT NULL,
+        sync_enabled INT NOT NULL DEFAULT 1,
+        linked_at INT NOT NULL,
+        FOREIGN KEY(server_id) REFERENCES sync_servers(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   /// Migration to version 2: Add nutrition columns to calorie_items
