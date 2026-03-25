@@ -162,7 +162,8 @@ class DBProvider implements DatabaseClient {
           CREATE TABLE sync_servers(
             id TEXT PRIMARY KEY NOT NULL,
             display_name TEXT NOT NULL,
-            server_url TEXT NOT NULL,
+            server_url TEXT NOT NULL DEFAULT '',
+            server_urls TEXT NOT NULL DEFAULT '[]',
             transport_type TEXT NOT NULL DEFAULT 'rest',
             transport_json TEXT NOT NULL,
             is_active INT NOT NULL DEFAULT 1,

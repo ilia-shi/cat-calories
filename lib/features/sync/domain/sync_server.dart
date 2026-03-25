@@ -10,7 +10,7 @@ final class SyncServer {
   final DateTime createdAt;
   final DateTime? lastSeenAt;
   final int protocolVersion;
-  final String serverUrl;
+  final List<String> serverUrls;
   final String? serverVersion;
   final Map<String, dynamic>? authConfig;
 
@@ -22,7 +22,7 @@ final class SyncServer {
     required this.createdAt,
     this.lastSeenAt,
     this.protocolVersion = 1,
-    required this.serverUrl,
+    required this.serverUrls,
     this.serverVersion,
     this.authConfig,
   });
@@ -56,7 +56,7 @@ final class SyncServer {
           ? DateTime.fromMillisecondsSinceEpoch(json['last_seen_at'])
           : null,
       protocolVersion: json['protocol_version'] ?? 1,
-      serverUrl: json['server_url'] ?? '',
+      serverUrls: _parseServerUrls(json),
       serverVersion: json['server_version'],
       authConfig: authConfig,
     );
@@ -71,7 +71,7 @@ final class SyncServer {
         'created_at': createdAt.millisecondsSinceEpoch,
         'last_seen_at': lastSeenAt?.millisecondsSinceEpoch,
         'protocol_version': protocolVersion,
-        'server_url': serverUrl,
+        'server_urls': jsonEncode(serverUrls),
         'server_version': serverVersion,
         'auth_json': authConfig != null ? jsonEncode(authConfig) : null,
       };
@@ -82,7 +82,7 @@ final class SyncServer {
     bool? isActive,
     DateTime? lastSeenAt,
     int? protocolVersion,
-    String? serverUrl,
+    List<String>? serverUrls,
     String? serverVersion,
     Map<String, dynamic>? authConfig,
   }) {
@@ -94,9 +94,21 @@ final class SyncServer {
       createdAt: createdAt,
       lastSeenAt: lastSeenAt ?? this.lastSeenAt,
       protocolVersion: protocolVersion ?? this.protocolVersion,
-      serverUrl: serverUrl ?? this.serverUrl,
+      serverUrls: serverUrls ?? this.serverUrls,
       serverVersion: serverVersion ?? this.serverVersion,
       authConfig: authConfig ?? this.authConfig,
     );
+  }
+
+  static List<String> _parseServerUrls(Map<String, dynamic> json) {
+    // New format: server_urls as JSON array
+    if (json['server_urls'] != null) {
+      final raw = json['server_urls'];
+      final list = raw is String ? jsonDecode(raw) as List : raw as List;
+      return list.cast<String>();
+    }
+    // Legacy format: single server_url
+    final url = json['server_url'] as String?;
+    return url != null && url.isNotEmpty ? [url] : [];
   }
 }

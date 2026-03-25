@@ -8,6 +8,10 @@ import 'package:cat_calories/features/sync/domain/scoped_server_link_repository.
 import 'package:cat_calories/features/sync/domain/sync_server.dart';
 import 'package:cat_calories/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories/features/sync/transport/rest/config.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories/features/sync/transport/rest/transport.dart';
+import 'package:cat_calories/features/sync/transport/sync_transport.dart';
 import 'package:cat_calories/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -31,6 +35,7 @@ class EditServersScreenState extends State<EditServersScreen> {
   List<ProfileModel> _profiles = [];
   Map<String, List<ScopedServerLink>> _serverLinks = {};
   Map<String, bool> _serverAuth = {};
+  final Set<String> _syncingServers = {};
   bool _isLoading = true;
 
   @override
@@ -178,14 +183,21 @@ class EditServersScreenState extends State<EditServersScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: server.isActive ? Colors.green : Colors.grey,
+                  if (_syncingServers.contains(server.id))
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: server.isActive ? Colors.green : Colors.grey,
+                      ),
                     ),
-                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -197,7 +209,9 @@ class EditServersScreenState extends State<EditServersScreen> {
                   ),
                   PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'edit') {
+                      if (value == 'sync') {
+                        _syncServer(server);
+                      } else if (value == 'edit') {
                         _navigateToEditServer(server: server);
                       } else if (value == 'delete') {
                         _confirmDeleteServer(server);
@@ -206,6 +220,29 @@ class EditServersScreenState extends State<EditServersScreen> {
                       }
                     },
                     itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'sync',
+                        enabled: isAuthenticated &&
+                            !_syncingServers.contains(server.id),
+                        child: Row(
+                          children: [
+                            if (_syncingServers.contains(server.id))
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            else
+                              const Icon(Icons.sync, size: 20),
+                            const SizedBox(width: 8),
+                            Text(_syncingServers.contains(server.id)
+                                ? 'Syncing...'
+                                : 'Sync Now'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
@@ -254,7 +291,7 @@ class EditServersScreenState extends State<EditServersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      server.serverUrl,
+                      server.serverUrls.join(', '),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
                       ),
@@ -402,6 +439,145 @@ class EditServersScreenState extends State<EditServersScreen> {
     await _serverRepo.update(updated);
     _loadData();
   }
+
+  Future<void> _syncServer(SyncServer server) async {
+    if (_syncingServers.contains(server.id)) return;
+
+    final creds = await _credentialsRepo.findByServer(server.id);
+    if (creds == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to this server first')),
+        );
+      }
+      return;
+    }
+
+    final links = _serverLinks[server.id] ?? [];
+    if (links.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No profiles linked to this server')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _syncingServers.add(server.id));
+
+    try {
+      final linkedProfileIds = links.map((l) => l.scope).toSet();
+      final calorieRepo = GetIt.instance<CalorieRecordRepositoryInterface>();
+
+      // Try each URL in order until one succeeds
+      Object? lastError;
+      for (final url in server.serverUrls) {
+        final baseUrl = normalizeServerUrl(url);
+        final transport = RestSyncTransport(
+          baseUrl: baseUrl,
+          getAccessToken: () => Future.value(creds.accessToken),
+          timeout: const Duration(seconds: 30),
+        );
+
+        try {
+          // Push local calorie records
+          final allRecords = await calorieRepo.findAll();
+          final records = allRecords
+              .where((r) => linkedProfileIds.contains(r.profileId))
+              .where((r) => r.id != null)
+              .toList();
+
+          int totalPushed = 0;
+          const batchSize = 100;
+
+          for (var i = 0; i < records.length; i += batchSize) {
+            final end =
+                (i + batchSize > records.length) ? records.length : i + batchSize;
+            final batchRecords = records.sublist(i, end);
+
+            final entries = batchRecords
+                .map((record) => SyncEntry(
+                      entityId: record.id!,
+                      version: 1,
+                      hlc: record.updatedAt.toUtc().toIso8601String(),
+                      isDeleted: false,
+                      payload: record.toJson(),
+                    ))
+                .toList();
+
+            final batch = SyncBatch(
+              idempotencyKey:
+                  '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$i',
+              entityType: 'calorie_item',
+              entries: entries,
+            );
+
+            final result = await transport.push(batch);
+            totalPushed += result.accepted;
+          }
+
+          // Pull from server
+          int totalPulled = 0;
+          String sinceHlc = '';
+
+          while (true) {
+            final pullResult = await transport.pull(
+              entityType: 'calorie_item',
+              sinceHlc: sinceHlc,
+              limit: batchSize,
+            );
+
+            for (final entry in pullResult.entries) {
+              if (entry.payload != null && !entry.isDeleted) {
+                final record = CalorieRecord.fromJson(entry.payload!);
+                if (record.id != null &&
+                    linkedProfileIds.contains(record.profileId)) {
+                  final existing = await calorieRepo.find(record.id!);
+                  if (existing == null) {
+                    await calorieRepo.insert(record);
+                  } else if (record.updatedAt.isAfter(existing.updatedAt)) {
+                    await calorieRepo.update(record);
+                  }
+                }
+              }
+            }
+
+            totalPulled += pullResult.entries.length;
+            if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
+            sinceHlc = pullResult.serverTimestamp!;
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Sync complete ($url): $totalPushed pushed, $totalPulled pulled'),
+              ),
+            );
+          }
+          // Success — stop trying other URLs
+          return;
+        } catch (e) {
+          lastError = e;
+          // Try next URL
+        } finally {
+          await transport.dispose();
+        }
+      }
+
+      // All URLs failed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sync failed on all URLs: $lastError')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _syncingServers.remove(server.id));
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -424,7 +600,7 @@ class EditServerScreenState extends State<EditServerScreen> {
   final _credentialsRepo =
       GetIt.instance<AuthCredentialsRepositoryInterface>();
 
-  final _urlController = TextEditingController();
+  final _urlControllers = <TextEditingController>[TextEditingController()];
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -449,7 +625,14 @@ class EditServerScreenState extends State<EditServerScreen> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _urlController.text = widget.server!.serverUrl;
+      final urls = widget.server!.serverUrls;
+      _urlControllers.clear();
+      for (final url in urls) {
+        _urlControllers.add(TextEditingController(text: url));
+      }
+      if (_urlControllers.isEmpty) {
+        _urlControllers.add(TextEditingController());
+      }
       _nameController.text = widget.server!.displayName;
     }
     _loadData();
@@ -475,7 +658,9 @@ class EditServerScreenState extends State<EditServerScreen> {
 
   @override
   void dispose() {
-    _urlController.dispose();
+    for (final c in _urlControllers) {
+      c.dispose();
+    }
     _nameController.dispose();
     super.dispose();
   }
@@ -497,13 +682,18 @@ class EditServerScreenState extends State<EditServerScreen> {
     return pattern.hasMatch(host);
   }
 
-  String _serverBaseUrl() => normalizeServerUrl(_urlController.text.trim());
+  String _primaryUrl() => _urlControllers.first.text.trim();
+
+  String _serverBaseUrl() => normalizeServerUrl(_primaryUrl());
 
   String _serverDisplayName() {
     final name = _nameController.text.trim();
     if (name.isNotEmpty) return name;
-    return _config?.serverName ?? _urlController.text.trim();
+    return _config?.serverName ?? _primaryUrl();
   }
+
+  List<String> _allUrls() =>
+      _urlControllers.map((c) => c.text.trim()).where((u) => u.isNotEmpty).toList();
 
   Future<void> _connect() async {
     if (!_formKey.currentState!.validate()) return;
@@ -515,11 +705,11 @@ class EditServerScreenState extends State<EditServerScreen> {
     });
 
     try {
-      final config = await discoverServer(_urlController.text.trim());
+      final config = await discoverServer(_primaryUrl());
       // Auto-fill name if empty or still the raw URL
       final currentName = _nameController.text.trim();
       if (currentName.isEmpty ||
-          currentName == _urlController.text.trim()) {
+          currentName == _primaryUrl()) {
         _nameController.text = config.serverName;
       }
       setState(() {
@@ -610,7 +800,8 @@ class EditServerScreenState extends State<EditServerScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final rawUrl = _urlController.text.trim();
+      final urls = _allUrls();
+      final primaryUrl = urls.first;
       final rawName = _nameController.text.trim();
       String baseUrl;
       int protocolVersion;
@@ -618,13 +809,13 @@ class EditServerScreenState extends State<EditServerScreen> {
       Map<String, dynamic>? authConfig;
 
       final displayName =
-          rawName.isNotEmpty ? rawName : (_config?.serverName ?? rawUrl);
+          rawName.isNotEmpty ? rawName : (_config?.serverName ?? primaryUrl);
 
       if (_config != null) {
         final restConfig =
             _config!.transports['rest'] as Map<String, dynamic>?;
         baseUrl = restConfig?['base_url'] ??
-            '${normalizeServerUrl(rawUrl)}/api/v1';
+            '${normalizeServerUrl(primaryUrl)}/api/v1';
         protocolVersion = _config!.protocolVersion;
         serverVersion = _config!.serverVersion;
         authConfig = _config!.auth.isNotEmpty ? _config!.auth : null;
@@ -633,12 +824,12 @@ class EditServerScreenState extends State<EditServerScreen> {
         protocolVersion = widget.server!.protocolVersion;
         serverVersion = widget.server!.serverVersion;
         authConfig = widget.server!.authConfig;
-        // If URL changed and no new connect, update base URL
-        if (rawUrl != widget.server!.serverUrl) {
-          baseUrl = '${normalizeServerUrl(rawUrl)}/api/v1';
+        // If primary URL changed and no new connect, update base URL
+        if (primaryUrl != widget.server!.serverUrls.firstOrNull) {
+          baseUrl = '${normalizeServerUrl(primaryUrl)}/api/v1';
         }
       } else {
-        baseUrl = '${normalizeServerUrl(rawUrl)}/api/v1';
+        baseUrl = '${normalizeServerUrl(primaryUrl)}/api/v1';
         protocolVersion = 1;
       }
 
@@ -647,7 +838,7 @@ class EditServerScreenState extends State<EditServerScreen> {
           displayName: displayName,
           transport: RestTransportConfig(baseUrl: baseUrl),
           protocolVersion: protocolVersion,
-          serverUrl: rawUrl,
+          serverUrls: urls,
           serverVersion: serverVersion,
           authConfig: authConfig,
         );
@@ -661,7 +852,7 @@ class EditServerScreenState extends State<EditServerScreen> {
           isActive: true,
           createdAt: DateTime.now(),
           protocolVersion: protocolVersion,
-          serverUrl: rawUrl,
+          serverUrls: urls,
           serverVersion: serverVersion,
           authConfig: authConfig,
         );
@@ -747,35 +938,86 @@ class EditServerScreenState extends State<EditServerScreen> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      TextFormField(
-                        controller: _urlController,
-                        decoration: InputDecoration(
-                          labelText: 'Server Address',
-                          hintText: '192.168.1.50:8080',
-                          helperText:
-                              'IP address or hostname with optional port',
-                          prefixIcon: const Icon(Icons.link),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      ...List.generate(_urlControllers.length, (i) {
+                        final isFirst = i == 0;
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: i < _urlControllers.length - 1 ? 8 : 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _urlControllers[i],
+                                  decoration: InputDecoration(
+                                    labelText: isFirst
+                                        ? 'Server Address'
+                                        : 'Alternative Address ${i + 1}',
+                                    hintText: '192.168.1.50:8080',
+                                    helperText: isFirst
+                                        ? 'Primary address. Alternatives are tried if this fails.'
+                                        : null,
+                                    prefixIcon: const Icon(Icons.link),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                    fillColor:
+                                        isDark ? Colors.grey[800] : Colors.grey[50],
+                                  ),
+                                  keyboardType: TextInputType.url,
+                                  textInputAction: TextInputAction.next,
+                                  enabled: _config == null && !_isSaving,
+                                  onFieldSubmitted: isFirst ? (_) => _connect() : null,
+                                  validator: isFirst
+                                      ? (value) {
+                                          if (value == null || value.trim().isEmpty) {
+                                            return 'Please enter a server address';
+                                          }
+                                          if (!_isValidServerUrl(value)) {
+                                            return 'Enter a valid address (e.g., 192.168.1.50:8080)';
+                                          }
+                                          return null;
+                                        }
+                                      : (value) {
+                                          if (value != null &&
+                                              value.trim().isNotEmpty &&
+                                              !_isValidServerUrl(value)) {
+                                            return 'Enter a valid address';
+                                          }
+                                          return null;
+                                        },
+                                ),
+                              ),
+                              if (!isFirst)
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline,
+                                      color: Colors.red),
+                                  onPressed: _isSaving
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _urlControllers[i].dispose();
+                                            _urlControllers.removeAt(i);
+                                          });
+                                        },
+                                ),
+                            ],
                           ),
-                          filled: true,
-                          fillColor:
-                              isDark ? Colors.grey[800] : Colors.grey[50],
+                        );
+                      }),
+                      if (_config == null && !_isSaving)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _urlControllers.add(TextEditingController());
+                              });
+                            },
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add alternative address'),
+                          ),
                         ),
-                        keyboardType: TextInputType.url,
-                        textInputAction: TextInputAction.next,
-                        enabled: _config == null && !_isSaving,
-                        onFieldSubmitted: (_) => _connect(),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a server address';
-                          }
-                          if (!_isValidServerUrl(value)) {
-                            return 'Enter a valid address (e.g., 192.168.1.50:8080)';
-                          }
-                          return null;
-                        },
-                      ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _nameController,
@@ -1007,7 +1249,7 @@ class EditServerScreenState extends State<EditServerScreen> {
                     onPressed: _logout,
                     child: const Text('Logout'),
                   )
-                else if (_isValidServerUrl(_urlController.text.trim()))
+                else if (_isValidServerUrl(_primaryUrl()))
                   FilledButton.tonal(
                     onPressed: _navigateToLogin,
                     child: const Text('Login'),
