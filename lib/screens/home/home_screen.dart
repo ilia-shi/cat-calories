@@ -712,7 +712,10 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   }
 
   Future<void> _doQuickSync(BuildContext context) async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      return;
+    }
+
     setState(() => _isSyncing = true);
 
     int totalPushed = 0;
@@ -738,6 +741,10 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
     if (mounted) {
       setState(() => _isSyncing = false);
       final allFailed = failedServers == _servers.length;
+      if (totalPulled > 0 || totalDeleted > 0) {
+        BlocProvider.of<HomeBloc>(context)
+            .add(CalorieItemListFetchingInProgressEvent());
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(allFailed
@@ -832,14 +839,14 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                 final existing = await calorieRepo.find(record.id!);
                 if (existing == null) {
                   await calorieRepo.insert(record);
+                  totalPulled++;
                 } else if (record.updatedAt.isAfter(existing.updatedAt)) {
                   await calorieRepo.update(record);
+                  totalPulled++;
                 }
               }
             }
           }
-
-          totalPulled += pullResult.entries.where((e) => !e.isDeleted).length;
           if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
           sinceHlc = pullResult.serverTimestamp!;
         }
@@ -995,6 +1002,10 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                               }
                               if (mounted) {
                                 setState(() => _isSyncing = false);
+                                if (pulled > 0 || deleted > 0) {
+                                  BlocProvider.of<HomeBloc>(context)
+                                      .add(CalorieItemListFetchingInProgressEvent());
+                                }
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(_syncMessage(pushed, pulled, deleted)),
