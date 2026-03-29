@@ -13,17 +13,12 @@ import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/widgets/calorie_chip.dart';
 import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
+import 'package:cat_calories/features/sync/syncer.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/screens/settings/servers_screen.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
-import 'package:cat_calories_core/features/sync/discover_server.dart';
-import 'package:cat_calories_core/features/sync/domain/scoped_server_link_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
-import 'package:cat_calories_core/features/sync/transport/rest/transport.dart';
-import 'package:cat_calories_core/features/sync/transport/sync_transport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -641,7 +636,7 @@ class _SyncIndicator extends StatefulWidget {
 class _SyncIndicatorState extends State<_SyncIndicator> {
   final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
   final _credentialsRepo = GetIt.instance<AuthCredentialsRepositoryInterface>();
-  final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
+  final _syncer = GetIt.instance<Syncer>();
 
   late final Timer _timer;
   List<SyncServer> _servers = [];
@@ -712,27 +707,10 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   }
 
   Future<void> _doQuickSync(BuildContext context) async {
-    if (_isSyncing) {
-      return;
-    }
-
+    if (_isSyncing) return;
     setState(() => _isSyncing = true);
 
-    int totalPushed = 0;
-    int totalPulled = 0;
-    int totalDeleted = 0;
-    int failedServers = 0;
-
-    for (final server in _servers) {
-      final result = await _syncServer(server);
-      if (result != null) {
-        totalPushed += result.$1;
-        totalPulled += result.$2;
-        totalDeleted += result.$3;
-      } else {
-        failedServers++;
-      }
-    }
+    final result = await _syncer.syncAll();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('sync_last_synced_at', DateTime.now().toUtc().toIso8601String());
@@ -740,135 +718,20 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
 
     if (mounted) {
       setState(() => _isSyncing = false);
-      final allFailed = failedServers == _servers.length;
-      if (totalPulled > 0 || totalDeleted > 0) {
+      if (result.hasChanges) {
         BlocProvider.of<HomeBloc>(context)
             .add(CalorieItemListFetchingInProgressEvent());
       }
+      final allFailed = result.serverResults.isNotEmpty &&
+          result.totalFailed == result.serverResults.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(allFailed
-              ? 'Sync failed'
-              : _syncMessage(totalPushed, totalPulled, totalDeleted)),
+          content: Text(result.message),
           duration: const Duration(seconds: 2),
           backgroundColor: allFailed ? Colors.red.shade600 : Colors.green.shade600,
         ),
       );
     }
-  }
-
-  /// Syncs a single server. Returns (pushed, pulled, deleted) or null on failure.
-  Future<(int, int, int)?> _syncServer(SyncServer server) async {
-    final creds = await _credentialsRepo.findByServer(server.id);
-    if (creds == null) return null;
-
-    final links = await _linkRepo.findByServer(server.id);
-    if (links.isEmpty) return null;
-
-    final linkedProfileIds = links.map((l) => l.scope).toSet();
-    final calorieRepo = GetIt.instance<CalorieRecordRepositoryInterface>();
-
-    for (final url in server.serverUrls) {
-      final baseUrl = normalizeServerUrl(url);
-      final transport = RestSyncTransport(
-        baseUrl: baseUrl,
-        getAccessToken: () => Future.value(creds.accessToken),
-        timeout: const Duration(seconds: 30),
-      );
-
-      try {
-        // Push
-        final allRecords = await calorieRepo.findAll();
-        final records = allRecords
-            .where((r) => linkedProfileIds.contains(r.profileId))
-            .where((r) => r.id != null)
-            .toList();
-
-        int totalPushed = 0;
-        const batchSize = 100;
-
-        for (var i = 0; i < records.length; i += batchSize) {
-          final end = (i + batchSize > records.length) ? records.length : i + batchSize;
-          final batchRecords = records.sublist(i, end);
-
-          final entries = batchRecords
-              .map((record) => SyncEntry(
-                    entityId: record.id!,
-                    version: 1,
-                    hlc: record.updatedAt.toUtc().toIso8601String(),
-                    isDeleted: false,
-                    payload: record.toJson(),
-                  ))
-              .toList();
-
-          final batch = SyncBatch(
-            idempotencyKey:
-                '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$i',
-            entityType: 'calorie_item',
-            entries: entries,
-          );
-
-          final result = await transport.push(batch);
-          totalPushed += result.accepted;
-        }
-
-        // Pull
-        int totalPulled = 0;
-        int totalDeleted = 0;
-        String sinceHlc = '';
-
-        while (true) {
-          final pullResult = await transport.pull(
-            entityType: 'calorie_item',
-            sinceHlc: sinceHlc,
-            limit: batchSize,
-          );
-
-          for (final entry in pullResult.entries) {
-            if (entry.isDeleted) {
-              if (entry.entityId.isNotEmpty) {
-                final existing = await calorieRepo.find(entry.entityId);
-                if (existing != null) {
-                  await calorieRepo.delete(existing);
-                  totalDeleted++;
-                }
-              }
-            } else if (entry.payload != null) {
-              final record = CalorieRecord.fromJson(entry.payload!);
-              if (record.id != null && linkedProfileIds.contains(record.profileId)) {
-                final existing = await calorieRepo.find(record.id!);
-                if (existing == null) {
-                  await calorieRepo.insert(record);
-                  totalPulled++;
-                } else if (record.updatedAt.isAfter(existing.updatedAt)) {
-                  await calorieRepo.update(record);
-                  totalPulled++;
-                }
-              }
-            }
-          }
-          if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
-          sinceHlc = pullResult.serverTimestamp!;
-        }
-
-        return (totalPushed, totalPulled, totalDeleted);
-      } catch (_) {
-        // Try next URL
-      } finally {
-        await transport.dispose();
-      }
-    }
-
-    return null; // All URLs failed
-  }
-
-  static String _syncMessage(int pushed, int pulled, int deleted) {
-    final parts = <String>[];
-    if (pushed > 0) parts.add('$pushed pushed');
-    if (pulled > 0) parts.add('$pulled pulled');
-    if (deleted > 0) parts.add('$deleted deleted');
-    if (parts.isEmpty) return 'Synced, no changes';
-    return 'Synced: ${parts.join(', ')}';
   }
 
   String _formatLastSync() {
@@ -989,11 +852,7 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                           : () async {
                               setSheetState(() => _isSyncing = true);
                               setState(() => _isSyncing = true);
-                              int pushed = 0, pulled = 0, deleted = 0;
-                              for (final server in _servers) {
-                                final r = await _syncServer(server);
-                                if (r != null) { pushed += r.$1; pulled += r.$2; deleted += r.$3; }
-                              }
+                              final result = await _syncer.syncAll();
                               final prefs = await SharedPreferences.getInstance();
                               await prefs.setString('sync_last_synced_at', DateTime.now().toUtc().toIso8601String());
                               await _loadState();
@@ -1002,13 +861,13 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                               }
                               if (mounted) {
                                 setState(() => _isSyncing = false);
-                                if (pulled > 0 || deleted > 0) {
+                                if (result.hasChanges) {
                                   BlocProvider.of<HomeBloc>(context)
                                       .add(CalorieItemListFetchingInProgressEvent());
                                 }
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(_syncMessage(pushed, pulled, deleted)),
+                                    content: Text(result.message),
                                     duration: const Duration(seconds: 2),
                                     backgroundColor: Colors.green.shade600,
                                   ),

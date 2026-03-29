@@ -1,3 +1,4 @@
+import 'package:cat_calories/features/sync/syncer.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -8,10 +9,6 @@ import 'package:cat_calories_core/features/sync/domain/scoped_server_link_reposi
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories_core/features/sync/transport/rest/config.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
-import 'package:cat_calories_core/features/sync/transport/rest/transport.dart';
-import 'package:cat_calories_core/features/sync/transport/sync_transport.dart';
 import 'package:cat_calories/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -29,7 +26,7 @@ class EditServersScreenState extends State<EditServersScreen> {
   final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
   final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
   final _credentialsRepo =
-      GetIt.instance<AuthCredentialsRepositoryInterface>();
+  GetIt.instance<AuthCredentialsRepositoryInterface>();
 
   List<SyncServer> _servers = [];
   List<Profile> _profiles = [];
@@ -54,7 +51,7 @@ class EditServersScreenState extends State<EditServersScreen> {
 
     for (final server in servers) {
       links[server.id] = await _linkRepo.findByServer(server.id);
-      final creds = await _credentialsRepo.findByServer(server.id);
+      final reds = await _credentialsRepo.findByServer(server.id);
       auth[server.id] = creds != null;
     }
 
@@ -79,8 +76,8 @@ class EditServersScreenState extends State<EditServersScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _servers.isEmpty
-              ? _buildEmptyState(theme, isDark)
-              : _buildServerList(theme, isDark),
+          ? _buildEmptyState(theme, isDark)
+          : _buildServerList(theme, isDark),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToEditServer(),
         icon: const Icon(Icons.add),
@@ -157,12 +154,12 @@ class EditServersScreenState extends State<EditServersScreen> {
   }
 
   Widget _buildServerCard(
-    SyncServer server,
-    List<ScopedServerLink> links,
-    bool isAuthenticated,
-    ThemeData theme,
-    bool isDark,
-  ) {
+      SyncServer server,
+      List<ScopedServerLink> links,
+      bool isAuthenticated,
+      ThemeData theme,
+      bool isDark,
+      ) {
     final linkedProfiles = links
         .map((link) => _profiles.where((p) => p.id == link.scope).firstOrNull)
         .where((p) => p != null)
@@ -231,7 +228,7 @@ class EditServersScreenState extends State<EditServersScreen> {
                                 width: 20,
                                 height: 20,
                                 child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                CircularProgressIndicator(strokeWidth: 2),
                               )
                             else
                               const Icon(Icons.sync, size: 20),
@@ -308,8 +305,8 @@ class EditServersScreenState extends State<EditServersScreen> {
                         if (server.authConfig != null)
                           _buildBadge(
                             server.authConfig!['type']
-                                    ?.toString()
-                                    .toUpperCase() ??
+                                ?.toString()
+                                .toUpperCase() ??
                                 'AUTH',
                             theme,
                           ),
@@ -322,18 +319,18 @@ class EditServersScreenState extends State<EditServersScreen> {
                         Icon(Icons.person_outline,
                             size: 16,
                             color:
-                                isDark ? Colors.grey[400] : Colors.grey[600]),
+                            isDark ? Colors.grey[400] : Colors.grey[600]),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             linkedProfiles.isEmpty
                                 ? 'No linked profiles'
                                 : linkedProfiles
-                                    .map((p) => p!.name)
-                                    .join(', '),
+                                .map((p) => p!.name)
+                                .join(', '),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color:
-                                  isDark ? Colors.grey[400] : Colors.grey[600],
+                              isDark ? Colors.grey[400] : Colors.grey[600],
                             ),
                           ),
                         ),
@@ -401,7 +398,7 @@ class EditServersScreenState extends State<EditServersScreen> {
         title: const Text('Delete Server?'),
         content: Text(
           'Remove "${server.displayName}"? '
-          'This will also remove all profile links for this server.',
+              'This will also remove all profile links for this server.',
         ),
         actions: [
           TextButton(
@@ -442,135 +439,22 @@ class EditServersScreenState extends State<EditServersScreen> {
 
   Future<void> _syncServer(SyncServer server) async {
     if (_syncingServers.contains(server.id)) return;
-
-    final creds = await _credentialsRepo.findByServer(server.id);
-    if (creds == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please login to this server first')),
-        );
-      }
-      return;
-    }
-
-    final links = _serverLinks[server.id] ?? [];
-    if (links.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('No profiles linked to this server')),
-        );
-      }
-      return;
-    }
-
     setState(() => _syncingServers.add(server.id));
 
     try {
-      final linkedProfileIds = links.map((l) => l.scope).toSet();
-      final calorieRepo = GetIt.instance<CalorieRecordRepositoryInterface>();
+      final syncer = GetIt.instance<Syncer>();
+      final result = await syncer.syncServer(server);
 
-      // Try each URL in order until one succeeds
-      Object? lastError;
-      for (final url in server.serverUrls) {
-        final baseUrl = normalizeServerUrl(url);
-        final transport = RestSyncTransport(
-          baseUrl: baseUrl,
-          getAccessToken: () => Future.value(creds.accessToken),
-          timeout: const Duration(seconds: 30),
-        );
-
-        try {
-          // Push local calorie records
-          final allRecords = await calorieRepo.findAll();
-          final records = allRecords
-              .where((r) => linkedProfileIds.contains(r.profileId))
-              .where((r) => r.id != null)
-              .toList();
-
-          int totalPushed = 0;
-          const batchSize = 100;
-
-          for (var i = 0; i < records.length; i += batchSize) {
-            final end =
-                (i + batchSize > records.length) ? records.length : i + batchSize;
-            final batchRecords = records.sublist(i, end);
-
-            final entries = batchRecords
-                .map((record) => SyncEntry(
-                      entityId: record.id!,
-                      version: 1,
-                      hlc: record.updatedAt.toUtc().toIso8601String(),
-                      isDeleted: false,
-                      payload: record.toJson(),
-                    ))
-                .toList();
-
-            final batch = SyncBatch(
-              idempotencyKey:
-                  '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$i',
-              entityType: 'calorie_item',
-              entries: entries,
-            );
-
-            final result = await transport.push(batch);
-            totalPushed += result.accepted;
-          }
-
-          // Pull from server
-          int totalPulled = 0;
-          String sinceHlc = '';
-
-          while (true) {
-            final pullResult = await transport.pull(
-              entityType: 'calorie_item',
-              sinceHlc: sinceHlc,
-              limit: batchSize,
-            );
-
-            for (final entry in pullResult.entries) {
-              if (entry.payload != null && !entry.isDeleted) {
-                final record = CalorieRecord.fromJson(entry.payload!);
-                if (record.id != null &&
-                    linkedProfileIds.contains(record.profileId)) {
-                  final existing = await calorieRepo.find(record.id!);
-                  if (existing == null) {
-                    await calorieRepo.insert(record);
-                  } else if (record.updatedAt.isAfter(existing.updatedAt)) {
-                    await calorieRepo.update(record);
-                  }
-                }
-              }
-            }
-
-            totalPulled += pullResult.entries.length;
-            if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
-            sinceHlc = pullResult.serverTimestamp!;
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    Text('Sync complete ($url): $totalPushed pushed, $totalPulled pulled'),
-              ),
-            );
-          }
-          // Success — stop trying other URLs
-          return;
-        } catch (e) {
-          lastError = e;
-          // Try next URL
-        } finally {
-          await transport.dispose();
-        }
-      }
-
-      // All URLs failed
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sync failed on all URLs: $lastError')),
-        );
+        if (result.isFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sync failed: ${result.error}')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.message)),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -598,7 +482,7 @@ class EditServerScreenState extends State<EditServerScreen> {
   final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
   final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
   final _credentialsRepo =
-      GetIt.instance<AuthCredentialsRepositoryInterface>();
+  GetIt.instance<AuthCredentialsRepositoryInterface>();
 
   final _urlControllers = <TextEditingController>[TextEditingController()];
   final _nameController = TextEditingController();
@@ -809,11 +693,11 @@ class EditServerScreenState extends State<EditServerScreen> {
       Map<String, dynamic>? authConfig;
 
       final displayName =
-          rawName.isNotEmpty ? rawName : (_config?.serverName ?? primaryUrl);
+      rawName.isNotEmpty ? rawName : (_config?.serverName ?? primaryUrl);
 
       if (_config != null) {
         final restConfig =
-            _config!.transports['rest'] as Map<String, dynamic>?;
+        _config!.transports['rest'] as Map<String, dynamic>?;
         baseUrl = restConfig?['base_url'] ??
             '${normalizeServerUrl(primaryUrl)}/api/v1';
         protocolVersion = _config!.protocolVersion;
@@ -920,10 +804,10 @@ class EditServerScreenState extends State<EditServerScreen> {
             onPressed: _isSaving ? null : _save,
             icon: _isSaving
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
                 : const Icon(Icons.check),
             label: Text(_isSaving ? 'Saving...' : 'Save'),
           ),
@@ -932,213 +816,213 @@ class EditServerScreenState extends State<EditServerScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Form(
+            key: _formKey,
+            child: Column(
               children: [
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      ...List.generate(_urlControllers.length, (i) {
-                        final isFirst = i == 0;
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: i < _urlControllers.length - 1 ? 8 : 0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _urlControllers[i],
-                                  decoration: InputDecoration(
-                                    labelText: isFirst
-                                        ? 'Server Address'
-                                        : 'Alternative Address ${i + 1}',
-                                    hintText: '192.168.1.50:8080',
-                                    helperText: isFirst
-                                        ? 'Primary address. Alternatives are tried if this fails.'
-                                        : null,
-                                    prefixIcon: const Icon(Icons.link),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        isDark ? Colors.grey[800] : Colors.grey[50],
-                                  ),
-                                  keyboardType: TextInputType.url,
-                                  textInputAction: TextInputAction.next,
-                                  enabled: _config == null && !_isSaving,
-                                  onFieldSubmitted: isFirst ? (_) => _connect() : null,
-                                  validator: isFirst
-                                      ? (value) {
-                                          if (value == null || value.trim().isEmpty) {
-                                            return 'Please enter a server address';
-                                          }
-                                          if (!_isValidServerUrl(value)) {
-                                            return 'Enter a valid address (e.g., 192.168.1.50:8080)';
-                                          }
-                                          return null;
-                                        }
-                                      : (value) {
-                                          if (value != null &&
-                                              value.trim().isNotEmpty &&
-                                              !_isValidServerUrl(value)) {
-                                            return 'Enter a valid address';
-                                          }
-                                          return null;
-                                        },
-                                ),
+                ...List.generate(_urlControllers.length, (i) {
+                  final isFirst = i == 0;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: i < _urlControllers.length - 1 ? 8 : 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _urlControllers[i],
+                            decoration: InputDecoration(
+                              labelText: isFirst
+                                  ? 'Server Address'
+                                  : 'Alternative Address ${i + 1}',
+                              hintText: '192.168.1.50:8080',
+                              helperText: isFirst
+                                  ? 'Primary address. Alternatives are tried if this fails.'
+                                  : null,
+                              prefixIcon: const Icon(Icons.link),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              if (!isFirst)
-                                IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline,
-                                      color: Colors.red),
-                                  onPressed: _isSaving
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _urlControllers[i].dispose();
-                                            _urlControllers.removeAt(i);
-                                          });
-                                        },
-                                ),
-                            ],
+                              filled: true,
+                              fillColor:
+                              isDark ? Colors.grey[800] : Colors.grey[50],
+                            ),
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.next,
+                            enabled: _config == null && !_isSaving,
+                            onFieldSubmitted: isFirst ? (_) => _connect() : null,
+                            validator: isFirst
+                                ? (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter a server address';
+                              }
+                              if (!_isValidServerUrl(value)) {
+                                return 'Enter a valid address (e.g., 192.168.1.50:8080)';
+                              }
+                              return null;
+                            }
+                                : (value) {
+                              if (value != null &&
+                                  value.trim().isNotEmpty &&
+                                  !_isValidServerUrl(value)) {
+                                return 'Enter a valid address';
+                              }
+                              return null;
+                            },
                           ),
-                        );
-                      }),
-                      if (_config == null && !_isSaving)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            onPressed: () {
+                        ),
+                        if (!isFirst)
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline,
+                                color: Colors.red),
+                            onPressed: _isSaving
+                                ? null
+                                : () {
                               setState(() {
-                                _urlControllers.add(TextEditingController());
+                                _urlControllers[i].dispose();
+                                _urlControllers.removeAt(i);
                               });
                             },
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Add alternative address'),
                           ),
-                        ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Display Name',
-                          hintText: 'My home server',
-                          helperText: 'Optional. Auto-filled on connect.',
-                          prefixIcon: const Icon(Icons.label_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor:
-                              isDark ? Colors.grey[800] : Colors.grey[50],
-                        ),
-                        textInputAction: TextInputAction.done,
-                        textCapitalization: TextCapitalization.sentences,
-                        enabled: !_isSaving,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_config == null && !_isConnecting && _error == null)
-                  FilledButton.icon(
-                    onPressed: _connect,
-                    icon: const Icon(Icons.wifi_tethering),
-                    label: Text(_isEditing ? 'Reconnect' : 'Connect'),
-                  ),
-                if (_isConnecting)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
+                      ],
                     ),
-                  ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Card(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                          color: Colors.red.withValues(alpha: 0.3)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: Colors.red, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: TextStyle(
-                                  color:
-                                      isDark ? Colors.red[300] : Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() => _error = null);
-                    },
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Try Again'),
-                  ),
-                ],
-                if (_config != null) ...[
-                  const SizedBox(height: 8),
-                  _buildConnectionCard(theme, isDark),
-                ],
-                if (_isEditing && _config == null) ...[
-                  const SizedBox(height: 8),
-                  _buildCurrentServerInfo(theme, isDark),
-                ],
-                // Auth section
-                const SizedBox(height: 24),
-                _buildAuthSection(theme, isDark),
-                const SizedBox(height: 24),
-                Text(
-                  'Link Profiles',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (_profiles.isEmpty)
-                  Text(
-                    'No profiles available.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  )
-                else
-                  ..._profiles.map((profile) {
-                    return CheckboxListTile(
-                      title: Text(profile.name),
-                      value: _selectedProfiles.contains(profile.id),
-                      onChanged: (checked) {
+                  );
+                }),
+                if (_config == null && !_isSaving)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
                         setState(() {
-                          if (checked == true) {
-                            _selectedProfiles.add(profile.id!);
-                          } else {
-                            _selectedProfiles.remove(profile.id);
-                          }
+                          _urlControllers.add(TextEditingController());
                         });
                       },
-                      contentPadding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    );
-                  }),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add alternative address'),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Display Name',
+                    hintText: 'My home server',
+                    helperText: 'Optional. Auto-filled on connect.',
+                    prefixIcon: const Icon(Icons.label_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor:
+                    isDark ? Colors.grey[800] : Colors.grey[50],
+                  ),
+                  textInputAction: TextInputAction.done,
+                  textCapitalization: TextCapitalization.sentences,
+                  enabled: !_isSaving,
+                ),
               ],
             ),
+          ),
+          const SizedBox(height: 16),
+          if (_config == null && !_isConnecting && _error == null)
+            FilledButton.icon(
+              onPressed: _connect,
+              icon: const Icon(Icons.wifi_tethering),
+              label: Text(_isEditing ? 'Reconnect' : 'Connect'),
+            ),
+          if (_isConnecting)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.red.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                    color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: TextStyle(
+                            color:
+                            isDark ? Colors.red[300] : Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() => _error = null);
+              },
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Try Again'),
+            ),
+          ],
+          if (_config != null) ...[
+            const SizedBox(height: 8),
+            _buildConnectionCard(theme, isDark),
+          ],
+          if (_isEditing && _config == null) ...[
+            const SizedBox(height: 8),
+            _buildCurrentServerInfo(theme, isDark),
+          ],
+          // Auth section
+          const SizedBox(height: 24),
+          _buildAuthSection(theme, isDark),
+          const SizedBox(height: 24),
+          Text(
+            'Link Profiles',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_profiles.isEmpty)
+            Text(
+              'No profiles available.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            )
+          else
+            ..._profiles.map((profile) {
+              return CheckboxListTile(
+                title: Text(profile.name),
+                value: _selectedProfiles.contains(profile.id),
+                onChanged: (checked) {
+                  setState(() {
+                    if (checked == true) {
+                      _selectedProfiles.add(profile.id!);
+                    } else {
+                      _selectedProfiles.remove(profile.id);
+                    }
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -1178,7 +1062,7 @@ class EditServerScreenState extends State<EditServerScreen> {
             const SizedBox(height: 4),
             Text(
               'Version ${_config!.serverVersion}'
-              ' \u2022 Protocol v${_config!.protocolVersion}',
+                  ' \u2022 Protocol v${_config!.protocolVersion}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
@@ -1211,7 +1095,7 @@ class EditServerScreenState extends State<EditServerScreen> {
         const SizedBox(height: 8),
         Card(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           color: isDark ? Colors.grey[900] : null,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -1281,7 +1165,7 @@ class EditServerScreenState extends State<EditServerScreen> {
               const SizedBox(height: 4),
               Text(
                 'Version ${server.serverVersion}'
-                ' \u2022 Protocol v${server.protocolVersion}',
+                    ' \u2022 Protocol v${server.protocolVersion}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark ? Colors.grey[400] : Colors.grey[600],
                 ),

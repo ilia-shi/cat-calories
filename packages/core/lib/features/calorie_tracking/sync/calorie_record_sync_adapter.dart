@@ -24,4 +24,9 @@ final class CalorieRecordSyncAdapter extends SyncAdapter<CalorieRecord> {
   String extractScope(CalorieRecord entity) {
     return entity.profileId;
   }
+
+  @override
+  DateTime extractUpdatedAt(CalorieRecord entity) {
+    return entity.updatedAt;
+  }
 }
