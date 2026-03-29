@@ -42,8 +42,14 @@ start:
 	@echo ""
 	@echo "-----------------------------------"
 	@echo " Cat Calories"
-	@echo " Frontend: http://app.localhost:8080"
-	@echo " API:      http://server.localhost:8080"
+	@echo ""
+	@echo " Server 1:"
+	@echo "   Frontend: http://app.localhost:8080"
+	@echo "   API:      http://server.localhost:8080"
+	@echo ""
+	@echo " Server 2:"
+	@echo "   Frontend: http://app2.localhost:8080"
+	@echo "   API:      http://server2.localhost:8080"
 	@echo "-----------------------------------"
 	@echo ""
 	xdg-open http://app.localhost:8080 2>/dev/null || open http://app.localhost:8080 2>/dev/null || true
@@ -54,14 +60,21 @@ dev: init-dev-db
 	@echo "-----------------------------------"
 	@echo " Cat Calories — Full Dev Environment"
 	@echo ""
-	@echo " Frontend: http://app.localhost:8080"
-	@echo " API:      http://server.localhost:8080"
+	@echo " Server 1:"
+	@echo "   Frontend: http://app.localhost:8080"
+	@echo "   API:      http://server.localhost:8080"
+	@echo ""
+	@echo " Server 2:"
+	@echo "   Frontend: http://app2.localhost:8080"
+	@echo "   API:      http://server2.localhost:8080"
+	@echo ""
 	@echo " OAuth:    http://oauth.localhost:8080"
 	@echo " Traefik:  http://traefik.localhost:8080"
 	@echo "-----------------------------------"
 	@echo ""
-	@echo "Waiting for server to be healthy..."
-	@timeout 60 bash -c 'until curl -sf http://server.localhost:8080/health > /dev/null 2>&1; do sleep 1; done' && echo "Server is ready." || echo "Warning: server health check timed out."
+	@echo "Waiting for servers to be healthy..."
+	@timeout 60 bash -c 'until curl -sf http://server.localhost:8080/health > /dev/null 2>&1; do sleep 1; done' && echo "Server 1 is ready." || echo "Warning: server 1 health check timed out."
+	@timeout 60 bash -c 'until curl -sf http://server2.localhost:8080/health > /dev/null 2>&1; do sleep 1; done' && echo "Server 2 is ready." || echo "Warning: server 2 health check timed out."
 	@echo ""
 	@echo "Sync config: http://server.localhost:8080/.well-known/sync-config"
 	@echo ""
@@ -99,7 +112,7 @@ server-stop:
 	docker compose --profile web down
 
 server-logs:
-	docker compose logs -f server
+	docker compose logs -f server server2
 
 ip:
 	@echo "Local IP addresses:"

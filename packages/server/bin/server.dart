@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cat_calories_core/http/router.dart';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:cat_calories_server/auth/auth_middleware.dart';
 import 'package:cat_calories_server/config/config.dart';
 import 'package:cat_calories_server/data/sqlite/database.dart';
@@ -11,6 +12,8 @@ import 'package:cat_calories_server/data/sqlite/user_repository.dart';
 import 'package:cat_calories_server/handler/auth_handler.dart';
 import 'package:cat_calories_server/handler/discovery_handler.dart';
 import 'package:cat_calories_server/handler/health_handler.dart';
+import 'package:cat_calories_server/handler/home_handler.dart';
+import 'package:cat_calories_server/handler/records_handler.dart';
 import 'package:cat_calories_server/handler/sync_v2_handler.dart';
 
 void main() async {
@@ -22,9 +25,7 @@ void main() async {
 
   // Repositories
   final userRepo = UserRepository(db);
-  // ignore: unused_local_variable
   final profileRepo = ServerProfileRepository(db);
-  // ignore: unused_local_variable
   final calorieRecordRepo = ServerCalorieRecordRepository(db);
   final syncEntryRepo = SyncEntryRepository(db, HlcGenerator());
 
@@ -45,6 +46,9 @@ void main() async {
     }
   }
 
+  // Materialize any sync entries missing from domain tables
+  await _materializeSyncEntries(db, syncEntryRepo, profileRepo);
+
   // Auth
   final tokenAuth = TokenAuth(config.serverSecret);
   final userExtractor = createTokenExtractor(tokenAuth);
@@ -62,10 +66,25 @@ void main() async {
   router.register(discoveryHandler);
 
   // Protected handlers
-  final syncV2Handler = SyncV2Handler(
+  final recordsHandler = RecordsHandler(
+    records: calorieRecordRepo,
+    profiles: profileRepo,
     syncEntries: syncEntryRepo,
     userExtractor: userExtractor,
   );
+  final homeHandler = HomeHandler(
+    db: db,
+    profiles: profileRepo,
+    userExtractor: userExtractor,
+  );
+  final syncV2Handler = SyncV2Handler(
+    syncEntries: syncEntryRepo,
+    db: db,
+    profiles: profileRepo,
+    userExtractor: userExtractor,
+  );
+  router.register(recordsHandler);
+  router.register(homeHandler);
   router.register(syncV2Handler);
 
   // Root route
@@ -158,6 +177,65 @@ Future<void> _serveStaticFile(HttpRequest request, String webDistPath) async {
       ..statusCode = HttpStatus.notFound
       ..write('Not found')
       ..close();
+  }
+}
+
+Future<void> _materializeSyncEntries(
+  Database db,
+  SyncEntryRepository syncEntryRepo,
+  ServerProfileRepository profileRepo,
+) async {
+  final entries = syncEntryRepo.findAllByType('calorie_item');
+  if (entries.isEmpty) return;
+
+  final profileCache = <String, String>{};
+  int materialized = 0;
+
+  for (final entry in entries) {
+    if (entry.payload == null) continue;
+
+    // Skip if already materialized
+    final existing = db.select(
+      'SELECT 1 FROM calorie_items WHERE id = ?',
+      [entry.entityId],
+    );
+    if (existing.isNotEmpty) continue;
+
+    // Resolve profile for this user
+    if (!profileCache.containsKey(entry.userId)) {
+      final profile = await profileRepo.getOrCreateForUser(entry.userId);
+      profileCache[entry.userId] = profile.id!;
+    }
+
+    final p = entry.payload!;
+    db.execute('''
+      INSERT OR REPLACE INTO calorie_items (
+        id, profile_id, waking_period_id, product_id, value, description,
+        sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
+        created_at_day, eaten_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', [
+      entry.entityId,
+      profileCache[entry.userId]!,
+      p['waking_period_id'],
+      p['product_id'],
+      p['value'],
+      p['description'] ?? '',
+      p['sort_order'] ?? 0,
+      p['weight_grams'],
+      p['protein_grams'],
+      p['fat_grams'],
+      p['carb_grams'],
+      p['created_at_day'],
+      p['eaten_at'],
+      p['created_at'],
+      p['updated_at'],
+    ]);
+    materialized++;
+  }
+
+  if (materialized > 0) {
+    print('Materialized $materialized calorie records from sync entries');
   }
 }
 

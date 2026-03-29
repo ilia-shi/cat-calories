@@ -1,14 +1,25 @@
 import 'dart:io';
+
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
+import 'package:sqlite3/sqlite3.dart';
+
 import '../auth/auth_middleware.dart';
+import '../data/sqlite/profile_repository.dart';
 import '../data/sqlite/sync_entry_repository.dart';
 
 class SyncV2Handler extends Controller {
   final SyncEntryRepository syncEntries;
+  final Database db;
+  final ServerProfileRepository profiles;
   final UserExtractor userExtractor;
 
-  SyncV2Handler({required this.syncEntries, required this.userExtractor});
+  SyncV2Handler({
+    required this.syncEntries,
+    required this.db,
+    required this.profiles,
+    required this.userExtractor,
+  });
 
   @override
   void register(Router router) {
@@ -39,6 +50,9 @@ class SyncV2Handler extends Controller {
       }
     }
 
+    // Resolve user's server-side profile for materialization
+    final profile = await profiles.getOrCreateForUser(userId);
+
     int accepted = 0;
     final conflicts = <Map<String, dynamic>>[];
 
@@ -63,6 +77,14 @@ class SyncV2Handler extends Controller {
 
       if (ok) {
         accepted++;
+        if (entityType == 'calorie_item') {
+          _materializeCalorieItem(
+            entityId: entityId,
+            isDeleted: isDeleted,
+            payload: payload,
+            profileId: profile.id!,
+          );
+        }
       } else if (existing != null) {
         conflicts.add({
           'entity_id': entityId,
@@ -89,6 +111,46 @@ class SyncV2Handler extends Controller {
       'conflicts': conflicts,
       'server_timestamp': syncEntries.hlc.generate(),
     });
+  }
+
+  /// Materialize a calorie_item sync entry into the calorie_items table.
+  /// Uses raw SQL to preserve payload values (especially created_at_day
+  /// which is timezone-dependent and should come from the client).
+  void _materializeCalorieItem({
+    required String entityId,
+    required bool isDeleted,
+    required Map<String, dynamic>? payload,
+    required String profileId,
+  }) {
+    if (isDeleted) {
+      db.execute('DELETE FROM calorie_items WHERE id = ?', [entityId]);
+      return;
+    }
+    if (payload == null) return;
+
+    db.execute('''
+      INSERT OR REPLACE INTO calorie_items (
+        id, profile_id, waking_period_id, product_id, value, description,
+        sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
+        created_at_day, eaten_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', [
+      entityId,
+      profileId,
+      payload['waking_period_id'],
+      payload['product_id'],
+      payload['value'],
+      payload['description'] ?? '',
+      payload['sort_order'] ?? 0,
+      payload['weight_grams'],
+      payload['protein_grams'],
+      payload['fat_grams'],
+      payload['carb_grams'],
+      payload['created_at_day'],
+      payload['eaten_at'],
+      payload['created_at'],
+      payload['updated_at'],
+    ]);
   }
 
   Future<void> _pull(HttpRequest request, Map<String, String> params) async {

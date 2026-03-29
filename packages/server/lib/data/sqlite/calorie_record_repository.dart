@@ -129,7 +129,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['waking_period_id'],
       json['product_id'],
       json['value'],
-      json['description'],
+      json['description'] ?? '',
       json['sort_order'],
       json['weight_grams'],
       json['protein_grams'],
@@ -159,7 +159,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       WHERE id = ?
     ''', [
       json['value'],
-      json['description'],
+      json['description'] ?? '',
       json['sort_order'],
       json['weight_grams'],
       json['protein_grams'],

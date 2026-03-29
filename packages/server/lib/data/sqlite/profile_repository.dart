@@ -72,6 +72,25 @@ class ServerProfileRepository implements ProfileRepositoryInterface {
     return _db.updatedRows;
   }
 
+  /// Returns the first profile for [userId], creating a default one if none exists.
+  Future<Profile> getOrCreateForUser(String userId) async {
+    final userProfiles = await fetchByUser(userId);
+    if (userProfiles.isNotEmpty) return userProfiles.first;
+
+    final now = DateTime.now();
+    return insertForUser(
+      Profile(
+        id: null,
+        name: 'Default',
+        wakingTimeSeconds: 57600,
+        caloriesLimitGoal: 2000,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      userId,
+    );
+  }
+
   Profile _rowToProfile(Row row) {
     return Profile(
       id: row['id']?.toString(),

@@ -40,11 +40,57 @@ services:
         - action: rebuild
           path: ./packages/core
 
+  server2:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    env_file:
+      - ./packages/server/.env
+    volumes:
+      - server2-data:/data
+      - ./logs/server2:/logs
+    environment:
+      DATABASE_PATH: /data/data.db
+      SERVER_PORT: "8080"
+      SERVER_NAME: "Cat Calories Sync 2"
+      OAUTH_ENDPOINT: http://casdoor:8000
+      SEED_EMAIL: test@localhost
+      SEED_PASSWORD: password
+    depends_on:
+      casdoor:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: ./packages/server
+        - action: rebuild
+          path: ./packages/core
+
   web:
     build:
       context: ./web
     depends_on:
       server:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - web
+
+  web2:
+    build:
+      context: ./web
+    volumes:
+      - ./web/nginx-server2.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      server2:
         condition: service_healthy
     restart: unless-stopped
     profiles:
@@ -91,4 +137,5 @@ services:
 
 volumes:
   server-data:
+  server2-data:
   casdoor-db-data:

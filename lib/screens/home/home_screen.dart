@@ -13,9 +13,17 @@ import 'package:cat_calories/screens/home/widgets/app_drawer.dart';
 import 'package:cat_calories/screens/home/widgets/calorie_chip.dart';
 import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
-import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
-import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
+import 'package:cat_calories/screens/settings/servers_screen.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
+import 'package:cat_calories_core/features/sync/discover_server.dart';
+import 'package:cat_calories_core/features/sync/domain/scoped_server_link_repository.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
+import 'package:cat_calories_core/features/sync/transport/rest/transport.dart';
+import 'package:cat_calories_core/features/sync/transport/sync_transport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -631,14 +639,15 @@ class _SyncIndicator extends StatefulWidget {
 }
 
 class _SyncIndicatorState extends State<_SyncIndicator> {
-  final _syncService = GetIt.instance.get<SyncService>();
+  final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
+  final _credentialsRepo = GetIt.instance<AuthCredentialsRepositoryInterface>();
+  final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
+
   late final Timer _timer;
-  bool _hasToken = false;
-  bool _syncEnabled = false;
-  String _serverUrl = '';
-  String _email = '';
-  String? _lastSyncedAt;
+  List<SyncServer> _servers = [];
+  int _authedCount = 0;
   bool _isSyncing = false;
+  String? _lastSyncedAt;
 
   @override
   void initState() {
@@ -656,28 +665,30 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   }
 
   Future<void> _loadState() async {
-    final tok = await _syncService.token;
-    final enabled = await _syncService.isEnabled;
-    final url = await _syncService.serverUrl;
-    final em = await _syncService.email;
+    final servers = await _serverRepo.findAll();
+    int authed = 0;
+    for (final s in servers) {
+      final creds = await _credentialsRepo.findByServer(s.id);
+      if (creds != null) authed++;
+    }
     final prefs = await SharedPreferences.getInstance();
     final lastSync = prefs.getString('sync_last_synced_at');
     if (mounted) {
       setState(() {
-        _hasToken = tok.isNotEmpty;
-        _syncEnabled = enabled;
-        _serverUrl = url;
-        _email = em;
+        _servers = servers;
+        _authedCount = authed;
         _lastSyncedAt = lastSync;
       });
     }
   }
 
+  bool get _hasServers => _servers.isNotEmpty && _authedCount > 0;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _hasToken ? () => _doQuickSync(context) : () => _showDisconnectedMenu(context),
-      onLongPress: _hasToken ? () => _showConnectedMenu(context) : null,
+      onTap: _hasServers ? () => _doQuickSync(context) : () => _showDisconnectedMenu(context),
+      onLongPress: _hasServers ? () => _showConnectedMenu(context) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: _isSyncing
@@ -692,7 +703,7 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
             : Icon(
                 Icons.sync_rounded,
                 size: 18,
-                color: _hasToken && _syncEnabled
+                color: _hasServers
                     ? Colors.green.shade400
                     : Colors.grey.shade500,
               ),
@@ -703,18 +714,154 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   Future<void> _doQuickSync(BuildContext context) async {
     if (_isSyncing) return;
     setState(() => _isSyncing = true);
-    final success = await _syncService.sync();
+
+    int totalPushed = 0;
+    int totalPulled = 0;
+    int totalDeleted = 0;
+    int failedServers = 0;
+
+    for (final server in _servers) {
+      final result = await _syncServer(server);
+      if (result != null) {
+        totalPushed += result.$1;
+        totalPulled += result.$2;
+        totalDeleted += result.$3;
+      } else {
+        failedServers++;
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sync_last_synced_at', DateTime.now().toUtc().toIso8601String());
     await _loadState();
+
     if (mounted) {
       setState(() => _isSyncing = false);
+      final allFailed = failedServers == _servers.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Sync completed' : 'Sync failed'),
+          content: Text(allFailed
+              ? 'Sync failed'
+              : _syncMessage(totalPushed, totalPulled, totalDeleted)),
           duration: const Duration(seconds: 2),
-          backgroundColor: success ? Colors.green.shade600 : Colors.red.shade600,
+          backgroundColor: allFailed ? Colors.red.shade600 : Colors.green.shade600,
         ),
       );
     }
+  }
+
+  /// Syncs a single server. Returns (pushed, pulled, deleted) or null on failure.
+  Future<(int, int, int)?> _syncServer(SyncServer server) async {
+    final creds = await _credentialsRepo.findByServer(server.id);
+    if (creds == null) return null;
+
+    final links = await _linkRepo.findByServer(server.id);
+    if (links.isEmpty) return null;
+
+    final linkedProfileIds = links.map((l) => l.scope).toSet();
+    final calorieRepo = GetIt.instance<CalorieRecordRepositoryInterface>();
+
+    for (final url in server.serverUrls) {
+      final baseUrl = normalizeServerUrl(url);
+      final transport = RestSyncTransport(
+        baseUrl: baseUrl,
+        getAccessToken: () => Future.value(creds.accessToken),
+        timeout: const Duration(seconds: 30),
+      );
+
+      try {
+        // Push
+        final allRecords = await calorieRepo.findAll();
+        final records = allRecords
+            .where((r) => linkedProfileIds.contains(r.profileId))
+            .where((r) => r.id != null)
+            .toList();
+
+        int totalPushed = 0;
+        const batchSize = 100;
+
+        for (var i = 0; i < records.length; i += batchSize) {
+          final end = (i + batchSize > records.length) ? records.length : i + batchSize;
+          final batchRecords = records.sublist(i, end);
+
+          final entries = batchRecords
+              .map((record) => SyncEntry(
+                    entityId: record.id!,
+                    version: 1,
+                    hlc: record.updatedAt.toUtc().toIso8601String(),
+                    isDeleted: false,
+                    payload: record.toJson(),
+                  ))
+              .toList();
+
+          final batch = SyncBatch(
+            idempotencyKey:
+                '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$i',
+            entityType: 'calorie_item',
+            entries: entries,
+          );
+
+          final result = await transport.push(batch);
+          totalPushed += result.accepted;
+        }
+
+        // Pull
+        int totalPulled = 0;
+        int totalDeleted = 0;
+        String sinceHlc = '';
+
+        while (true) {
+          final pullResult = await transport.pull(
+            entityType: 'calorie_item',
+            sinceHlc: sinceHlc,
+            limit: batchSize,
+          );
+
+          for (final entry in pullResult.entries) {
+            if (entry.isDeleted) {
+              if (entry.entityId.isNotEmpty) {
+                final existing = await calorieRepo.find(entry.entityId);
+                if (existing != null) {
+                  await calorieRepo.delete(existing);
+                  totalDeleted++;
+                }
+              }
+            } else if (entry.payload != null) {
+              final record = CalorieRecord.fromJson(entry.payload!);
+              if (record.id != null && linkedProfileIds.contains(record.profileId)) {
+                final existing = await calorieRepo.find(record.id!);
+                if (existing == null) {
+                  await calorieRepo.insert(record);
+                } else if (record.updatedAt.isAfter(existing.updatedAt)) {
+                  await calorieRepo.update(record);
+                }
+              }
+            }
+          }
+
+          totalPulled += pullResult.entries.where((e) => !e.isDeleted).length;
+          if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
+          sinceHlc = pullResult.serverTimestamp!;
+        }
+
+        return (totalPushed, totalPulled, totalDeleted);
+      } catch (_) {
+        // Try next URL
+      } finally {
+        await transport.dispose();
+      }
+    }
+
+    return null; // All URLs failed
+  }
+
+  static String _syncMessage(int pushed, int pulled, int deleted) {
+    final parts = <String>[];
+    if (pushed > 0) parts.add('$pushed pushed');
+    if (pulled > 0) parts.add('$pulled pulled');
+    if (deleted > 0) parts.add('$deleted deleted');
+    if (parts.isEmpty) return 'Synced, no changes';
+    return 'Synced: ${parts.join(', ')}';
   }
 
   String _formatLastSync() {
@@ -769,16 +916,14 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _syncEnabled
-                                  ? Colors.green.withValues(alpha: 0.15)
-                                  : Colors.orange.withValues(alpha: 0.15),
+                              color: Colors.green.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              _syncEnabled ? 'Active' : 'Paused',
+                              '$_authedCount server${_authedCount == 1 ? '' : 's'}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _syncEnabled ? Colors.green.shade400 : Colors.orange.shade400,
+                                color: Colors.green.shade400,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -790,31 +935,22 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                     const SizedBox(height: 16),
                     const Divider(height: 1),
 
-                    // Server
-                    ListTile(
-                      leading: const Icon(Icons.dns_outlined, size: 20),
-                      title: const Text('Server', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      subtitle: Text(
-                        _serverUrl,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.white : Colors.black87,
+                    // Server list
+                    for (final server in _servers)
+                      ListTile(
+                        leading: const Icon(Icons.dns_outlined, size: 20),
+                        title: Text(
+                          server.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          server.serverUrls.first,
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ),
-                    ),
-
-                    // Email
-                    ListTile(
-                      leading: const Icon(Icons.email_outlined, size: 20),
-                      title: const Text('Email', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      subtitle: Text(
-                        _email.isNotEmpty ? _email : '—',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ),
 
                     // Last sync
                     ListTile(
@@ -831,27 +967,12 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
 
                     const Divider(height: 1),
 
-                    // Enable/disable sync
-                    SwitchListTile(
-                      secondary: const Icon(Icons.autorenew, size: 20),
-                      title: const Text('Auto sync', style: TextStyle(fontSize: 15)),
-                      value: _syncEnabled,
-                      activeColor: Colors.green.shade400,
-                      onChanged: (value) async {
-                        await _syncService.setEnabled(value);
-                        setSheetState(() => _syncEnabled = value);
-                        setState(() => _syncEnabled = value);
-                      },
-                    ),
-
-                    const Divider(height: 1),
-
                     // Sync now
                     ListTile(
                       leading: Icon(Icons.sync_rounded,
                           color: _isSyncing ? Colors.grey : Theme.of(context).colorScheme.primary, size: 22),
                       title: Text(
-                        _isSyncing ? 'Syncing...' : 'Sync now',
+                        _isSyncing ? 'Syncing...' : 'Sync all servers',
                         style: TextStyle(
                           color: _isSyncing ? Colors.grey : Theme.of(context).colorScheme.primary,
                         ),
@@ -860,38 +981,41 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                           ? null
                           : () async {
                               setSheetState(() => _isSyncing = true);
-                              await _syncService.sync();
+                              setState(() => _isSyncing = true);
+                              int pushed = 0, pulled = 0, deleted = 0;
+                              for (final server in _servers) {
+                                final r = await _syncServer(server);
+                                if (r != null) { pushed += r.$1; pulled += r.$2; deleted += r.$3; }
+                              }
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setString('sync_last_synced_at', DateTime.now().toUtc().toIso8601String());
                               await _loadState();
                               if (sheetContext.mounted) {
                                 setSheetState(() => _isSyncing = false);
                               }
+                              if (mounted) {
+                                setState(() => _isSyncing = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(_syncMessage(pushed, pulled, deleted)),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: Colors.green.shade600,
+                                  ),
+                                );
+                              }
                             },
                     ),
 
-                    // Reconnect
+                    // Manage servers
                     ListTile(
-                      leading: Icon(Icons.refresh, color: Colors.orange.shade400, size: 22),
-                      title: Text('Reconnect', style: TextStyle(color: Colors.orange.shade400)),
-                      onTap: () async {
+                      leading: Icon(Icons.settings, color: Colors.grey.shade600, size: 22),
+                      title: Text('Manage servers', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+                      onTap: () {
                         Navigator.of(sheetContext).pop();
-                        final success = await _syncService.reconnect();
-                        if (success) {
-                          await _syncService.setEnabled(true);
-                          await _syncService.sync();
-                        }
-                        await _loadState();
-                      },
-                    ),
-
-                    // Disconnect
-                    ListTile(
-                      leading: Icon(Icons.link_off, color: Colors.red.shade400, size: 22),
-                      title: Text('Disconnect', style: TextStyle(color: Colors.red.shade400)),
-                      onTap: () async {
-                        await _syncService.setEnabled(false);
-                        await _syncService.setToken('');
-                        await _loadState();
-                        if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EditServersScreen()),
+                        );
                       },
                     ),
                   ],
@@ -943,7 +1067,7 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          'Not connected',
+                          'No servers',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade500,
@@ -973,27 +1097,19 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
 
                 const Divider(height: 1),
 
-                // Connect
-                BlocBuilder<HomeBloc, AbstractHomeState>(
-                  builder: (context, state) {
-                    return ListTile(
-                      leading: Icon(Icons.login_rounded,
-                          color: Theme.of(context).colorScheme.primary, size: 22),
-                      title: Text(
-                        'Connect to server',
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                      ),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        if (state is HomeFetched) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditProfileScreen(state.activeProfile),
-                            ),
-                          );
-                        }
-                      },
+                // Add server
+                ListTile(
+                  leading: Icon(Icons.add_circle_outline,
+                      color: Theme.of(context).colorScheme.primary, size: 22),
+                  title: Text(
+                    'Add server',
+                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditServersScreen()),
                     );
                   },
                 ),

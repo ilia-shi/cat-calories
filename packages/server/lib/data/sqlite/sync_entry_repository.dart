@@ -46,6 +46,7 @@ class SyncEntryRow {
         'entity_type': entityType,
         'entity_id': entityId,
         'scope': scope,
+        'hlc': serverHlc,
         'client_hlc': clientHlc,
         'server_hlc': serverHlc,
         'version': version,
@@ -89,8 +90,18 @@ class SyncEntryRepository {
     );
   }
 
+  /// Get current version of a sync entry (0 if not found).
+  int getCurrentVersion(String entityType, String entityId) {
+    final result = _db.select(
+      'SELECT version FROM sync_entries WHERE entity_type = ? AND entity_id = ?',
+      [entityType, entityId],
+    );
+    if (result.isEmpty) return 0;
+    return result.first['version'] as int;
+  }
+
   /// Upsert a sync entry. Returns (accepted, conflict).
-  /// If the incoming version <= existing version, it's a conflict.
+  /// Rejects if incoming version < existing, or same version with older/equal HLC.
   (bool accepted, SyncEntryRow? existingEntry) upsert({
     required String entityType,
     required String entityId,
@@ -110,9 +121,15 @@ class SyncEntryRepository {
     if (existing.isNotEmpty) {
       final row = existing.first;
       final existingVersion = row['version'] as int;
-      if (version <= existingVersion) {
-        // Conflict — incoming version not newer
+      if (version < existingVersion) {
         return (false, _rowToEntry(row));
+      }
+      if (version == existingVersion) {
+        // Same version: accept only if client HLC is strictly newer
+        final existingClientHlc = row['client_hlc'] as String;
+        if (clientHlc.compareTo(existingClientHlc) <= 0) {
+          return (false, _rowToEntry(row));
+        }
       }
     }
 
@@ -163,6 +180,37 @@ class SyncEntryRepository {
     );
     final count = result.first['cnt'] as int;
     return count > limit;
+  }
+
+  /// Find a single sync entry by type and id.
+  SyncEntryRow? findByEntityId(String entityType, String entityId) {
+    final result = _db.select(
+      'SELECT * FROM sync_entries WHERE entity_type = ? AND entity_id = ?',
+      [entityType, entityId],
+    );
+    if (result.isEmpty) return null;
+    return _rowToEntry(result.first);
+  }
+
+  /// Find the client profile_id from any sync entry for this user.
+  /// Returns the profile_id from the first calorie_item payload, or null.
+  String? findClientProfileId(String userId) {
+    final result = _db.select(
+      'SELECT payload FROM sync_entries WHERE user_id = ? AND entity_type = ? AND payload IS NOT NULL LIMIT 1',
+      [userId, 'calorie_item'],
+    );
+    if (result.isEmpty) return null;
+    final payload = jsonDecode(result.first['payload'] as String) as Map<String, dynamic>;
+    return payload['profile_id'] as String?;
+  }
+
+  /// Return all entries for a given entity type.
+  List<SyncEntryRow> findAllByType(String entityType) {
+    final result = _db.select(
+      'SELECT * FROM sync_entries WHERE entity_type = ? AND is_deleted = 0',
+      [entityType],
+    );
+    return result.map(_rowToEntry).toList();
   }
 
   SyncEntryRow _rowToEntry(Row row) {
