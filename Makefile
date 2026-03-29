@@ -1,4 +1,4 @@
-.PHONY: server server-dev server-init server-stop server-logs create-user init-db ip firewall test test-schema test-server test-web test-dart web-server start dev dev-stop dev-logs
+.PHONY: server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs
 
 build:
 	flutter build apk --release
@@ -12,6 +12,10 @@ web-dev:
 web-server:
 	cd web && API_URL=http://localhost:8080 npm run dev
 
+# Run server locally (without Docker)
+server-run:
+	cd packages/server && dart run bin/server.dart
+
 server:
 	docker compose up -d --build
 	@echo "Server running at http://server.localhost:8080 (also http://localhost:8080)"
@@ -20,27 +24,26 @@ server-dev:
 	docker compose up -d --build --watch
 	@echo "Server running at http://server.localhost:8080 (watching for changes)"
 
-server-init: init-db
+server-init:
+	docker compose down -v
 	docker compose up -d --build
 	@echo ""
 	@echo "-----------------------------------"
-	@echo " Cat Calories Server"
-	@echo " URL:      http://server.localhost:8080"
-	@echo " Email:    test@localhost"
-	@echo " Password: password"
+	@echo " Cat Calories Server (Dart)"
+	@echo " URL: http://server.localhost:8080"
 	@echo "-----------------------------------"
+	@echo ""
+	@echo "Register a user: curl -X POST http://server.localhost:8080/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"test@localhost\",\"password\":\"password\"}'"
 	@echo ""
 	xdg-open http://server.localhost:8080 2>/dev/null || open http://server.localhost:8080 2>/dev/null || true
 
-start: init-db
+start:
 	docker compose --profile web up -d --build
 	@echo ""
 	@echo "-----------------------------------"
 	@echo " Cat Calories"
 	@echo " Frontend: http://app.localhost:8080"
 	@echo " API:      http://server.localhost:8080"
-	@echo " Email:    test@localhost"
-	@echo " Password: password"
 	@echo "-----------------------------------"
 	@echo ""
 	xdg-open http://app.localhost:8080 2>/dev/null || open http://app.localhost:8080 2>/dev/null || true
@@ -55,9 +58,6 @@ dev: init-dev-db
 	@echo " API:      http://server.localhost:8080"
 	@echo " OAuth:    http://oauth.localhost:8080"
 	@echo " Traefik:  http://traefik.localhost:8080"
-	@echo ""
-	@echo " Email:    test@localhost"
-	@echo " Password: password"
 	@echo "-----------------------------------"
 	@echo ""
 	@echo "Waiting for server to be healthy..."
@@ -87,7 +87,6 @@ init-dev-db:
 	@echo "Waiting for Casdoor to be healthy..."
 	@timeout 90 bash -c 'until curl -sf http://oauth.localhost:8080/api/health > /dev/null 2>&1; do sleep 2; done' && echo "Casdoor is ready." || (echo "Error: Casdoor health check timed out."; exit 1)
 	docker compose build server
-	docker compose run --rm --entrypoint "/bin/initdb -email test@localhost -password password" server
 	docker compose --profile auth down
 
 dev-stop:
@@ -102,14 +101,6 @@ server-stop:
 server-logs:
 	docker compose logs -f server
 
-create-user:
-	docker compose run --rm --entrypoint /bin/createuser server
-
-init-db:
-	docker compose --profile web down -v
-	docker compose build
-	docker compose run --rm --entrypoint "/bin/initdb -email test@localhost -password password" server
-
 ip:
 	@echo "Local IP addresses:"
 	@hostname -I | tr ' ' '\n' | grep -v '^$$'
@@ -123,8 +114,6 @@ firewall:
 
 test: test-dart test-web test-server
 
-test-schema: test-dart test-web test-server
-
 test-dart:
 	flutter test test/api_schema_test.dart
 
@@ -132,4 +121,4 @@ test-web:
 	cd web && npm run generate:api-types && npx tsc --noEmit
 
 test-server:
-	cd server && go test ./...
+	cd packages/server && dart analyze

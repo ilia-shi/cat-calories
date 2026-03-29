@@ -9,17 +9,17 @@ services:
 
   server:
     build:
-      context: ./server
-      target: dev
+      context: .
+      dockerfile: packages/server/Dockerfile
     env_file:
-      - ./server/.env
+      - ./packages/server/.env
     volumes:
       - server-data:/data
       - ./logs/server:/logs
     environment:
       DATABASE_PATH: /data/data.db
-      LOG_DIR: /logs
-      CASDOOR_ENDPOINT: http://casdoor:8000
+      SERVER_PORT: "8080"
+      OAUTH_ENDPOINT: http://casdoor:8000
     depends_on:
       casdoor:
         condition: service_healthy
@@ -34,7 +34,9 @@ services:
     develop:
       watch:
         - action: rebuild
-          path: ./server
+          path: ./packages/server
+        - action: rebuild
+          path: ./packages/core
 
   web:
     build:
