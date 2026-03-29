@@ -15,7 +15,7 @@ import 'package:cat_calories/screens/home/widgets/floating_action_button.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
 import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -470,7 +470,7 @@ class _WebServerIndicator extends StatefulWidget {
 }
 
 class _WebServerIndicatorState extends State<_WebServerIndicator> {
-  final _webServer = GetIt.instance.get<WebServerService>();
+  final _webServer = GetIt.instance.get<EmbeddedServerService>();
   late final Timer _timer;
 
   @override
@@ -578,7 +578,7 @@ class _WebServerIndicatorState extends State<_WebServerIndicator> {
                   leading: const Icon(Icons.numbers, size: 20),
                   title: const Text('Port', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   subtitle: Text(
-                    '${WebServerService.defaultPort}',
+                    '${EmbeddedServerService.defaultPort}',
                     style: TextStyle(
                       fontSize: 15,
                       color: isDark ? Colors.white70 : Colors.black54,

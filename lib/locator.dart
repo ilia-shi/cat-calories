@@ -19,7 +19,7 @@ import 'package:cat_calories/features/sync/data/sqlite/server_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/scoped_server_link_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:cat_calories_core/features/sync/sync_adapter.dart';
@@ -55,7 +55,7 @@ void registerServices() {
     () => AuthCredentialsRepository(locator<DatabaseClient>()),
   );
   locator.registerLazySingleton<AuthClient>(() => AuthClient());
-  locator.registerLazySingleton<WebServerService>(() => WebServerService());
+  locator.registerLazySingleton<EmbeddedServerService>(() => EmbeddedServerService());
   locator.registerLazySingleton<SyncService>(() => SyncService());
   locator.registerLazySingleton<SyncAdapterRegistry>(
     () => SyncAdapterRegistry()

@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:cat_calories/service/screen_energy_service.dart';
-import 'package:cat_calories/service/web_server/home_controller.dart';
-import 'package:cat_calories/service/web_server/records_controller.dart';
+import 'package:cat_calories/service/embedded_server/home_controller.dart';
+import 'package:cat_calories/service/embedded_server/records_controller.dart';
 import 'package:cat_calories_core/http/router.dart';
 import 'package:flutter/services.dart';
 
-class WebServerService {
+class EmbeddedServerService {
   static const int defaultPort = 18080;
 
   HttpServer? _server;
@@ -28,7 +28,7 @@ class WebServerService {
     _recordsController.onDataChanged = callback;
   }
 
-  WebServerService() {
+  EmbeddedServerService() {
     _router.register(_recordsController);
     _router.register(_homeController);
   }

@@ -8,7 +8,7 @@ import 'package:cat_calories/screens/calories/calories_history.dart';
 import 'package:cat_calories/screens/profile/create_profile_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
 import 'package:cat_calories/screens/settings/servers_screen.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/utils/cat_avatar_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -185,7 +185,7 @@ class _WebServerTile extends StatefulWidget {
 }
 
 class _WebServerTileState extends State<_WebServerTile> {
-  final _webServer = GetIt.instance.get<WebServerService>();
+  final _webServer = GetIt.instance.get<EmbeddedServerService>();
   bool _starting = false;
 
   @override

@@ -4,7 +4,7 @@ import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -731,7 +731,7 @@ class _WebServerSettingsCard extends StatefulWidget {
 }
 
 class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
-  final _screenEnergy = GetIt.instance.get<WebServerService>().screenEnergy;
+  final _screenEnergy = GetIt.instance.get<EmbeddedServerService>().screenEnergy;
   int _selectedMinutes = ScreenEnergyService.defaultTimeoutMinutes;
   int _selectedDimMinutes = ScreenEnergyService.defaultDimMinutes;
 
