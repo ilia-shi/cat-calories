@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
-import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
-import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
-import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/products/domain/product_category_repository_interface.dart';
+import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -242,11 +242,11 @@ class SyncService {
     return true;
   }
 
-  Future<List<ProductCategoryModel>> _fetchAllProductCategories() async {
+  Future<List<ProductCategory>> _fetchAllProductCategories() async {
     final repo = _locator.get<ProductCategoryRepositoryInterface>();
     // Fetch categories for all profiles
     final profiles = await _locator.get<ProfileRepositoryInterface>().fetchAll();
-    final categories = <ProductCategoryModel>[];
+    final categories = <ProductCategory>[];
     for (final p in profiles) {
       categories.addAll(await repo.fetchByProfile(p));
     }
@@ -255,7 +255,7 @@ class SyncService {
 
   // ---- Profile serialization ----
 
-  Map<String, dynamic> _profileToSyncJson(ProfileModel profile) {
+  Map<String, dynamic> _profileToSyncJson(Profile profile) {
     return {
       'id': profile.id,
       'name': profile.name,
@@ -266,8 +266,8 @@ class SyncService {
     };
   }
 
-  ProfileModel _profileFromSyncJson(Map<String, dynamic> json) {
-    return ProfileModel(
+  Profile _profileFromSyncJson(Map<String, dynamic> json) {
+    return Profile(
       id: json['id']?.toString(),
       name: json['name'] as String? ?? '',
       wakingTimeSeconds: json['waking_time_seconds'] as int? ?? 0,
@@ -279,7 +279,7 @@ class SyncService {
 
   // ---- WakingPeriod serialization ----
 
-  Map<String, dynamic> _wakingPeriodToSyncJson(WakingPeriodModel wp) {
+  Map<String, dynamic> _wakingPeriodToSyncJson(WakingPeriod wp) {
     return {
       'id': wp.id,
       'profile_id': wp.profileId,
@@ -296,7 +296,7 @@ class SyncService {
 
   // ---- ProductCategory serialization ----
 
-  Map<String, dynamic> _productCategoryToSyncJson(ProductCategoryModel c) {
+  Map<String, dynamic> _productCategoryToSyncJson(ProductCategory c) {
     return {
       'id': c.id,
       'profile_id': c.profileId,
@@ -311,7 +311,7 @@ class SyncService {
 
   // ---- Product serialization ----
 
-  Map<String, dynamic> _productToSyncJson(ProductModel p) {
+  Map<String, dynamic> _productToSyncJson(Product p) {
     return {
       'id': p.id,
       'profile_id': p.profileId,

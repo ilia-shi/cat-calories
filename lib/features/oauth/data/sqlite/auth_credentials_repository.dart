@@ -1,6 +1,6 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/oauth/domain/auth_credentials.dart';
-import 'package:cat_calories/features/oauth/domain/auth_credentials_repository.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
 
 class AuthCredentialsRepository implements AuthCredentialsRepositoryInterface {
   final DatabaseClient _db;

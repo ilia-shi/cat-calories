@@ -1,0 +1,10 @@
+name: cat_calories_core
+description: Shared domain models, sync engine, and HTTP controllers for Cat Calories.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  http: ^1.2.2

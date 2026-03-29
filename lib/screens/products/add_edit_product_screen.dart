@@ -1,13 +1,13 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AddEditProductScreen extends StatefulWidget {
-  final ProductModel? product;
+  final Product? product;
 
   const AddEditProductScreen({
     Key? key,
@@ -183,7 +183,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         builder: (context, state) {
           final categories = state is HomeFetched
               ? state.productCategories
-              : <ProductCategoryModel>[];
+              : <ProductCategory>[];
 
           return Form(
             key: _formKey,
@@ -263,7 +263,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
-  Widget _buildCategorySection(List<ProductCategoryModel> categories) {
+  Widget _buildCategorySection(List<ProductCategory> categories) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

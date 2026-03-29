@@ -1,23 +1,23 @@
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
-import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
-import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
+import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories_core/features/products/domain/product_category_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/utils/expression_executor.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'home_event.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_settings.dart';
 import 'package:cat_calories/service/calorie_recommendation_service.dart';
 
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
@@ -32,7 +32,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   late WakingPeriodRepositoryInterface wakingPeriodRepository =
   locator.get<WakingPeriodRepositoryInterface>();
 
-  ProfileModel? _activeProfile;
+  Profile? _activeProfile;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   double _preparedCaloriesValue = 0;
 
@@ -74,7 +74,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     on<InitializeDefaultCategoriesEvent>(_onInitializeDefaultCategories);
   }
 
-  _saveActiveProfile(ProfileModel profile) async {
+  _saveActiveProfile(Profile profile) async {
     SharedPreferences prefs = await _prefs;
     prefs.setString(ProfileResolver.activeProfileKey, profile.id!);
     ProfileResolver.setActiveProfile(profile);
@@ -222,7 +222,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
 
-    final WakingPeriodModel wakingPeriod = event.wakingPeriod;
+    final WakingPeriod wakingPeriod = event.wakingPeriod;
     wakingPeriod.updatedAt = DateTime.now();
     wakingPeriod.endedAt = DateTime.now();
     wakingPeriod.caloriesValue = event.caloriesValue;
@@ -307,7 +307,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     try {
       await _ensureActiveProfile();
 
-      final product = ProductModel(
+      final product = Product(
         id: null,
         profileId: _activeProfile!.id!,
         title: event.title,
@@ -477,7 +477,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     try {
       await _ensureActiveProfile();
 
-      final category = ProductCategoryModel(
+      final category = ProductCategory(
         id: null,
         name: event.name,
         iconName: event.iconName,
@@ -548,7 +548,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     }
   }
 
-  EqualizationSettingsModel _equalizationSettings = EqualizationSettingsModel();
+  EqualizationSettings _equalizationSettings = EqualizationSettings();
 
   /// Fetch calorie items for the rolling window (last 48 hours).
   Future<List<CalorieRecord>> _fetchRollingWindowItems() async {
@@ -588,13 +588,13 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
   Future<void> _emitHomeData(Emitter<AbstractHomeState> emit) async {
     try {
-      final ProfileModel activeProfile = _activeProfile!;
+      final Profile activeProfile = _activeProfile!;
 
       final DateTime nowDateTime = DateTime.now();
 
       // Calculate recommendation
       final recommendationService = CalorieRecommendationService(
-        EqualizationSettingsModel(
+        EqualizationSettings(
           baseCalorieGoal: activeProfile.caloriesLimitGoal,
         ),
       );
@@ -626,7 +626,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         }
       }
 
-      final List<DayResultModel> _dayResultsList30days =
+      final List<DayResult> _dayResultsList30days =
       await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
 
       final recommendation = recommendationService.calculate(
@@ -639,18 +639,18 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         lastMealTime: lastMealTime,
       );
 
-      final List<DayResultModel> _dayResultsList2days =
+      final List<DayResult> _dayResultsList2days =
       await calorieItemRepository.fetchDaysByProfile(activeProfile, 2);
 
-      final List<ProfileModel> _profiles = await profileRepository.fetchAll();
-      final List<WakingPeriodModel> wakingPeriods =
+      final List<Profile> _profiles = await profileRepository.fetchAll();
+      final List<WakingPeriod> wakingPeriods =
       await wakingPeriodRepository.fetchByProfile(activeProfile);
-      final List<ProductModel> products =
+      final List<Product> products =
       await productRepository.fetchByProfile(activeProfile);
-      final List<ProductCategoryModel> productCategories =
+      final List<ProductCategory> productCategories =
       await productCategoryRepository.fetchByProfile(activeProfile);
 
-      final WakingPeriodModel? currentWakingPeriod =
+      final WakingPeriod? currentWakingPeriod =
       await wakingPeriodRepository.findActual(activeProfile);
       final DateTime startDate =
       DateTime(nowDateTime.year, nowDateTime.month, nowDateTime.day);

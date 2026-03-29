@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -39,7 +39,7 @@ class ProductCategoriesScreen extends StatelessWidget {
               itemCount: categories.length,
               onReorder: (oldIndex, newIndex) {
                 if (newIndex > oldIndex) newIndex--;
-                final reorderedCategories = List<ProductCategoryModel>.from(categories);
+                final reorderedCategories = List<ProductCategory>.from(categories);
                 final item = reorderedCategories.removeAt(oldIndex);
                 reorderedCategories.insert(newIndex, item);
                 context.read<HomeBloc>().add(
@@ -134,7 +134,7 @@ class ProductCategoriesScreen extends StatelessWidget {
     );
   }
 
-  void _showEditCategoryDialog(BuildContext context, ProductCategoryModel category) {
+  void _showEditCategoryDialog(BuildContext context, ProductCategory category) {
     showDialog(
       context: context,
       builder: (context) => _CategoryDialog(
@@ -153,7 +153,7 @@ class ProductCategoriesScreen extends StatelessWidget {
 
   void _confirmDelete(
       BuildContext context,
-      ProductCategoryModel category,
+      ProductCategory category,
       int productCount,
       ) {
     showDialog(
@@ -186,7 +186,7 @@ class ProductCategoriesScreen extends StatelessWidget {
 }
 
 class _CategoryListItem extends StatelessWidget {
-  final ProductCategoryModel category;
+  final ProductCategory category;
   final int productCount;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -260,7 +260,7 @@ class _CategoryListItem extends StatelessWidget {
 }
 
 class _CategoryDialog extends StatefulWidget {
-  final ProductCategoryModel? category;
+  final ProductCategory? category;
   final void Function(String name, String? iconName, String? colorHex) onSave;
 
   const _CategoryDialog({

@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories/screens/calories/calories_history.dart';
 import 'package:cat_calories/screens/profile/create_profile_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
@@ -102,7 +102,7 @@ final class _ProfilesList extends StatelessWidget {
       builder: (context, state) {
         if (state is HomeFetched) {
           return Column(
-            children: state.profiles.map((ProfileModel profile) {
+            children: state.profiles.map((Profile profile) {
               final isActive = profile.id == state.activeProfile.id;
 
               return ListTile(

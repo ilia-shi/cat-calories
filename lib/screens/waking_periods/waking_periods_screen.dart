@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +16,7 @@ class WakingPeriodsScreen extends StatefulWidget {
 }
 
 class _WakingPeriodsScreenState extends State<WakingPeriodsScreen> {
-  void _removeWakingPeriod(WakingPeriodModel wakingPeriod) {
+  void _removeWakingPeriod(WakingPeriod wakingPeriod) {
     BlocProvider.of<HomeBloc>(context)
         .add(WakingPeriodDeletingEvent(wakingPeriod));
 
@@ -37,12 +37,12 @@ class _WakingPeriodsScreenState extends State<WakingPeriodsScreen> {
           }
 
           if (state is HomeFetched) {
-            final List<WakingPeriodModel> wakingPeriods = state.wakingPeriods;
+            final List<WakingPeriod> wakingPeriods = state.wakingPeriods;
 
             return ListView.builder(
               itemCount: wakingPeriods.length,
               itemBuilder: (BuildContext context, int index) {
-                final WakingPeriodModel wakingPeriod = wakingPeriods[index];
+                final WakingPeriod wakingPeriod = wakingPeriods[index];
 
                 if (state.currentWakingPeriod != null &&
                     wakingPeriod.id == state.currentWakingPeriod!.id) {

@@ -1,17 +1,17 @@
-import 'package:cat_calories/features/oauth/domain/auth_credentials.dart';
-import 'package:cat_calories/features/oauth/domain/auth_credentials_repository.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
-import 'package:cat_calories/features/sync/discover_server.dart';
-import 'package:cat_calories/features/sync/domain/scoped_server_link.dart';
-import 'package:cat_calories/features/sync/domain/scoped_server_link_repository.dart';
-import 'package:cat_calories/features/sync/domain/sync_server.dart';
-import 'package:cat_calories/features/sync/domain/sync_server_repository.dart';
-import 'package:cat_calories/features/sync/transport/rest/config.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
-import 'package:cat_calories/features/sync/transport/rest/transport.dart';
-import 'package:cat_calories/features/sync/transport/sync_transport.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories_core/features/sync/discover_server.dart';
+import 'package:cat_calories_core/features/sync/domain/scoped_server_link.dart';
+import 'package:cat_calories_core/features/sync/domain/scoped_server_link_repository.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
+import 'package:cat_calories_core/features/sync/transport/rest/config.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/sync/transport/rest/transport.dart';
+import 'package:cat_calories_core/features/sync/transport/sync_transport.dart';
 import 'package:cat_calories/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -32,7 +32,7 @@ class EditServersScreenState extends State<EditServersScreen> {
       GetIt.instance<AuthCredentialsRepositoryInterface>();
 
   List<SyncServer> _servers = [];
-  List<ProfileModel> _profiles = [];
+  List<Profile> _profiles = [];
   Map<String, List<ScopedServerLink>> _serverLinks = {};
   Map<String, bool> _serverAuth = {};
   final Set<String> _syncingServers = {};
@@ -609,7 +609,7 @@ class EditServerScreenState extends State<EditServerScreen> {
   String? _error;
   final Set<String> _selectedProfiles = {};
   bool _isSaving = false;
-  List<ProfileModel> _profiles = [];
+  List<Profile> _profiles = [];
   bool _isLoading = true;
 
   /// Token obtained from login (for new servers, before save).

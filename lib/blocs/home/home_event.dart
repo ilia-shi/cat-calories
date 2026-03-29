@@ -1,9 +1,9 @@
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 
-import '../../features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 
 abstract class AbstractHomeEvent {}
 
@@ -21,7 +21,7 @@ class HomeErrorDismissedEvent extends AbstractHomeEvent {
 class CreatingCalorieItemEvent extends AbstractHomeEvent {
   String expression;
   List<CalorieRecord> calorieItems;
-  WakingPeriodModel wakingPeriod;
+  WakingPeriod wakingPeriod;
   final void Function(CalorieRecord) callback;
 
   CreatingCalorieItemEvent(
@@ -34,7 +34,7 @@ class CreatingCalorieItemEvent extends AbstractHomeEvent {
 
 class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
   final double calories;
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
   final List<CalorieRecord> calorieItems;
   final double weightGrams;
   final double? proteinGrams;
@@ -59,10 +59,10 @@ class CreatingCalorieItemWithNutritionEvent extends AbstractHomeEvent {
 }
 
 class EatProductEvent extends AbstractHomeEvent {
-  ProductModel product;
+  Product product;
   double weightGrams;
   List<CalorieRecord> calorieItems;
-  WakingPeriodModel wakingPeriod;
+  WakingPeriod wakingPeriod;
   final void Function(CalorieRecord) callback;
 
   EatProductEvent(
@@ -75,9 +75,9 @@ class EatProductEvent extends AbstractHomeEvent {
 }
 
 class EatEntirePackageEvent extends AbstractHomeEvent {
-  final ProductModel product;
+  final Product product;
   final List<CalorieRecord> calorieItems;
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
   final void Function(CalorieRecord) callback;
 
   EatEntirePackageEvent({
@@ -89,7 +89,7 @@ class EatEntirePackageEvent extends AbstractHomeEvent {
 }
 
 class ChangeProfileEvent extends AbstractHomeEvent {
-  final ProfileModel profile;
+  final Profile profile;
   final dynamic callback;
 
   ChangeProfileEvent(this.profile, this.callback);
@@ -125,52 +125,52 @@ class CalorieItemListResortingEvent extends AbstractHomeEvent {
 }
 
 class ProfileCreatingEvent extends AbstractHomeEvent {
-  ProfileModel profile;
+  Profile profile;
   final callback;
 
   ProfileCreatingEvent(this.profile, this.callback);
 }
 
 class ProfileUpdatingEvent extends AbstractHomeEvent {
-  ProfileModel profile;
+  Profile profile;
 
   ProfileUpdatingEvent(this.profile);
 }
 
 class ProfileDeletingEvent extends AbstractHomeEvent {
-  ProfileModel profile;
+  Profile profile;
 
   ProfileDeletingEvent(this.profile);
 }
 
 class WakingPeriodCreatingEvent extends AbstractHomeEvent {
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
 
   WakingPeriodCreatingEvent(this.wakingPeriod);
 }
 
 class WakingPeriodEndingEvent extends AbstractHomeEvent {
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
   final double caloriesValue;
 
   WakingPeriodEndingEvent(this.wakingPeriod, this.caloriesValue);
 }
 
 class WakingPeriodDeletingEvent extends AbstractHomeEvent {
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
 
   WakingPeriodDeletingEvent(this.wakingPeriod);
 }
 
 class WakingPeriodUpdatingEvent extends AbstractHomeEvent {
-  final WakingPeriodModel wakingPeriod;
+  final WakingPeriod wakingPeriod;
 
   WakingPeriodUpdatingEvent(this.wakingPeriod);
 }
 
 class RemovingCaloriesByCreatedAtDayEvent extends AbstractHomeEvent {
   final DateTime date;
-  final ProfileModel profile;
+  final Profile profile;
 
   RemovingCaloriesByCreatedAtDayEvent(this.date, this.profile);
 }
@@ -210,13 +210,13 @@ class CreateProductEvent extends AbstractHomeEvent {
 }
 
 class UpdateProductEvent extends AbstractHomeEvent {
-  final ProductModel product;
+  final Product product;
 
   UpdateProductEvent(this.product);
 }
 
 class DeleteProductEvent extends AbstractHomeEvent {
-  final ProductModel product;
+  final Product product;
 
   DeleteProductEvent(this.product);
 }
@@ -224,7 +224,7 @@ class DeleteProductEvent extends AbstractHomeEvent {
 class ProductsResortEvent extends AbstractHomeEvent {
   ProductsResortEvent(this.products);
 
-  final List<ProductModel> products;
+  final List<Product> products;
 }
 
 // ============================================================================
@@ -244,19 +244,19 @@ class CreateProductCategoryEvent extends AbstractHomeEvent {
 }
 
 class UpdateProductCategoryEvent extends AbstractHomeEvent {
-  final ProductCategoryModel category;
+  final ProductCategory category;
 
   UpdateProductCategoryEvent(this.category);
 }
 
 class DeleteProductCategoryEvent extends AbstractHomeEvent {
-  final ProductCategoryModel category;
+  final ProductCategory category;
 
   DeleteProductCategoryEvent(this.category);
 }
 
 class ProductCategoriesResortEvent extends AbstractHomeEvent {
-  final List<ProductCategoryModel> categories;
+  final List<ProductCategory> categories;
 
   ProductCategoriesResortEvent(this.categories);
 }

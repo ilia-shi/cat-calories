@@ -1,6 +1,6 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/sync/domain/scoped_server_link.dart';
-import 'package:cat_calories/features/sync/domain/scoped_server_link_repository.dart';
+import 'package:cat_calories_core/features/sync/domain/scoped_server_link.dart';
+import 'package:cat_calories_core/features/sync/domain/scoped_server_link_repository.dart';
 
 final class ScopedServerLinkRepository
     implements ScopedServerLinkRepositoryInterface {

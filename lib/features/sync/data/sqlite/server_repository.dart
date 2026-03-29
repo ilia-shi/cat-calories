@@ -1,6 +1,6 @@
 import 'package:cat_calories/database/database_client.dart';
-import '../../domain/sync_server.dart';
-import '../../domain/sync_server_repository.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
 
 final class SyncServerRepository implements SyncServerRepositoryInterface {
   static const String tableName = 'sync_servers';

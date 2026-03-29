@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:cat_calories/service/web_server/home_controller.dart';
 import 'package:cat_calories/service/web_server/records_controller.dart';
-import 'package:cat_calories/service/web_server/router.dart';
+import 'package:cat_calories_core/http/router.dart';
 import 'package:flutter/services.dart';
 
 class WebServerService {

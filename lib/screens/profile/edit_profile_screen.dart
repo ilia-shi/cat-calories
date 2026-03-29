@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
@@ -11,7 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final ProfileModel profile;
+  final Profile profile;
 
   const EditProfileScreen(this.profile, {super.key});
 

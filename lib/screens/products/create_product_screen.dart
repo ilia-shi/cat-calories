@@ -1,14 +1,14 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../features/products/ui/_edit_product_form.dart';
 
 class CreateProductScreen extends StatefulWidget {
-  final ProfileModel profile;
+  final Profile profile;
 
   CreateProductScreen(this.profile);
 
