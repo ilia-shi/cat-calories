@@ -20,6 +20,8 @@ services:
       DATABASE_PATH: /data/data.db
       SERVER_PORT: "8080"
       OAUTH_ENDPOINT: http://casdoor:8000
+      SEED_EMAIL: test@localhost
+      SEED_PASSWORD: password
     depends_on:
       casdoor:
         condition: service_healthy

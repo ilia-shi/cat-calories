@@ -28,6 +28,23 @@ void main() async {
   final calorieRecordRepo = ServerCalorieRecordRepository(db);
   final syncEntryRepo = SyncEntryRepository(db, HlcGenerator());
 
+  // Seed user (dev only, set via SEED_EMAIL / SEED_PASSWORD env vars)
+  final seedEmail = Platform.environment['SEED_EMAIL'];
+  final seedPassword = Platform.environment['SEED_PASSWORD'];
+  if (seedEmail != null && seedPassword != null) {
+    final existing = userRepo.findByEmail(seedEmail);
+    if (existing == null) {
+      userRepo.create(
+        email: seedEmail,
+        name: seedEmail.split('@').first,
+        password: seedPassword,
+      );
+      print('Seed user created: $seedEmail');
+    } else {
+      print('Seed user already exists: $seedEmail');
+    }
+  }
+
   // Auth
   final tokenAuth = TokenAuth(config.serverSecret);
   final userExtractor = createTokenExtractor(tokenAuth);
