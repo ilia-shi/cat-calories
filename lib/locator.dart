@@ -1,4 +1,4 @@
-import 'package:cat_calories/database/database.dart';
+import 'package:cat_calories/database/app_database.dart';
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/calorie_tracking/data/calorie_record_sync_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
@@ -29,7 +29,7 @@ import 'package:cat_calories_core/features/sync/sync_adapter.dart';
 final locator = GetIt.instance;
 
 void registerServices() {
-  locator.registerLazySingleton<DatabaseClient>(() => DBProvider.db);
+  locator.registerLazySingleton<DatabaseClient>(() => AppDatabase.instance);
   locator.registerLazySingleton<CalorieRecordRepositoryInterface>(
       () => CalorieRecordRepository(locator<DatabaseClient>()));
   locator.registerLazySingleton<ProfileRepositoryInterface>(
