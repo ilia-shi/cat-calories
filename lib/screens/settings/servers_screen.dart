@@ -52,7 +52,7 @@ class EditServersScreenState extends State<EditServersScreen> {
     for (final server in servers) {
       links[server.id] = await _linkRepo.findByServer(server.id);
       final reds = await _credentialsRepo.findByServer(server.id);
-      auth[server.id] = creds != null;
+      auth[server.id] = reds != null;
     }
 
     setState(() {
