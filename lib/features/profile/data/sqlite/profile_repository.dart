@@ -1,6 +1,6 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
 import 'package:uuid/uuid.dart';
 
 final class ProfileRepository implements ProfileRepositoryInterface {
@@ -9,15 +9,15 @@ final class ProfileRepository implements ProfileRepositoryInterface {
 
   ProfileRepository(this._db);
 
-  Future<List<ProfileModel>> fetchAll() async {
+  Future<List<Profile>> fetchAll() async {
     final profilesResult = await _db.query('profiles');
 
     return profilesResult
-        .map((element) => ProfileModel.fromJson(element))
+        .map((element) => Profile.fromJson(element))
         .toList();
   }
 
-  Future<ProfileModel> insert(ProfileModel profile) async {
+  Future<Profile> insert(Profile profile) async {
     if (profile.id == null || profile.id!.isEmpty) {
       profile.id = _uuid.v4();
     }
@@ -26,7 +26,7 @@ final class ProfileRepository implements ProfileRepositoryInterface {
     return profile;
   }
 
-  Future<int> delete(ProfileModel profile) async {
+  Future<int> delete(Profile profile) async {
     return await _db
         .delete('profiles', where: 'id = ?', whereArgs: [profile.id]);
   }
@@ -35,7 +35,7 @@ final class ProfileRepository implements ProfileRepositoryInterface {
     return await _db.delete('profiles');
   }
 
-  Future<ProfileModel> update(ProfileModel profile) async {
+  Future<Profile> update(Profile profile) async {
     await _db.update('profiles', profile.toJson(),
         where: 'id = ?', whereArgs: [profile.id]);
 

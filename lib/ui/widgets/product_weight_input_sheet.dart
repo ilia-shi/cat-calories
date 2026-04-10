@@ -1,4 +1,4 @@
-import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:flutter/material.dart';
 
 /// Result from the product weight input dialog
@@ -22,7 +22,7 @@ class ProductWeightResult {
 
 /// A bottom sheet for entering product weight using a calculator-style keypad
 class ProductWeightInputSheet extends StatefulWidget {
-  final ProductModel product;
+  final Product product;
   final void Function(ProductWeightResult result) onSubmit;
 
   const ProductWeightInputSheet({

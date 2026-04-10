@@ -1,0 +1,64 @@
+http:
+  routers:
+    server:
+      rule: "Host(`server.localhost`) || Host(`localhost`) || HostRegexp(`^\\d+\\.\\d+\\.\\d+\\.\\d+$`)"
+      entryPoints:
+        - web
+      service: server
+      priority: 1
+
+    server2:
+      rule: "Host(`server2.localhost`)"
+      entryPoints:
+        - web
+      service: server2
+
+    casdoor:
+      rule: "Host(`oauth.localhost`)"
+      entryPoints:
+        - web
+      service: casdoor
+
+    web:
+      rule: "Host(`app.localhost`)"
+      entryPoints:
+        - web
+      service: web
+
+    web2:
+      rule: "Host(`app2.localhost`)"
+      entryPoints:
+        - web
+      service: web2
+
+    dashboard:
+      rule: "Host(`traefik.localhost`)"
+      entryPoints:
+        - web
+      service: api@internal
+
+  services:
+    server:
+      loadBalancer:
+        servers:
+          - url: "http://server:8080"
+
+    server2:
+      loadBalancer:
+        servers:
+          - url: "http://server2:8080"
+
+    casdoor:
+      loadBalancer:
+        servers:
+          - url: "http://casdoor:8000"
+
+    web:
+      loadBalancer:
+        servers:
+          - url: "http://web:80"
+
+    web2:
+      loadBalancer:
+        servers:
+          - url: "http://web2:80"

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
@@ -11,9 +11,9 @@ import 'package:intl/intl.dart';
 final class CalorieExporter {
   static Future<String> exportToJson({
     required List<CalorieRecord> calorieItems,
-    required ProfileModel profile,
-    List<ProductModel>? products,
-    List<WakingPeriodModel>? wakingPeriods,
+    required Profile profile,
+    List<Product>? products,
+    List<WakingPeriod>? wakingPeriods,
     String? exportType,
   }) async {
     final exportData = {
@@ -85,9 +85,9 @@ final class CalorieExporter {
   /// Export and share the JSON file using SharePlus 12.0.1
   static Future<ShareResult> exportAndShare({
     required List<CalorieRecord> calorieItems,
-    required ProfileModel profile,
-    List<ProductModel>? products,
-    List<WakingPeriodModel>? wakingPeriods,
+    required Profile profile,
+    List<Product>? products,
+    List<WakingPeriod>? wakingPeriods,
     String? exportType,
   }) async {
     final filePath = await exportToJson(
@@ -111,7 +111,7 @@ final class CalorieExporter {
   /// Export only today's calorie items
   static Future<ShareResult> exportTodayAndShare({
     required List<CalorieRecord> todayCalorieItems,
-    required ProfileModel profile,
+    required Profile profile,
   }) async {
     return await exportAndShare(
       calorieItems: todayCalorieItems,
@@ -123,8 +123,8 @@ final class CalorieExporter {
   /// Export current period's calorie items
   static Future<ShareResult> exportPeriodAndShare({
     required List<CalorieRecord> periodCalorieItems,
-    required ProfileModel profile,
-    WakingPeriodModel? currentWakingPeriod,
+    required Profile profile,
+    WakingPeriod? currentWakingPeriod,
   }) async {
     return await exportAndShare(
       calorieItems: periodCalorieItems,

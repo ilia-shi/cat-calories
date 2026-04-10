@@ -1,5 +1,5 @@
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,15 +7,17 @@ class ProfileResolver {
 
   final locator = GetIt.instance;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  static ProfileModel? _activeProfile;
+  static Profile? _activeProfile;
   late ProfileRepositoryInterface _profileRepository = locator.get<ProfileRepositoryInterface>();
   static const String activeProfileKey = 'active_profile';
 
-  Future<ProfileModel> resolve() async {
+  Future<Profile> resolve() async {
+    print('[BOOT] ProfileResolver.resolve - start');
     SharedPreferences prefs = await _prefs;
+    print('[BOOT] ProfileResolver.resolve - prefs loaded');
 
     if (_activeProfile == null) {
-      final List<ProfileModel> profiles = await _profileRepository.fetchAll();
+      final List<Profile> profiles = await _profileRepository.fetchAll();
 
       // Handle migration from int to string: old versions stored profile ID as int
       String? activeProfileId;
@@ -50,7 +52,7 @@ class ProfileResolver {
 
     // Only create a default profile if there are truly no profiles at all
     if (_activeProfile == null) {
-      final newProfile = ProfileModel(
+      final newProfile = Profile(
           id: null,
           name: "Default Profile",
           wakingTimeSeconds: 16 * 60 * 60,
@@ -60,13 +62,14 @@ class ProfileResolver {
 
       await _profileRepository.insert(newProfile);
 
-      List<ProfileModel> profiles = await _profileRepository.fetchAll();
+      List<Profile> profiles = await _profileRepository.fetchAll();
       _activeProfile = profiles.first;
 
       // Save the new profile as active
       await prefs.setString(activeProfileKey, _activeProfile!.id!);
     }
 
+    print('[BOOT] ProfileResolver.resolve - done, profile: ${_activeProfile!.name}');
     return _activeProfile!;
   }
 
@@ -78,7 +81,7 @@ class ProfileResolver {
 
   /// Update the cached active profile.
   /// Call this when switching profiles.
-  static void setActiveProfile(ProfileModel profile) {
+  static void setActiveProfile(Profile profile) {
     _activeProfile = profile;
   }
 }

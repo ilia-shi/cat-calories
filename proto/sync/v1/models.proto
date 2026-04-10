@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package sync.v1;
+
+option go_package = "cat-calories-server/internal/pb/syncv1";
+
+// CalorieRecord represents a single calorie intake entry.
+// Timestamps are Unix milliseconds to match the Dart client format.
+message CalorieRecord {
+  string id = 1;
+  string profile_id = 2;
+  double value = 3;
+  int32 sort_order = 4;
+
+  optional string waking_period_id = 5;
+  optional string product_id = 6;
+  optional string description = 7;
+  optional double weight_grams = 8;
+  optional double protein_grams = 9;
+  optional double fat_grams = 10;
+  optional double carb_grams = 11;
+
+  // Timestamps as Unix milliseconds (matches Dart millisecondsSinceEpoch).
+  optional int64 eaten_at = 12;
+  int64 created_at = 13;
+  int64 updated_at = 14;
+}

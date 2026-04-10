@@ -1,9 +1,9 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';
@@ -58,7 +58,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     }
 
     try {
-      final ProfileModel profile = await ProfileResolver().resolve();
+      final Profile profile = await ProfileResolver().resolve();
       final allCalories = await calorieItemRepository.fetchAllByProfile(
         profile,
         orderBy: 'created_at DESC',

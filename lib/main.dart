@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
 import 'package:cat_calories/locator.dart';
 import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/ui/theme.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -17,6 +17,7 @@ void main() {
   runZonedGuarded(() {
     print('=== CAT CALORIES STARTING ===');
     WidgetsFlutterBinding.ensureInitialized();
+    print('[BOOT] WidgetsFlutterBinding initialized');
 
     FlutterError.onError = (FlutterErrorDetails details) {
       print('=== FLUTTER ERROR ===');
@@ -31,9 +32,14 @@ void main() {
       return true;
     };
 
+    print('[BOOT] Registering services...');
     registerServices();
+    print('[BOOT] Services registered');
     GetIt.instance<SyncService>().init();
+    print('[BOOT] SyncService.init() called (async)');
+    print('[BOOT] Calling runApp...');
     runApp(App());
+    print('[BOOT] runApp completed');
   }, (error, stack) {
     print('=== ZONE ERROR ===');
     print(error);
@@ -49,6 +55,7 @@ class App extends StatefulWidget {
 class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   void initState() {
+    print('[BOOT] _AppState.initState()');
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
@@ -64,28 +71,39 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Only restore brightness, don't reset the dim timer —
       // the timer will reset on the next actual touch via the Listener.
-      GetIt.instance<WebServerService>().screenEnergy.restoreBrightness();
+      GetIt.instance<EmbeddedServerService>().screenEnergy.restoreBrightness();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print('[BOOT] _AppState.build()');
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => HomeBloc(),
+          create: (context) {
+            print('[BOOT] Creating HomeBloc');
+            return HomeBloc();
+          },
         ),
         BlocProvider(
-          create: (context) => CaloriesCubit(),
+          create: (context) {
+            print('[BOOT] Creating CaloriesCubit');
+            return CaloriesCubit();
+          },
         ),
         BlocProvider(
-          create: (context) => ThemeCubit(),
+          create: (context) {
+            print('[BOOT] Creating ThemeCubit');
+            return ThemeCubit();
+          },
         ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
+          print('[BOOT] BlocBuilder builder called, themeMode=${themeState.themeMode}');
           return Listener(
-            onPointerDown: (_) => GetIt.instance<WebServerService>().screenEnergy.onUserActivity(),
+            onPointerDown: (_) => GetIt.instance<EmbeddedServerService>().screenEnergy.onUserActivity(),
             child: MaterialApp(
               theme: CustomTheme.lightTheme,
               darkTheme: CustomTheme.darkTheme,

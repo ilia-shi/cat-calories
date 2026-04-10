@@ -1,4 +1,4 @@
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
 
