@@ -1,4 +1,8 @@
-.PHONY: server server-dev server-init server-stop server-logs create-user init-db ip firewall test test-schema test-server test-web test-dart web-server start
+.PHONY: server server-dev server-init server-stop server-logs create-user init-db ip firewall test test-schema test-server test-web test-dart web-server start emulator
+
+emulator:
+	flutter emulators --launch Pixel_9
+	flutter run
 
 build:
 	flutter build apk --release

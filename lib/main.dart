@@ -5,6 +5,8 @@ import 'package:cat_calories/locator.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/web_server_service.dart';
 import 'package:cat_calories/ui/theme.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cat_calories/blocs/home/home_bloc.dart';
@@ -12,10 +14,31 @@ import 'package:cat_calories/screens/home/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  registerServices();
-  GetIt.instance<SyncService>().init();
-  runApp(App());
+  runZonedGuarded(() {
+    print('=== CAT CALORIES STARTING ===');
+    WidgetsFlutterBinding.ensureInitialized();
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      print('=== FLUTTER ERROR ===');
+      print(details.exceptionAsString());
+      print(details.stack);
+    };
+
+    PlatformDispatcher.instance.onError = (error, stack) {
+      print('=== PLATFORM ERROR ===');
+      print(error);
+      print(stack);
+      return true;
+    };
+
+    registerServices();
+    GetIt.instance<SyncService>().init();
+    runApp(App());
+  }, (error, stack) {
+    print('=== ZONE ERROR ===');
+    print(error);
+    print(stack);
+  });
 }
 
 class App extends StatefulWidget {

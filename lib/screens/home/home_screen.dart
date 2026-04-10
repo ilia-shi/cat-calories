@@ -42,6 +42,12 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _calorieItemController = TextEditingController();
 
+    // Dispatch initial data fetch after the widget is fully mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BlocProvider.of<HomeBloc>(context)
+          .add(CalorieItemListFetchingInProgressEvent());
+    });
+
     _timer = Timer.periodic(Duration(seconds: 5), (Timer t) {
       setState(() {});
     });
@@ -227,9 +233,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    BlocProvider.of<HomeBloc>(context)
-        .add(CalorieItemListFetchingInProgressEvent());
-
     final List<PopupMenuEntry<String>> menuItems = [
       const PopupMenuItem<String>(
         value: 'export_json',
