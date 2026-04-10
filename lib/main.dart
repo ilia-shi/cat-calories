@@ -3,7 +3,7 @@ import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
 import 'package:cat_calories/locator.dart';
 import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/ui/theme.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -64,7 +64,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Only restore brightness, don't reset the dim timer —
       // the timer will reset on the next actual touch via the Listener.
-      GetIt.instance<WebServerService>().screenEnergy.restoreBrightness();
+      GetIt.instance<EmbeddedServerService>().screenEnergy.restoreBrightness();
     }
   }
 
@@ -85,7 +85,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return Listener(
-            onPointerDown: (_) => GetIt.instance<WebServerService>().screenEnergy.onUserActivity(),
+            onPointerDown: (_) => GetIt.instance<EmbeddedServerService>().screenEnergy.onUserActivity(),
             child: MaterialApp(
               theme: CustomTheme.lightTheme,
               darkTheme: CustomTheme.darkTheme,

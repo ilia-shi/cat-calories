@@ -3,11 +3,12 @@ import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories/screens/calories/calories_history.dart';
 import 'package:cat_calories/screens/profile/create_profile_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
-import 'package:cat_calories/service/web_server_service.dart';
+import 'package:cat_calories/screens/settings/servers_screen.dart';
+import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/utils/cat_avatar_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,6 +37,8 @@ class HomeAppDrawer extends StatelessWidget {
                 _ThemeSwitcherTile(),
                 Divider(),
                 _ProfileSettingsTile(),
+                Divider(),
+                _ServerSettingsTile(),
               ],
             ),
           ),
@@ -90,7 +93,7 @@ class _DrawerHeader extends StatelessWidget {
   }
 }
 
-class _ProfilesList extends StatelessWidget {
+final class _ProfilesList extends StatelessWidget {
   const _ProfilesList();
 
   @override
@@ -99,7 +102,7 @@ class _ProfilesList extends StatelessWidget {
       builder: (context, state) {
         if (state is HomeFetched) {
           return Column(
-            children: state.profiles.map((ProfileModel profile) {
+            children: state.profiles.map((Profile profile) {
               final isActive = profile.id == state.activeProfile.id;
 
               return ListTile(
@@ -182,7 +185,7 @@ class _WebServerTile extends StatefulWidget {
 }
 
 class _WebServerTileState extends State<_WebServerTile> {
-  final _webServer = GetIt.instance.get<WebServerService>();
+  final _webServer = GetIt.instance.get<EmbeddedServerService>();
   bool _starting = false;
 
   @override
@@ -397,7 +400,7 @@ class _ThemeDropdownButton extends StatelessWidget {
   }
 }
 
-class _ProfileSettingsTile extends StatelessWidget {
+final class _ProfileSettingsTile extends StatelessWidget {
   const _ProfileSettingsTile();
 
   @override
@@ -420,6 +423,28 @@ class _ProfileSettingsTile extends StatelessWidget {
           );
         }
         return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+final class _ServerSettingsTile extends StatelessWidget {
+  const _ServerSettingsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.cloud_sync),
+      title: const Text('Sync Servers'),
+      subtitle: const Text('Manage server connections'),
+      onTap: () {
+        Navigator.of(context).pop();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const EditServersScreen(),
+          ),
+        );
       },
     );
   }

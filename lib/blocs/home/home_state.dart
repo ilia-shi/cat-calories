@@ -1,12 +1,12 @@
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_recommendation_model.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recommendation.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_settings.dart';
 
-import '../../features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 
 abstract class AbstractHomeState {}
 
@@ -48,19 +48,19 @@ class HomeFetched extends AbstractHomeState {
   /// without being tied to calendar day boundaries.
   final List<CalorieRecord> rollingWindowCalorieItems;
 
-  final List<DayResultModel> days30;
-  final List<DayResultModel> days2;
-  final List<ProfileModel> profiles;
-  final List<WakingPeriodModel> wakingPeriods;
-  final ProfileModel activeProfile;
+  final List<DayResult> days30;
+  final List<DayResult> days2;
+  final List<Profile> profiles;
+  final List<WakingPeriod> wakingPeriods;
+  final Profile activeProfile;
   final DateTime startDate;
   final DateTime endDate;
-  final WakingPeriodModel? currentWakingPeriod;
+  final WakingPeriod? currentWakingPeriod;
   final double preparedCaloriesValue;
-  final List<ProductModel> products;
-  final List<ProductCategoryModel> productCategories;
-  final CalorieRecommendationModel? recommendation;
-  final EqualizationSettingsModel equalizationSettings;
+  final List<Product> products;
+  final List<ProductCategory> productCategories;
+  final CalorieRecommendation? recommendation;
+  final EqualizationSettings equalizationSettings;
 
   HomeFetched({
     required this.nowDateTime,
@@ -140,10 +140,10 @@ class HomeFetched extends AbstractHomeState {
   }
 
   DaysStat get30DaysUntilToday() {
-    List<DayResultModel> days = [];
+    List<DayResult> days = [];
     double totalCalories = 0;
 
-    this.days30.forEach((DayResultModel dayResult) {
+    this.days30.forEach((DayResult dayResult) {
       if (getDayStart().millisecondsSinceEpoch >
           dayResult.createdAtDay.millisecondsSinceEpoch) {
         days.add(dayResult);
@@ -155,10 +155,10 @@ class HomeFetched extends AbstractHomeState {
   }
 
   DaysStat get2DaysUntilToday() {
-    List<DayResultModel> days = [];
+    List<DayResult> days = [];
     double totalCalories = 0;
 
-    this.days2.forEach((DayResultModel dayResult) {
+    this.days2.forEach((DayResult dayResult) {
       if (getDayStart().millisecondsSinceEpoch >
           dayResult.createdAtDay.millisecondsSinceEpoch) {
         days.add(dayResult);
@@ -170,8 +170,8 @@ class HomeFetched extends AbstractHomeState {
   }
 
   /// Get products grouped by category
-  Map<ProductCategoryModel?, List<ProductModel>> getProductsByCategory() {
-    final Map<ProductCategoryModel?, List<ProductModel>> grouped = {};
+  Map<ProductCategory?, List<Product>> getProductsByCategory() {
+    final Map<ProductCategory?, List<Product>> grouped = {};
 
     // Initialize with null key for uncategorized
     grouped[null] = [];
@@ -198,7 +198,7 @@ class HomeFetched extends AbstractHomeState {
   }
 
   /// Get category by UUID
-  ProductCategoryModel? getCategoryById(String? categoryId) {
+  ProductCategory? getCategoryById(String? categoryId) {
     if (categoryId == null) return null;
     try {
       return productCategories.firstWhere((c) => c.id == categoryId);
@@ -208,7 +208,7 @@ class HomeFetched extends AbstractHomeState {
   }
 
   /// Get recently used products
-  List<ProductModel> getRecentlyUsedProducts({int limit = 5}) {
+  List<Product> getRecentlyUsedProducts({int limit = 5}) {
     final sortedProducts = products
         .where((p) => p.lastUsedAt != null)
         .toList()
@@ -217,7 +217,7 @@ class HomeFetched extends AbstractHomeState {
   }
 
   /// Get most used products
-  List<ProductModel> getMostUsedProducts({int limit = 5}) {
+  List<Product> getMostUsedProducts({int limit = 5}) {
     final sortedProducts = products.where((p) => p.usesCount > 0).toList()
       ..sort((a, b) => b.usesCount.compareTo(a.usesCount));
     return sortedProducts.take(limit).toList();
@@ -225,7 +225,7 @@ class HomeFetched extends AbstractHomeState {
 }
 
 class DaysStat {
-  final List<DayResultModel> days;
+  final List<DayResult> days;
   final double totalCalories;
 
   DaysStat(

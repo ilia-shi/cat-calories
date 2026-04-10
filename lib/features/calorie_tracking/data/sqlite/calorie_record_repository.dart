@@ -1,12 +1,12 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 
 class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
   static const String tableName = 'calorie_items';
@@ -23,7 +23,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
         .toList();
   }
 
-  Future<List<CalorieRecord>> fetchAllByProfile(ProfileModel profile,
+  Future<List<CalorieRecord>> fetchAllByProfile(Profile profile,
       {String orderBy = 'id ASC', int? limit, int? offset}) async {
     final calorieItemsResult = await _db.query(tableName,
         where: 'profile_id = ?',
@@ -37,7 +37,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
         .toList();
   }
 
-  Future<List<CalorieRecord>> fetchAllByProfileAndDay(ProfileModel profile,
+  Future<List<CalorieRecord>> fetchAllByProfileAndDay(Profile profile,
       {String orderBy = 'id ASC',
       int? limit,
       int? offset,
@@ -81,7 +81,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
   }
 
   Future<void> deleteByCreatedAtDay(
-      DateTime createdAtDay, ProfileModel profile) async {
+      DateTime createdAtDay, Profile profile) async {
     final int dateTimestamp =
         (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
                     .millisecondsSinceEpoch /
@@ -97,7 +97,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
   }
 
   Future<List<CalorieRecord>> fetchByWakingPeriodAndProfile(
-      WakingPeriodModel wakingPeriod, ProfileModel profile) async {
+      WakingPeriod wakingPeriod, Profile profile) async {
     final calorieItemsResult = await _db.query(
       tableName,
       orderBy: 'sort_order ASC',
@@ -124,8 +124,8 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
     return null;
   }
 
-  Future<List<DayResultModel>> fetchDaysByProfile(
-      ProfileModel profile, int limit) async {
+  Future<List<DayResult>> fetchDaysByProfile(
+      Profile profile, int limit) async {
     final result = await _db.rawQuery('''
       SELECT 
           SUM(ci.value) as value_sum, 
@@ -142,7 +142,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
       LIMIT ?
     ''', [profile.id, limit]);
 
-    return result.map((element) => DayResultModel.fromJson(element)).toList();
+    return result.map((element) => DayResult.fromJson(element)).toList();
   }
 
   Future<CalorieRecord> insert(CalorieRecord calorieItem) async {

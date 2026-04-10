@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories/screens/calories/day_calories_page.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:flutter/material.dart';
@@ -29,12 +29,12 @@ class _DaysScreenState extends State<DaysScreen> {
           }
 
           if (state is HomeFetched) {
-            final List<DayResultModel> dayResultItems = state.days30;
+            final List<DayResult> dayResultItems = state.days30;
 
             return ListView.builder(
               itemCount: dayResultItems.length,
               itemBuilder: (BuildContext context, int index) {
-                final DayResultModel dayItem = dayResultItems[index];
+                final DayResult dayItem = dayResultItems[index];
 
                 return ListTile(
                   leading: Icon(Icons.calendar_today_outlined),

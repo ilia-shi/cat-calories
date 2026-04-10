@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 const DATE_TIME_FORMAT = 'MMM d, y HH:mm';
 
 class EditWakingPeriodScreen extends StatefulWidget {
-  WakingPeriodModel wakingPeriod;
+  WakingPeriod wakingPeriod;
 
   EditWakingPeriodScreen(this.wakingPeriod);
 
@@ -18,7 +18,7 @@ class EditWakingPeriodScreen extends StatefulWidget {
 }
 
 class EditWakingPeriodScreenState extends State<EditWakingPeriodScreen> {
-  WakingPeriodModel wakingPeriod;
+  WakingPeriod wakingPeriod;
 
   TextEditingController _caloriesController = TextEditingController();
   TextEditingController _expectedWakingHours = TextEditingController();

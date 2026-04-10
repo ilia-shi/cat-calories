@@ -1,7 +1,7 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -48,7 +48,7 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
                 return;
               }
 
-              final ProfileModel profile = ProfileModel(
+              final Profile profile = Profile(
                 id: null,
                 name: _nameController.text,
                 wakingTimeSeconds: int.parse(_wakingTimeHours.text) * 60 * 60,

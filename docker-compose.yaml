@@ -1,34 +1,141 @@
 services:
-  server:
-    build:
-      context: ./server
-      target: dev
+  traefik:
+    image: traefik:v3.4
     ports:
       - "8080:8080"
+    volumes:
+      - ./traefik:/etc/traefik:ro
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
     env_file:
-      - ./server/.env
+      - ./packages/server/.env
     volumes:
       - server-data:/data
       - ./logs/server:/logs
     environment:
       DATABASE_PATH: /data/data.db
-      LOG_DIR: /logs
+      SERVER_PORT: "8080"
+      OAUTH_ENDPOINT: http://casdoor:8000
+      SEED_EMAIL: test@localhost
+      SEED_PASSWORD: password
+    depends_on:
+      casdoor:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     develop:
       watch:
         - action: rebuild
-          path: ./server
+          path: ./packages/server
+        - action: rebuild
+          path: ./packages/core
+
+  server2:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    env_file:
+      - ./packages/server/.env
+    volumes:
+      - server2-data:/data
+      - ./logs/server2:/logs
+    environment:
+      DATABASE_PATH: /data/data.db
+      SERVER_PORT: "8080"
+      SERVER_NAME: "Cat Calories Sync 2"
+      OAUTH_ENDPOINT: http://casdoor:8000
+      SEED_EMAIL: test@localhost
+      SEED_PASSWORD: password
+    depends_on:
+      casdoor:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: ./packages/server
+        - action: rebuild
+          path: ./packages/core
 
   web:
     build:
       context: ./web
-    ports:
-      - "3000:80"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     restart: unless-stopped
     profiles:
       - web
 
+  web2:
+    build:
+      context: ./web
+    volumes:
+      - ./web/nginx-server2.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      server2:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - web
+
+  # Casdoor OAuth / IAM server
+  casdoor:
+    image: casbin/casdoor:latest
+    environment:
+      RUNNING_IN_DOCKER: "true"
+    volumes:
+      - ./casdoor/conf:/conf
+    depends_on:
+      casdoor-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - auth
+
+  casdoor-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: casdoor_root_pass
+      MYSQL_DATABASE: casdoor
+      MYSQL_USER: casdoor
+      MYSQL_PASSWORD: casdoor_pass
+    volumes:
+      - casdoor-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ucasdoor", "-pcasdoor_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - auth
+
 volumes:
   server-data:
+  server2-data:
+  casdoor-db-data:

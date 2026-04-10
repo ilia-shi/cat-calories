@@ -1,10 +1,10 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
-import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
+import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories/screens/products/add_edit_product_screen.dart';
 import 'package:cat_calories/screens/products/categories_screen.dart';
 import 'package:cat_calories/ui/widgets/error_state_widget.dart';
@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../features/products/domain/product_category_model.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
 
 /// Enum for product tab display mode
 enum ProductDisplayMode {
@@ -121,9 +121,9 @@ class _ProductsTabState extends State<ProductsTab> {
     _savePreferences();
   }
 
-  List<ProductModel> _filterAndSortProducts(
-      List<ProductModel> products,
-      List<ProductCategoryModel> categories,
+  List<Product> _filterAndSortProducts(
+      List<Product> products,
+      List<ProductCategory> categories,
       ) {
     // Filter by search query
     var filtered = products.where((product) {
@@ -168,8 +168,8 @@ class _ProductsTabState extends State<ProductsTab> {
 
   void _showProductSheet(
       BuildContext context,
-      ProductModel product,
-      WakingPeriodModel wakingPeriod,
+      Product product,
+      WakingPeriod wakingPeriod,
       List<CalorieRecord> calorieItems,
       ) {
     if (!product.hasNutrition) {
@@ -222,7 +222,7 @@ class _ProductsTabState extends State<ProductsTab> {
     );
   }
 
-  void _navigateToEditProduct(BuildContext context, ProductModel product) {
+  void _navigateToEditProduct(BuildContext context, Product product) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddEditProductScreen(product: product),
@@ -241,8 +241,8 @@ class _ProductsTabState extends State<ProductsTab> {
   /// Show bottom sheet with product options (Edit, Eat, Remove)
   void _showProductOptionsSheet(
       BuildContext context,
-      ProductModel product,
-      WakingPeriodModel? wakingPeriod,
+      Product product,
+      WakingPeriod? wakingPeriod,
       List<CalorieRecord> calorieItems,
       ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -347,7 +347,7 @@ class _ProductsTabState extends State<ProductsTab> {
   /// Show confirmation dialog before deleting a product
   Future<void> _showDeleteConfirmationDialog(
       BuildContext context,
-      ProductModel product,
+      Product product,
       ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -639,7 +639,7 @@ class _ProductsTabState extends State<ProductsTab> {
   Widget _buildProductsList(
       BuildContext context,
       HomeFetched state,
-      List<ProductModel> products,
+      List<Product> products,
       ) {
     // Check if there's an active waking period
     final wakingPeriod = state.currentWakingPeriod;
@@ -765,8 +765,8 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _ProductListItem extends StatelessWidget {
-  final ProductModel product;
-  final ProductCategoryModel? category;
+  final Product product;
+  final ProductCategory? category;
   final VoidCallback? onTap;
   final VoidCallback onLongPress;
   final VoidCallback onEdit;
@@ -860,8 +860,8 @@ class _ProductListItem extends StatelessWidget {
 }
 
 class _ProductGridItem extends StatelessWidget {
-  final ProductModel product;
-  final ProductCategoryModel? category;
+  final Product product;
+  final ProductCategory? category;
   final VoidCallback? onTap;
   final VoidCallback onLongPress;
   final VoidCallback onEdit;

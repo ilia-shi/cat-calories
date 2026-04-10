@@ -1,13 +1,13 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories/features/products/ui/_edit_product_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class EditProductScreen extends StatefulWidget {
-  final ProductModel product;
+  final Product product;
 
   EditProductScreen(this.product);
 
@@ -16,7 +16,7 @@ class EditProductScreen extends StatefulWidget {
 }
 
 class _EditProductScreenState extends State<EditProductScreen> {
-  final ProductModel product;
+  final Product product;
 
   _EditProductScreenState(this.product);
 

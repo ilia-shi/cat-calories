@@ -1,8 +1,8 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:cat_calories/screens/waking_periods/edit_waking_period_screen.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/progress_bar.dart';
@@ -55,7 +55,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                               children: [
                                 TextButton(
                                   onPressed: () {
-                                    final wakingPeriod = WakingPeriodModel(
+                                    final wakingPeriod = WakingPeriod(
                                       id: null,
                                       description: null,
                                       createdAt: DateTime.now(),
@@ -379,7 +379,7 @@ class _MainInfoViewState extends State<MainInfoView> {
             // === DAILY HISTORY ===
             Column(
               children:
-              state.get30DaysUntilToday().days.map((DayResultModel day) {
+              state.get30DaysUntilToday().days.map((DayResult day) {
                 return SizedBox(
                   width: double.infinity,
                   child: Card(

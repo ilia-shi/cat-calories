@@ -1,9 +1,9 @@
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/blocs/home/home_event.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_record.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/waking_periods/domain/waking_period_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/calculator_widget.dart';
 import 'package:flutter/material.dart';
@@ -20,10 +20,10 @@ class ProductsView extends StatefulWidget {
 class _ProductsViewState extends State<ProductsView> {
   TextEditingController productWeightController = TextEditingController();
 
-  List<ProductModel> _products = [];
+  List<Product> _products = [];
 
 
-  _showBottomSheet(ProductModel product, List<CalorieRecord> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
+  _showBottomSheet(Product product, List<CalorieRecord> periodCalorieItems, WakingPeriod currentWakingPeriod) {
     showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
@@ -87,7 +87,7 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
-  _showToEatBottomSheet(ProductModel product, List<CalorieRecord> periodCalorieItems, WakingPeriodModel currentWakingPeriod) {
+  _showToEatBottomSheet(Product product, List<CalorieRecord> periodCalorieItems, WakingPeriod currentWakingPeriod) {
     showModalBottomSheet<dynamic>(
       barrierColor: Colors.black.withValues(alpha: 0.2),
       isScrollControlled: true,
@@ -138,7 +138,7 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
-  void _createCalorieItem(ProductModel product, List<CalorieRecord> calorieItems, WakingPeriodModel wakingPeriod) {
+  void _createCalorieItem(Product product, List<CalorieRecord> calorieItems, WakingPeriod wakingPeriod) {
     final String expression = productWeightController.text;
 
     if (expression.length == 0) {
@@ -170,7 +170,7 @@ class _ProductsViewState extends State<ProductsView> {
           return ReorderableListView.builder(
             itemCount: _products.length,
             itemBuilder: (BuildContext context, int index) {
-              final ProductModel product = _products[index];
+              final Product product = _products[index];
 
               return GestureDetector(
                 key: Key(index.toString()),

@@ -1,7 +1,7 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/products/domain/product_model.dart';
-import 'package:cat_calories/features/products/domain/product_repository_interface.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/products/domain/product.dart';
+import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,20 +13,20 @@ class ProductRepository implements ProductRepositoryInterface {
   ProductRepository(this._db);
 
   /// Fetch all products with default sorting
-  Future<List<ProductModel>> fetchAll() async {
+  Future<List<Product>> fetchAll() async {
     final productsResult = await _db.query(
       tableName,
       orderBy: 'sort_order ASC',
     );
 
     return productsResult
-        .map((element) => ProductModel.fromJson(element))
+        .map((element) => Product.fromJson(element))
         .toList();
   }
 
   /// Fetch products by profile with specified sorting
-  Future<List<ProductModel>> fetchByProfile(
-      ProfileModel profile, {
+  Future<List<Product>> fetchByProfile(
+      Profile profile, {
         ProductSortOrder sortOrder = ProductSortOrder.manual,
         String? categoryId,
         String? searchQuery,
@@ -72,13 +72,13 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     return productsResult
-        .map((element) => ProductModel.fromJson(element))
+        .map((element) => Product.fromJson(element))
         .toList();
   }
 
   /// Fetch products by category
-  Future<List<ProductModel>> fetchByCategory(
-      ProfileModel profile,
+  Future<List<Product>> fetchByCategory(
+      Profile profile,
       String categoryId, {
         ProductSortOrder sortOrder = ProductSortOrder.manual,
       }) async {
@@ -90,8 +90,8 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Fetch uncategorized products
-  Future<List<ProductModel>> fetchUncategorized(
-      ProfileModel profile, {
+  Future<List<Product>> fetchUncategorized(
+      Profile profile, {
         ProductSortOrder sortOrder = ProductSortOrder.manual,
       }) async {
     String orderBy;
@@ -118,13 +118,13 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     return productsResult
-        .map((element) => ProductModel.fromJson(element))
+        .map((element) => Product.fromJson(element))
         .toList();
   }
 
   /// Search products by title or description
-  Future<List<ProductModel>> search(
-      ProfileModel profile,
+  Future<List<Product>> search(
+      Profile profile,
       String query, {
         int limit = 20,
       }) async {
@@ -145,8 +145,8 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Fetch recently used products
-  Future<List<ProductModel>> fetchRecentlyUsed(
-      ProfileModel profile, {
+  Future<List<Product>> fetchRecentlyUsed(
+      Profile profile, {
         int limit = 10,
       }) async {
     final productsResult = await _db.query(
@@ -158,13 +158,13 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     return productsResult
-        .map((element) => ProductModel.fromJson(element))
+        .map((element) => Product.fromJson(element))
         .toList();
   }
 
   /// Fetch most used products
-  Future<List<ProductModel>> fetchMostUsed(
-      ProfileModel profile, {
+  Future<List<Product>> fetchMostUsed(
+      Profile profile, {
         int limit = 10,
       }) async {
     final productsResult = await _db.query(
@@ -176,12 +176,12 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     return productsResult
-        .map((element) => ProductModel.fromJson(element))
+        .map((element) => Product.fromJson(element))
         .toList();
   }
 
   /// Find a product by UUID
-  Future<ProductModel?> find(String id) async {
+  Future<Product?> find(String id) async {
     final result = await _db.query(
       tableName,
       where: 'id = ?',
@@ -190,11 +190,11 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     if (result.isEmpty) return null;
-    return ProductModel.fromJson(result.first);
+    return Product.fromJson(result.first);
   }
 
   /// Find a product by barcode
-  Future<ProductModel?> findByBarcode(ProfileModel profile, String barcode) async {
+  Future<Product?> findByBarcode(Profile profile, String barcode) async {
     final result = await _db.query(
       tableName,
       where: 'profile_id = ? AND barcode = ?',
@@ -203,11 +203,11 @@ class ProductRepository implements ProductRepositoryInterface {
     );
 
     if (result.isEmpty) return null;
-    return ProductModel.fromJson(result.first);
+    return Product.fromJson(result.first);
   }
 
   /// Insert a new product (generates UUID if not provided)
-  Future<ProductModel> insert(ProductModel product) async {
+  Future<Product> insert(Product product) async {
     if (product.id == null || product.id!.isEmpty) {
       product.id = _uuid.v4();
     }
@@ -216,7 +216,7 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Delete a product
-  Future<int> delete(ProductModel product) async {
+  Future<int> delete(Product product) async {
     return await _db.delete(
       tableName,
       where: 'id = ?',
@@ -225,7 +225,7 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Update a product
-  Future<ProductModel> update(ProductModel product) async {
+  Future<Product> update(Product product) async {
     product.updatedAt = DateTime.now();
     await _db.update(
       tableName,
@@ -237,7 +237,7 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Increment uses count and update last used timestamp
-  Future<ProductModel> recordUsage(ProductModel product) async {
+  Future<Product> recordUsage(Product product) async {
     product.usesCount = product.usesCount + 1;
     product.lastUsedAt = DateTime.now();
     product.updatedAt = DateTime.now();
@@ -257,11 +257,11 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Resort products
-  Future<void> resort(List<ProductModel> products) async {
+  Future<void> resort(List<Product> products) async {
     final Batch batch = await _db.batch();
 
     for (int i = 0; i < products.length; i++) {
-      final ProductModel product = products[i];
+      final Product product = products[i];
       batch.update(
         tableName,
         {'sort_order': i},
@@ -281,7 +281,7 @@ class ProductRepository implements ProductRepositoryInterface {
   }
 
   /// Get count of products by category
-  Future<Map<String?, int>> getCountByCategory(ProfileModel profile) async {
+  Future<Map<String?, int>> getCountByCategory(Profile profile) async {
     final result = await _db.rawQuery('''
       SELECT category_id, COUNT(*) as count 
       FROM $tableName 

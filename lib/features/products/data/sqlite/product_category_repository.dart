@@ -1,7 +1,7 @@
 import 'package:cat_calories/database/database_client.dart';
-import 'package:cat_calories/features/products/domain/product_category_model.dart';
-import 'package:cat_calories/features/products/domain/product_category_repository_interface.dart';
-import 'package:cat_calories/features/profile/domain/profile_model.dart';
+import 'package:cat_calories_core/features/products/domain/product_category.dart';
+import 'package:cat_calories_core/features/products/domain/product_category_repository_interface.dart';
+import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -14,7 +14,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   ProductCategoryRepository(this._db);
 
   /// Fetch all categories for a given profile
-  Future<List<ProductCategoryModel>> fetchByProfile(ProfileModel profile) async {
+  Future<List<ProductCategory>> fetchByProfile(Profile profile) async {
     final result = await _db.query(
       tableName,
       where: 'profile_id = ?',
@@ -22,11 +22,11 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
       orderBy: 'sort_order ASC, name ASC',
     );
 
-    return result.map((e) => ProductCategoryModel.fromJson(e)).toList();
+    return result.map((e) => ProductCategory.fromJson(e)).toList();
   }
 
   /// Fetch a single category by UUID
-  Future<ProductCategoryModel?> find(String id) async {
+  Future<ProductCategory?> find(String id) async {
     final result = await _db.query(
       tableName,
       where: 'id = ?',
@@ -35,11 +35,11 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
     );
 
     if (result.isEmpty) return null;
-    return ProductCategoryModel.fromJson(result.first);
+    return ProductCategory.fromJson(result.first);
   }
 
   /// Insert a new category (generates UUID if not provided)
-  Future<ProductCategoryModel> insert(ProductCategoryModel category) async {
+  Future<ProductCategory> insert(ProductCategory category) async {
     if (category.id == null || category.id!.isEmpty) {
       category.id = _uuid.v4();
     }
@@ -48,7 +48,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   }
 
   /// Update an existing category
-  Future<ProductCategoryModel> update(ProductCategoryModel category) async {
+  Future<ProductCategory> update(ProductCategory category) async {
     category.updatedAt = DateTime.now();
     await _db.update(
       tableName,
@@ -60,7 +60,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   }
 
   /// Delete a category
-  Future<int> delete(ProductCategoryModel category) async {
+  Future<int> delete(ProductCategory category) async {
     // First, remove category_id from all products using this category
     await _db.update(
       'products',
@@ -77,7 +77,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   }
 
   /// Resort categories
-  Future<void> resort(List<ProductCategoryModel> categories) async {
+  Future<void> resort(List<ProductCategory> categories) async {
     final Batch batch = await _db.batch();
 
     for (int i = 0; i < categories.length; i++) {
@@ -94,7 +94,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   }
 
   /// Get the count of products in a category
-  Future<int> getProductCount(ProductCategoryModel category) async {
+  Future<int> getProductCount(ProductCategory category) async {
     final result = await _db.rawQuery(
       'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
       [category.id],
@@ -104,7 +104,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   }
 
   /// Create default categories for a profile if none exist
-  Future<void> createDefaultCategoriesIfNeeded(ProfileModel profile) async {
+  Future<void> createDefaultCategoriesIfNeeded(Profile profile) async {
     final existing = await fetchByProfile(profile);
     if (existing.isNotEmpty) return;
 
@@ -120,7 +120,7 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
 
     for (int i = 0; i < defaultCategories.length; i++) {
       final (name, iconName, colorHex) = defaultCategories[i];
-      await insert(ProductCategoryModel(
+      await insert(ProductCategory(
         id: null,
         name: name,
         iconName: iconName,

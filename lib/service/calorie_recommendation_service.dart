@@ -1,16 +1,16 @@
 import 'dart:math';
-import 'package:cat_calories/features/calorie_tracking/domain/calorie_recommendation_model.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/day_result.dart';
-import 'package:cat_calories/features/calorie_tracking/domain/equalization_settings_model.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recommendation.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_settings.dart';
 
 class CalorieRecommendationService {
-  final EqualizationSettingsModel settings;
+  final EqualizationSettings settings;
 
   CalorieRecommendationService(this.settings);
 
   /// Calculate recommendation based on historical data
-  CalorieRecommendationModel calculate({
-    required List<DayResultModel> historicalDays,
+  CalorieRecommendation calculate({
+    required List<DayResult> historicalDays,
     required double consumedToday,
     required DateTime now,
     DateTime? lastMealTime,
@@ -58,7 +58,7 @@ class CalorieRecommendationService {
       sleepTime: sleepTime,
     );
 
-    return CalorieRecommendationModel(
+    return CalorieRecommendation(
       recommendedToday: recommendedToday,
       baseGoal: settings.baseCalorieGoal,
       adjustment: cappedAdjustment,
@@ -72,7 +72,7 @@ class CalorieRecommendationService {
   }
 
   List<DayCompensation> _calculateCompensationBreakdown(
-      List<DayResultModel> pastDays,
+      List<DayResult> pastDays,
       DateTime today,
       ) {
     final result = <DayCompensation>[];
