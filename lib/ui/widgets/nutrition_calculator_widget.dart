@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'mode_button.dart';
+
 /// Enum representing the different input fields in the nutrition calculator
 enum NutritionField {
   weight,
@@ -152,16 +154,9 @@ class NutritionCalculatorWidget extends StatefulWidget {
 }
 
 class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
-  /// Current input mode
   NutritionInputMode _inputMode = NutritionInputMode.enterCalories;
-
-  /// Currently selected field
   NutritionField _selectedField = NutritionField.weight;
-
-  /// Text controllers for each field
   late final Map<NutritionField, TextEditingController> _controllers;
-
-  /// Track which fields have been edited
   final Set<NutritionField> _editedFields = {};
 
   @override
@@ -248,18 +243,14 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     super.dispose();
   }
 
-  /// Get the current controller based on selected field
   TextEditingController get _currentController => _controllers[_selectedField]!;
 
-  /// Parse a field value, returns null if invalid
   double? _parseField(NutritionField field) {
     final text = _controllers[field]!.text.trim();
     if (text.isEmpty) return null;
     return double.tryParse(text);
   }
 
-  /// Calculate calories from macros (per 100g)
-  /// Protein: 4 kcal/g, Carbs: 4 kcal/g, Fat: 9 kcal/g
   double _calculateCaloriesFromMacros() {
     final protein = _parseField(NutritionField.protein) ?? 0;
     final fat = _parseField(NutritionField.fat) ?? 0;
@@ -310,7 +301,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     return null;
   }
 
-  /// Calculate the final nutrition result
   NutritionResult? _calculateResult() {
     final weight = _parseField(NutritionField.weight);
     if (weight == null || weight <= 0) return null;
@@ -337,7 +327,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     );
   }
 
-  /// Handle calculator button press
   void _onKeyPress(String key) {
     setState(() {
       _editedFields.add(_selectedField);
@@ -355,9 +344,7 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
           }
           break;
         case '.':
-        // Only add decimal if not already present
           if (!currentText.contains('.')) {
-            // Prepend 0 if text is empty
             if (currentText.isEmpty) {
               controller.text = '0.';
             } else {
@@ -366,17 +353,14 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
           }
           break;
         case '→':
-        // Move to next field
           _moveToNextField();
           break;
         default:
-        // Number key
           controller.text = currentText + key;
       }
     });
   }
 
-  /// Move to the next logical field
   void _moveToNextField() {
     final fields = _getVisibleFields();
     final currentIndex = fields.indexOf(_selectedField);
@@ -387,7 +371,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     }
   }
 
-  /// Get the list of visible fields based on input mode
   List<NutritionField> _getVisibleFields() {
     if (_inputMode == NutritionInputMode.enterCalories) {
       return [
@@ -407,7 +390,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     }
   }
 
-  /// Handle submit
   void _onSubmit() {
     if (!_isValidInput()) {
       final message = _getValidationMessage();
@@ -437,23 +419,12 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Mode toggle
         _buildModeToggle(isDarkMode),
-        const SizedBox(height: 12),
-
-        // Field selector tabs
-        _buildFieldSelector(isDarkMode),
-        const SizedBox(height: 12),
-
-        // Current field display
+        const SizedBox(height: 8),
         _buildCurrentFieldDisplay(isDarkMode),
         const SizedBox(height: 8),
-
-        // Summary panel showing all values
         _buildSummaryPanel(isDarkMode),
         const SizedBox(height: 8),
-
-        // Calculator keypad
         _buildKeypad(isPortrait, isDarkMode),
       ],
     );
@@ -469,7 +440,7 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
       child: Row(
         children: [
           Expanded(
-            child: _ModeButton(
+            child: ModeButton(
               label: 'Enter Calories',
               icon: Icons.edit,
               isSelected: _inputMode == NutritionInputMode.enterCalories,
@@ -477,7 +448,7 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
             ),
           ),
           Expanded(
-            child: _ModeButton(
+            child: ModeButton(
               label: 'From Macros',
               icon: Icons.calculate,
               isSelected: _inputMode == NutritionInputMode.calculateFromMacros,
@@ -487,46 +458,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
         ],
       ),
     );
-  }
-
-  Widget _buildFieldSelector(bool isDarkMode) {
-    final fields = _getVisibleFields();
-
-    return Container(
-      height: 48,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: fields.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final field = fields[index];
-          final isSelected = field == _selectedField;
-          final hasValue = _controllers[field]!.text.isNotEmpty;
-          final isRequired = _isFieldRequired(field);
-
-          return _FieldSelectorChip(
-            field: field,
-            isSelected: isSelected,
-            hasValue: hasValue,
-            isRequired: isRequired,
-            onTap: () => setState(() => _selectedField = field),
-          );
-        },
-      ),
-    );
-  }
-
-  bool _isFieldRequired(NutritionField field) {
-    if (field == NutritionField.weight) return true;
-    if (_inputMode == NutritionInputMode.enterCalories) {
-      return field == NutritionField.calories;
-    } else {
-      // In calculate mode, at least one macro is required
-      return field == NutritionField.protein ||
-          field == NutritionField.fat ||
-          field == NutritionField.carbs;
-    }
   }
 
   Widget _buildCurrentFieldDisplay(bool isDarkMode) {
@@ -606,15 +537,15 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     final weight = _parseField(NutritionField.weight);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-        ),
-      ),
+      // decoration: BoxDecoration(
+      //   color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      //   borderRadius: BorderRadius.circular(8),
+      //   border: Border.all(
+      //     color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+      //   ),
+      // ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -645,29 +576,50 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
           Row(
             children: [
               _SummaryItem(
+                label: 'W',
+                value: result?.weightGrams,
+                unit: 'g',
+                color: NutritionField.weight.color,
+                isSelected: _selectedField == NutritionField.weight,
+                onTap: () => setState(() => _selectedField = NutritionField.weight),
+              ),
+              _SummaryItem(
                 label: 'Cal',
                 value: result?.calories,
                 unit: 'kcal',
                 color: NutritionField.calories.color,
                 isCalculated: _inputMode == NutritionInputMode.calculateFromMacros,
+                isSelected: _selectedField == NutritionField.calories,
+                onTap: () {
+                  if (_inputMode != NutritionInputMode.enterCalories) {
+                    _setCalcMode(NutritionInputMode.enterCalories);
+                  }
+                  setState(() => _selectedField = NutritionField.calories);
+                },
               ),
               _SummaryItem(
                 label: 'P',
                 value: result?.proteinGrams,
                 unit: 'g',
                 color: NutritionField.protein.color,
+                isSelected: _selectedField == NutritionField.protein,
+                onTap: () => setState(() => _selectedField = NutritionField.protein),
               ),
               _SummaryItem(
                 label: 'F',
                 value: result?.fatGrams,
                 unit: 'g',
                 color: NutritionField.fat.color,
+                isSelected: _selectedField == NutritionField.fat,
+                onTap: () => setState(() => _selectedField = NutritionField.fat),
               ),
               _SummaryItem(
                 label: 'C',
                 value: result?.carbGrams,
                 unit: 'g',
                 color: NutritionField.carbs.color,
+                isSelected: _selectedField == NutritionField.carbs,
+                onTap: () => setState(() => _selectedField = NutritionField.carbs),
               ),
             ],
           ),
@@ -714,138 +666,14 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
   }
 }
 
-// ============================================================================
-// Helper Widgets
-// ============================================================================
-
-class _ModeButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ModeButton({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : Colors.grey[600],
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FieldSelectorChip extends StatelessWidget {
-  final NutritionField field;
-  final bool isSelected;
-  final bool hasValue;
-  final bool isRequired;
-  final VoidCallback onTap;
-
-  const _FieldSelectorChip({
-    required this.field,
-    required this.isSelected,
-    required this.hasValue,
-    required this.isRequired,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? field.color.withValues(alpha: 0.2)
-              : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? field.color : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              field.icon,
-              size: 18,
-              color: isSelected ? field.color : Colors.grey[600],
-            ),
-            const SizedBox(width: 6),
-            Text(
-              field.label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? field.color : Colors.grey[600],
-              ),
-            ),
-            if (hasValue) ...[
-              const SizedBox(width: 4),
-              Icon(
-                Icons.check_circle,
-                size: 14,
-                color: Colors.green[600],
-              ),
-            ] else if (isRequired) ...[
-              const SizedBox(width: 4),
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red[400],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SummaryItem extends StatelessWidget {
   final String label;
   final double? value;
   final String unit;
   final Color color;
   final bool isCalculated;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   const _SummaryItem({
     required this.label,
@@ -853,6 +681,8 @@ class _SummaryItem extends StatelessWidget {
     required this.unit,
     required this.color,
     this.isCalculated = false,
+    this.isSelected = false,
+    this.onTap,
   });
 
   @override
@@ -862,48 +692,64 @@ class _SummaryItem extends StatelessWidget {
         : '-';
 
     return Expanded(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? color : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (isCalculated)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: 10,
+                        color: color,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 2),
               Text(
-                label,
+                displayValue,
                 style: TextStyle(
-                  fontSize: 11,
-                  color: color,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: value != null ? null : Colors.grey[500],
                 ),
               ),
-              if (isCalculated)
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 10,
-                    color: color,
-                  ),
+              Text(
+                unit,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[500],
                 ),
+              ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            displayValue,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: value != null ? null : Colors.grey[500],
-            ),
-          ),
-          Text(
-            unit,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

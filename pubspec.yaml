@@ -9,6 +9,8 @@ environment:
 dependencies:
   cat_calories_core:
     path: packages/core
+  cat_calories_seeds:
+    path: packages/seeder
   flutter:
     sdk: flutter
   sqflite: ^2.4.2

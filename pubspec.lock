@@ -40,6 +40,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  cat_calories_seeds:
+    dependency: "direct main"
+    description:
+      path: "packages/seeder"
+      relative: true
+    source: path
+    version: "0.1.0"
   characters:
     dependency: transitive
     description:

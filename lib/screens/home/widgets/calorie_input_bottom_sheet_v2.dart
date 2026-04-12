@@ -8,12 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../ui/widgets/mode_button.dart';
 import '../../../ui/widgets/nutrition_calculator_widget.dart';
 
 /// Input mode for the calorie input bottom sheet
 enum CalorieInputMode {
   /// Simple mode - just enter calories quickly
   simple,
+
   /// Detailed mode - enter weight and nutritional info per 100g
   detailed,
 }
@@ -35,7 +37,8 @@ class CalorieInputBottomSheetV2 extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<CalorieInputBottomSheetV2> createState() => _CalorieInputBottomSheetV2State();
+  State<CalorieInputBottomSheetV2> createState() =>
+      _CalorieInputBottomSheetV2State();
 }
 
 class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
@@ -122,13 +125,13 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
     });
 
     context.read<HomeBloc>().add(
-      CreatingCalorieItemEvent(
-        expression,
-        widget.wakingPeriod,
-        widget.calorieItems,
-        _onCalorieItemCreated,
-      ),
-    );
+          CreatingCalorieItemEvent(
+            expression,
+            widget.wakingPeriod,
+            widget.calorieItems,
+            _onCalorieItemCreated,
+          ),
+        );
   }
 
   void _submitNutritionCalories(NutritionResult result) {
@@ -140,17 +143,17 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
 
     // Use the new event that includes nutrition data
     context.read<HomeBloc>().add(
-      CreatingCalorieItemWithNutritionEvent(
-        calories: result.calories,
-        wakingPeriod: widget.wakingPeriod,
-        calorieItems: widget.calorieItems,
-        weightGrams: result.weightGrams,
-        proteinGrams: result.proteinGrams,
-        fatGrams: result.fatGrams,
-        carbGrams: result.carbGrams,
-        callback: _onCalorieItemCreated,
-      ),
-    );
+          CreatingCalorieItemWithNutritionEvent(
+            calories: result.calories,
+            wakingPeriod: widget.wakingPeriod,
+            calorieItems: widget.calorieItems,
+            weightGrams: result.weightGrams,
+            proteinGrams: result.proteinGrams,
+            fatGrams: result.fatGrams,
+            carbGrams: result.carbGrams,
+            callback: _onCalorieItemCreated,
+          ),
+        );
   }
 
   void _onCalorieItemCreated(CalorieRecord calorieItem) {
@@ -200,7 +203,6 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
             children: [
               _buildHandle(),
               _buildModeToggle(isDarkMode),
-              const SizedBox(height: 8),
               if (_isLoading)
                 const Padding(
                   padding: EdgeInsets.all(32),
@@ -245,7 +247,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
       child: Row(
         children: [
           Expanded(
-            child: _TabButton(
+            child: ModeButton(
               label: 'Quick Add',
               icon: Icons.bolt,
               isSelected: _inputMode == CalorieInputMode.simple,
@@ -253,7 +255,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
             ),
           ),
           Expanded(
-            child: _TabButton(
+            child: ModeButton(
               label: 'With Nutrition',
               icon: Icons.restaurant_menu,
               isSelected: _inputMode == CalorieInputMode.detailed,
@@ -374,7 +376,8 @@ class _TabButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+          color:
+              isSelected ? Theme.of(context).primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(

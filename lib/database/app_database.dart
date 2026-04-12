@@ -11,6 +11,9 @@ class AppDatabase implements DatabaseClient {
   static final AppDatabase instance = AppDatabase._();
 
   Database? _database;
+  bool _isNewDatabase = false;
+
+  bool get isNewDatabase => _isNewDatabase;
 
   Future<Database?> get database async {
     if (_database != null) return _database;
@@ -29,7 +32,10 @@ class AppDatabase implements DatabaseClient {
     final db = await openDatabase(
       path,
       version: MigrationRunner.currentVersion,
-      onCreate: runner.onCreate,
+      onCreate: (db, version) async {
+        _isNewDatabase = true;
+        await runner.onCreate(db, version);
+      },
       onUpgrade: runner.onUpgrade,
       onDowngrade: runner.onDowngrade,
     );

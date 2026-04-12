@@ -1,4 +1,4 @@
-.PHONY: server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs
+.PHONY: server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs android-pair android-connect android-run
 
 build:
 	flutter build apk --release
@@ -146,3 +146,19 @@ emulator-pixel8a:
 
 flutter-run:
 	flutter run -v
+
+android-pair:
+	@echo "On your Android device:"
+	@echo "  Settings → Developer Options → Wireless Debugging → Pair device with QR code"
+	@echo ""
+	@read -p "Enter IP:port from the QR code screen: " addr; adb pair $$addr
+
+android-connect:
+	@echo "On your Android device:"
+	@echo "  Settings → Developer Options → Wireless Debugging"
+	@echo "  Use the IP address and port shown at the top of that screen"
+	@echo ""
+	@read -p "Enter IP:port: " addr; adb connect $$addr
+
+android-run:
+	flutter run

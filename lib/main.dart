@@ -1,6 +1,9 @@
 import 'package:cat_calories/blocs/calories/calories_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_cubit.dart';
 import 'package:cat_calories/blocs/theme/theme_state.dart';
+import 'package:cat_calories/database/app_database.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/seeds/calorie_item_seeds.dart';
+import 'package:cat_calories/features/profile/data/sqlite/profile_seeds.dart';
 import 'package:cat_calories/locator.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
@@ -12,6 +15,17 @@ import 'package:get_it/get_it.dart';
 import 'package:cat_calories/blocs/home/home_bloc.dart';
 import 'package:cat_calories/screens/home/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+Future<void> _seedIfNeeded() async {
+  if (!kDebugMode) return;
+
+  await AppDatabase.instance.getDatabase();
+
+  if (!AppDatabase.instance.isNewDatabase) return;
+
+  final profile = await ProfileSeeds.seed();
+  await CalorieItemSeedExecutor.seedIfNeeded(profileId: profile.id!);
+}
 
 void main() {
   runZonedGuarded(() {
@@ -35,6 +49,9 @@ void main() {
     print('[BOOT] Registering services...');
     registerServices();
     print('[BOOT] Services registered');
+
+    _seedIfNeeded();
+
     GetIt.instance<SyncService>().init();
     print('[BOOT] SyncService.init() called (async)');
     print('[BOOT] Calling runApp...');
@@ -78,6 +95,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     print('[BOOT] _AppState.build()');
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(
