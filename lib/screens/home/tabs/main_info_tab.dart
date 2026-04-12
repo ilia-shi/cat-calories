@@ -29,7 +29,7 @@ class _MainInfoViewState extends State<MainInfoView> {
 
       if (state is HomeFetched) {
         return ListView(
-          padding: const EdgeInsetsDirectional.all(10),
+          padding: const EdgeInsetsDirectional.all(5),
           children: [
             SizedBox(
               child: Card(
