@@ -1,19 +1,19 @@
-import 'package:cat_calories/blocs/calories/calories_cubit.dart';
-import 'package:cat_calories/blocs/theme/theme_cubit.dart';
-import 'package:cat_calories/blocs/theme/theme_state.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/bloc/calories_cubit.dart';
+import 'package:cat_calories/common/theme/theme_cubit.dart';
+import 'package:cat_calories/common/theme/theme_state.dart';
 import 'package:cat_calories/database/app_database.dart';
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/seeds/calorie_item_seeds.dart';
 import 'package:cat_calories/features/profile/data/sqlite/profile_seeds.dart';
 import 'package:cat_calories/common/locator.dart';
-import 'package:cat_calories/locator.dart';
-import 'package:cat_calories/service/sync_service.dart';
-import 'package:cat_calories/service/embedded_server_service.dart';
-import 'package:cat_calories/ui/theme.dart';
+import 'package:cat_calories/common/service_registry.dart';
+import 'package:cat_calories/features/sync/sync_service.dart';
+import 'package:cat_calories/features/embedded_server/embedded_server_service.dart';
+import 'package:cat_calories/common/theme/theme.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:cat_calories/blocs/home/home_bloc.dart';
-import 'package:cat_calories/screens/home/home_screen.dart';
+import 'package:cat_calories/features/dashboard/ui/bloc/home_bloc.dart';
+import 'package:cat_calories/features/dashboard/ui/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 Future<void> _seedIfNeeded() async {
