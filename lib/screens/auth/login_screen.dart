@@ -1,7 +1,7 @@
 import 'package:cat_calories/features/oauth/auth_client.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 
 import 'register_screen.dart';
 
@@ -29,7 +29,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class LoginScreenState extends State<LoginScreen> {
-  final _authClient = GetIt.instance<AuthClient>();
+  final _authClient = locator.get<AuthClient>();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();

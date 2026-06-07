@@ -8,9 +8,9 @@ import 'package:cat_calories/screens/calories/edit_calorie_item_screen.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/ui/colors.dart';
 import 'package:cat_calories/ui/widgets/proportional_edit_bottom_sheet.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
 class AllCaloriesHistoryScreen extends StatefulWidget {
@@ -23,7 +23,6 @@ class AllCaloriesHistoryScreen extends StatefulWidget {
 
 class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     with AutomaticKeepAliveClientMixin {
-  final locator = GetIt.instance;
   late CalorieRecordRepositoryInterface calorieItemRepository =
   locator.get<CalorieRecordRepositoryInterface>();
 

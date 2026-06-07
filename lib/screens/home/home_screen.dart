@@ -19,9 +19,9 @@ import 'package:cat_calories/screens/settings/servers_screen.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../service/calorie_exporter.dart';
 import '../calories/days_screen.dart';
@@ -478,7 +478,7 @@ class _WebServerIndicator extends StatefulWidget {
 }
 
 class _WebServerIndicatorState extends State<_WebServerIndicator> {
-  final _webServer = GetIt.instance.get<EmbeddedServerService>();
+  final _webServer = locator.get<EmbeddedServerService>();
   late final Timer _timer;
 
   @override
@@ -639,9 +639,9 @@ class _SyncIndicator extends StatefulWidget {
 }
 
 class _SyncIndicatorState extends State<_SyncIndicator> {
-  final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
-  final _credentialsRepo = GetIt.instance<AuthCredentialsRepositoryInterface>();
-  final _syncer = GetIt.instance<Syncer>();
+  final _serverRepo = locator.get<SyncServerRepositoryInterface>();
+  final _credentialsRepo = locator.get<AuthCredentialsRepositoryInterface>();
+  final _syncer = locator.get<Syncer>();
 
   late final Timer _timer;
   List<SyncServer> _servers = [];

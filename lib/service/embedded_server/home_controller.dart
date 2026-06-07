@@ -3,12 +3,11 @@ import 'dart:io';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
-import 'package:get_it/get_it.dart';
 
 class HomeController extends Controller {
-  final _locator = GetIt.instance;
 
   @override
   void register(Router router) {
@@ -16,7 +15,7 @@ class HomeController extends Controller {
   }
 
   Future<void> _index(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepositoryInterface>();
+    final repo = locator.get<CalorieRecordRepositoryInterface>();
     final profile = await ProfileResolver().resolve();
     final now = DateTime.now();
 
@@ -56,7 +55,7 @@ class HomeController extends Controller {
         : relevantDays.fold(0.0, (sum, day) => sum + day.valueSum) / relevantDays.length;
 
     // Period (current waking period)
-    final wakingPeriodRepo = _locator.get<WakingPeriodRepositoryInterface>();
+    final wakingPeriodRepo = locator.get<WakingPeriodRepositoryInterface>();
     final currentPeriod = await wakingPeriodRepo.findActual(profile);
     double periodCalories = 0;
     double? periodGoal;

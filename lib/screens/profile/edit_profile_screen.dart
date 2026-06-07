@@ -6,9 +6,9 @@ import 'package:cat_calories/service/screen_energy_service.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:flutter/material.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Profile profile;
@@ -731,7 +731,7 @@ class _WebServerSettingsCard extends StatefulWidget {
 }
 
 class _WebServerSettingsCardState extends State<_WebServerSettingsCard> {
-  final _screenEnergy = GetIt.instance.get<EmbeddedServerService>().screenEnergy;
+  final _screenEnergy = locator.get<EmbeddedServerService>().screenEnergy;
   int _selectedMinutes = ScreenEnergyService.defaultTimeoutMinutes;
   int _selectedDimMinutes = ScreenEnergyService.defaultDimMinutes;
 
@@ -956,7 +956,7 @@ class _SyncSettingsCard extends StatefulWidget {
 }
 
 class _SyncSettingsCardState extends State<_SyncSettingsCard> {
-  final _syncService = GetIt.instance.get<SyncService>();
+  final _syncService = locator.get<SyncService>();
   final _serverUrlController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();

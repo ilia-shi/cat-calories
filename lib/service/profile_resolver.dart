@@ -1,11 +1,10 @@
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
-import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileResolver {
 
-  final locator = GetIt.instance;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   static Profile? _activeProfile;
   late ProfileRepositoryInterface _profileRepository = locator.get<ProfileRepositoryInterface>();

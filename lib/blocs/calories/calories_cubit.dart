@@ -4,12 +4,10 @@ import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 
 class CaloriesCubit extends Cubit<AbstractCaloriesState> {
-  final locator = GetIt.instance;
-
   late CalorieRecordRepositoryInterface calorieItemRepository =
       locator.get<CalorieRecordRepositoryInterface>();
 

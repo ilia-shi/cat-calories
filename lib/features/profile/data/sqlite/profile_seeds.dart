@@ -1,6 +1,6 @@
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
-import 'package:get_it/get_it.dart';
 
 final class ProfileSeeds {
   ProfileSeeds._();
@@ -8,7 +8,7 @@ final class ProfileSeeds {
   static const profileId = '00000000-0000-0000-0000-6c72ae642764';
 
   static ProfileRepositoryInterface get _repo =>
-      GetIt.instance<ProfileRepositoryInterface>();
+      locator.get<ProfileRepositoryInterface>();
 
   static Future<Profile> seed() async {
     final now = DateTime.now();

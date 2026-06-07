@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/database/app_database.dart';
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/calorie_tracking/data/calorie_record_sync_repository.dart';
@@ -22,36 +23,32 @@ import 'package:cat_calories_core/features/sync/domain/sync_server_repository.da
 import 'package:cat_calories/features/sync/syncer.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
-import 'package:get_it/get_it.dart';
-
 import 'package:cat_calories_core/features/sync/sync_adapter.dart';
-
-final locator = GetIt.instance;
 
 void registerServices() {
   locator.registerLazySingleton<DatabaseClient>(() => AppDatabase.instance);
   locator.registerLazySingleton<CalorieRecordRepositoryInterface>(
-      () => CalorieRecordRepository(locator<DatabaseClient>()));
+      () => CalorieRecordRepository(locator.get<DatabaseClient>()));
   locator.registerLazySingleton<ProfileRepositoryInterface>(
-    () => ProfileRepository(locator<DatabaseClient>()),
+    () => ProfileRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<WakingPeriodRepositoryInterface>(
-    () => WakingPeriodRepository(locator<DatabaseClient>()),
+    () => WakingPeriodRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<ProductRepositoryInterface>(
-    () => ProductRepository(locator<DatabaseClient>()),
+    () => ProductRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<ProductCategoryRepositoryInterface>(
-    () => ProductCategoryRepository(locator<DatabaseClient>()),
+    () => ProductCategoryRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<SyncServerRepositoryInterface>(
-    () => SyncServerRepository(locator<DatabaseClient>()),
+    () => SyncServerRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<ScopedServerLinkRepositoryInterface>(
-    () => ScopedServerLinkRepository(locator<DatabaseClient>()),
+    () => ScopedServerLinkRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<AuthCredentialsRepositoryInterface>(
-    () => AuthCredentialsRepository(locator<DatabaseClient>()),
+    () => AuthCredentialsRepository(locator.get<DatabaseClient>()),
   );
   locator.registerLazySingleton<AuthClient>(() => AuthClient());
   locator.registerLazySingleton<EmbeddedServerService>(() => EmbeddedServerService());
@@ -60,16 +57,16 @@ void registerServices() {
     final registry = SyncAdapterRegistry();
     registry.register(
       CalorieRecordSyncAdapter(),
-      CalorieRecordSyncRepository(locator<CalorieRecordRepositoryInterface>()),
+      CalorieRecordSyncRepository(locator.get<CalorieRecordRepositoryInterface>()),
     );
     // Register more entity types here:
     // registry.register(ProductSyncAdapter(), ProductSyncRepository(...));
     return registry;
   });
   locator.registerLazySingleton<Syncer>(() => Syncer(
-    serverRepo: locator<SyncServerRepositoryInterface>(),
-    credentialsRepo: locator<AuthCredentialsRepositoryInterface>(),
-    linkRepo: locator<ScopedServerLinkRepositoryInterface>(),
-    registry: locator<SyncAdapterRegistry>(),
+    serverRepo: locator.get<SyncServerRepositoryInterface>(),
+    credentialsRepo: locator.get<AuthCredentialsRepositoryInterface>(),
+    linkRepo: locator.get<ScopedServerLinkRepositoryInterface>(),
+    registry: locator.get<SyncAdapterRegistry>(),
   ));
 }

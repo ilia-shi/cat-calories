@@ -9,9 +9,9 @@ import 'package:cat_calories_core/features/sync/domain/scoped_server_link_reposi
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories_core/features/sync/transport/rest/config.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
 
 class EditServersScreen extends StatefulWidget {
@@ -22,11 +22,11 @@ class EditServersScreen extends StatefulWidget {
 }
 
 class EditServersScreenState extends State<EditServersScreen> {
-  final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
-  final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
-  final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
+  final _serverRepo = locator.get<SyncServerRepositoryInterface>();
+  final _linkRepo = locator.get<ScopedServerLinkRepositoryInterface>();
+  final _profileRepo = locator.get<ProfileRepositoryInterface>();
   final _credentialsRepo =
-  GetIt.instance<AuthCredentialsRepositoryInterface>();
+  locator.get<AuthCredentialsRepositoryInterface>();
 
   List<SyncServer> _servers = [];
   List<Profile> _profiles = [];
@@ -442,7 +442,7 @@ class EditServersScreenState extends State<EditServersScreen> {
     setState(() => _syncingServers.add(server.id));
 
     try {
-      final syncer = GetIt.instance<Syncer>();
+      final syncer = locator.get<Syncer>();
       final result = await syncer.syncServer(server);
 
       if (mounted) {
@@ -478,11 +478,11 @@ class EditServerScreen extends StatefulWidget {
 }
 
 class EditServerScreenState extends State<EditServerScreen> {
-  final _serverRepo = GetIt.instance<SyncServerRepositoryInterface>();
-  final _linkRepo = GetIt.instance<ScopedServerLinkRepositoryInterface>();
-  final _profileRepo = GetIt.instance<ProfileRepositoryInterface>();
+  final _serverRepo = locator.get<SyncServerRepositoryInterface>();
+  final _linkRepo = locator.get<ScopedServerLinkRepositoryInterface>();
+  final _profileRepo = locator.get<ProfileRepositoryInterface>();
   final _credentialsRepo =
-  GetIt.instance<AuthCredentialsRepositoryInterface>();
+  locator.get<AuthCredentialsRepositoryInterface>();
 
   final _urlControllers = <TextEditingController>[TextEditingController()];
   final _nameController = TextEditingController();

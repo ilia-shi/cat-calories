@@ -8,11 +8,11 @@ import 'package:cat_calories/screens/calories/calories_history.dart';
 import 'package:cat_calories/screens/profile/create_profile_screen.dart';
 import 'package:cat_calories/screens/profile/edit_profile_screen.dart';
 import 'package:cat_calories/screens/settings/servers_screen.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/service/embedded_server_service.dart';
 import 'package:cat_calories/utils/cat_avatar_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 
 class HomeAppDrawer extends StatelessWidget {
   const HomeAppDrawer({Key? key}) : super(key: key);
@@ -79,7 +79,7 @@ class _DrawerHeader extends StatelessWidget {
             ),
             currentAccountPicture: CircleAvatar(
               backgroundImage:
-              CatAvatarResolver.getImageByProfle(state.activeProfile),
+              CatAvatarResolver.getImageByProfile(state.activeProfile),
             ),
           );
         }
@@ -107,7 +107,7 @@ final class _ProfilesList extends StatelessWidget {
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: CatAvatarResolver.getImageByProfle(profile),
+                  backgroundImage: CatAvatarResolver.getImageByProfile(profile),
                 ),
                 title: Text(profile.name),
                 trailing: isActive
@@ -185,7 +185,7 @@ class _WebServerTile extends StatefulWidget {
 }
 
 class _WebServerTileState extends State<_WebServerTile> {
-  final _webServer = GetIt.instance.get<EmbeddedServerService>();
+  final _webServer = locator.get<EmbeddedServerService>();
   bool _starting = false;
 
   @override

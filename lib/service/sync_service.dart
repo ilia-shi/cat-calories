@@ -11,8 +11,8 @@ import 'package:cat_calories_core/features/products/domain/product_category_repo
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,7 +24,6 @@ class SyncService {
   static const String _emailKey = 'sync_email';
   static const String _passwordKey = 'sync_password';
 
-  final _locator = GetIt.instance;
   StreamSubscription? _connectivitySubscription;
   bool _syncing = false;
 
@@ -164,10 +163,10 @@ class SyncService {
     final prefs = await SharedPreferences.getInstance();
     final lastSyncedStr = prefs.getString(_lastSyncedAtKey);
 
-    final calorieRepo = _locator.get<CalorieRecordRepositoryInterface>();
-    final profileRepo = _locator.get<ProfileRepositoryInterface>();
-    final wakingPeriodRepo = _locator.get<WakingPeriodRepositoryInterface>();
-    final productRepo = _locator.get<ProductRepositoryInterface>();
+    final calorieRepo = locator.get<CalorieRecordRepositoryInterface>();
+    final profileRepo = locator.get<ProfileRepositoryInterface>();
+    final wakingPeriodRepo = locator.get<WakingPeriodRepositoryInterface>();
+    final productRepo = locator.get<ProductRepositoryInterface>();
     // Gather all local data
     final allItems = await calorieRepo.findAll();
     final allProfiles = await profileRepo.fetchAll();
@@ -243,9 +242,9 @@ class SyncService {
   }
 
   Future<List<ProductCategory>> _fetchAllProductCategories() async {
-    final repo = _locator.get<ProductCategoryRepositoryInterface>();
+    final repo = locator.get<ProductCategoryRepositoryInterface>();
     // Fetch categories for all profiles
-    final profiles = await _locator.get<ProfileRepositoryInterface>().fetchAll();
+    final profiles = await locator.get<ProfileRepositoryInterface>().fetchAll();
     final categories = <ProductCategory>[];
     for (final p in profiles) {
       categories.addAll(await repo.fetchByProfile(p));

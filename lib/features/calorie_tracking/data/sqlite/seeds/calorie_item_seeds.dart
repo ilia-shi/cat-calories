@@ -8,8 +8,8 @@ import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_seeds/cat_calories_seeds.dart';
-import 'package:get_it/get_it.dart';
 
 final class CalorieItemSeedExecutor implements SeedExecutor {
   final CalorieRecordRepositoryInterface calorieRepo;
@@ -27,7 +27,6 @@ final class CalorieItemSeedExecutor implements SeedExecutor {
   });
 
   static CalorieItemSeedExecutor fromLocator() {
-    final locator = GetIt.instance;
     return CalorieItemSeedExecutor(
       calorieRepo: locator.get<CalorieRecordRepositoryInterface>(),
       profileRepo: locator.get<ProfileRepositoryInterface>(),

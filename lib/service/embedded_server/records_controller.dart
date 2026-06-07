@@ -3,12 +3,11 @@ import 'dart:io';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/service/profile_resolver.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
-import 'package:get_it/get_it.dart';
 
 class RecordsController extends Controller {
-  final _locator = GetIt.instance;
 
   /// Called after a write operation so the mobile UI can refresh.
   void Function()? onDataChanged;
@@ -22,7 +21,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _index(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepositoryInterface>();
+    final repo = locator.get<CalorieRecordRepositoryInterface>();
     final profile = await ProfileResolver().resolve();
     final items = await repo.fetchAllByProfile(profile, orderBy: 'created_at DESC');
 
@@ -38,7 +37,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _create(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepositoryInterface>();
+    final repo = locator.get<CalorieRecordRepositoryInterface>();
     final profile = await ProfileResolver().resolve();
 
     final data = await parseJsonBody(request);
@@ -73,7 +72,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _update(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepositoryInterface>();
+    final repo = locator.get<CalorieRecordRepositoryInterface>();
     final id = params['id']!;
     final item = await repo.find(id);
 
@@ -107,7 +106,7 @@ class RecordsController extends Controller {
   }
 
   Future<void> _destroy(HttpRequest request, Map<String, String> params) async {
-    final repo = _locator.get<CalorieRecordRepositoryInterface>();
+    final repo = locator.get<CalorieRecordRepositoryInterface>();
     final id = params['id']!;
     final item = await repo.find(id);
 

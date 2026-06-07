@@ -10,10 +10,10 @@ import 'package:cat_calories_core/features/waking_periods/domain/waking_period_r
 import 'package:cat_calories/service/profile_resolver.dart';
 import 'package:cat_calories/service/sync_service.dart';
 import 'package:cat_calories/utils/expression_executor.dart';
+import 'package:cat_calories/common/locator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/blocs/home/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
-import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'home_event.dart';
@@ -21,8 +21,6 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_
 import 'package:cat_calories/service/calorie_recommendation_service.dart';
 
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
-  final locator = GetIt.instance;
-
   late ProductRepositoryInterface productRepository = locator.get<ProductRepositoryInterface>();
   late ProductCategoryRepositoryInterface productCategoryRepository =
   locator.get<ProductCategoryRepositoryInterface>();
