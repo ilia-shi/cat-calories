@@ -127,6 +127,12 @@ firewall:
 
 test: test-dart test-web test-server
 
+# Architecture boundary check (import_lint). Reports cross-feature / cross-layer
+# import violations defined in analysis_options.yaml. Currently warnings only;
+# set `severity: "error"` there to make this fail CI.
+arch:
+	dart run import_lint
+
 test-dart:
 	flutter test test/api_schema_test.dart
 

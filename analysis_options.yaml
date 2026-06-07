@@ -1,0 +1,106 @@
+# Architecture boundary enforcement for the `cat_calories` app package.
+#
+# Tooling: import_lint (https://pub.dev/packages/import_lint). Each rule means
+# "files matching `target` must NOT import anything matching `from` (minus
+# `except`)". Run `dart run import_lint` (also reported in the IDE via the
+# analyzer plugin).
+#
+# `severity` is GLOBAL (warning | error). It is `warning` for now so the
+# baseline is non-breaking; flip to `error` in CI once the feature-isolation
+# violations below are paid down.
+#
+# Note: the domain package `packages/core` needs no rules here — Dart's package
+# system already makes it impossible for core to import the app or Flutter,
+# because neither is declared in its pubspec. That boundary is compiler-enforced.
+
+analyzer:
+  plugins:
+    - import_lint
+
+import_lint:
+  severity: "warning"
+  rules:
+    # ----------------------------------------------------------------------
+    # Layer direction (currently GREEN — these are regression guard-rails).
+    # Infrastructure (data/ — sqlite repositories) must not reach "up" into
+    # the UI layer or into Flutter widgets.
+    # ----------------------------------------------------------------------
+    data_must_not_import_feature_ui:
+      target: "package:cat_calories/features/**/data/**"
+      from: "package:cat_calories/features/**/ui/**"
+      except: []
+
+    data_must_not_import_shared_widgets:
+      target: "package:cat_calories/features/**/data/**"
+      from: "package:cat_calories/common/widgets/**"
+      except: []
+
+    # ----------------------------------------------------------------------
+    # `common/` is the lower, shared layer (theme, widgets, utils). Its leaf
+    # code must stay feature-agnostic so it can be reused by any feature.
+    # (The DI composition root `common/service_registry.dart` legitimately
+    # knows every feature and lives at common/ root, so it is not targeted.)
+    # ----------------------------------------------------------------------
+    common_theme_must_not_import_features:
+      target: "package:cat_calories/common/theme/**"
+      from: "package:cat_calories/features/**"
+      except: []
+
+    common_widgets_must_not_import_features:
+      target: "package:cat_calories/common/widgets/**"
+      from: "package:cat_calories/features/**"
+      except: []
+
+    common_utils_must_not_import_features:
+      target: "package:cat_calories/common/utils/**"
+      from: "package:cat_calories/features/**"
+      except: []
+
+    # ----------------------------------------------------------------------
+    # Feature isolation: a leaf feature may import core, common and pub
+    # packages, but NOT a sibling feature. `dashboard` is intentionally
+    # omitted — it is the aggregator/composition UI and is allowed to depend
+    # downward on the leaf features.
+    #
+    # These currently SURFACE EXISTING DEBT (e.g. leaf features importing the
+    # dashboard's HomeBloc). Keep as warnings until resolved.
+    # ----------------------------------------------------------------------
+    calorie_tracking_isolation:
+      target: "package:cat_calories/features/calorie_tracking/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/calorie_tracking/**"]
+
+    products_isolation:
+      target: "package:cat_calories/features/products/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/products/**"]
+
+    profile_isolation:
+      target: "package:cat_calories/features/profile/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/profile/**"]
+
+    waking_periods_isolation:
+      target: "package:cat_calories/features/waking_periods/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/waking_periods/**"]
+
+    sync_isolation:
+      target: "package:cat_calories/features/sync/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/sync/**"]
+
+    oauth_isolation:
+      target: "package:cat_calories/features/oauth/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/oauth/**"]
+
+    embedded_server_isolation:
+      target: "package:cat_calories/features/embedded_server/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/embedded_server/**"]
+
+    planning_isolation:
+      target: "package:cat_calories/features/planning/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/planning/**"]
