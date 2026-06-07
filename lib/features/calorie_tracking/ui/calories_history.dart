@@ -5,7 +5,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
-import 'package:cat_calories/features/profile/profile_resolver.dart';
+import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:cat_calories/common/locator.dart';

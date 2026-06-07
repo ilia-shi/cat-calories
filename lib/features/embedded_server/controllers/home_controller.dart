@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
-import 'package:cat_calories/features/profile/profile_resolver.dart';
+import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';

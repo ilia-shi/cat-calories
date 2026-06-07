@@ -7,7 +7,7 @@ import 'package:cat_calories_core/features/products/domain/product_repository_in
 import 'package:cat_calories_core/features/products/domain/product_category_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
-import 'package:cat_calories/features/profile/profile_resolver.dart';
+import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/features/sync/sync_service.dart';
 import 'package:cat_calories/common/utils/expression_executor.dart';
 import 'package:cat_calories/common/locator.dart';

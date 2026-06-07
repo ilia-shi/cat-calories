@@ -3,7 +3,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
-import 'package:cat_calories/features/profile/profile_resolver.dart';
+import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
