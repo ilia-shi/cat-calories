@@ -1,6 +1,6 @@
-import 'package:cat_calories/features/dashboard/ui/bloc/home_bloc.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_event.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_state.dart';
+import 'package:cat_calories/app/state/home_bloc.dart';
+import 'package:cat_calories/app/state/home_event.dart';
+import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/theme/theme_cubit.dart';
 import 'package:cat_calories/common/theme/theme_state.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';

@@ -57,13 +57,18 @@ import_lint:
       except: []
 
     # ----------------------------------------------------------------------
-    # Feature isolation: a leaf feature may import core, common and pub
-    # packages, but NOT a sibling feature. `dashboard` is intentionally
-    # omitted — it is the aggregator/composition UI and is allowed to depend
-    # downward on the leaf features.
+    # Feature isolation: a leaf feature may import core, common, the shared
+    # app-state layer (lib/app/**, e.g. HomeBloc) and pub packages, but NOT a
+    # sibling feature. `dashboard` is intentionally omitted — it is the
+    # aggregator/composition UI and is allowed to depend downward on leaves.
     #
-    # These currently SURFACE EXISTING DEBT (e.g. leaf features importing the
-    # dashboard's HomeBloc). Keep as warnings until resolved.
+    # `from` only bans `features/**`, so features -> app/** is allowed by
+    # design (HomeBloc is shared application state, not a dashboard concern;
+    # it was relocated out of features/dashboard for exactly this reason).
+    #
+    # Remaining violations are genuine cross-feature couplings to pay down
+    # (e.g. screens importing profile_resolver / sync_service / embedded_server
+    # services, sync -> oauth login UI). Keep as warnings until resolved.
     # ----------------------------------------------------------------------
     calorie_tracking_isolation:
       target: "package:cat_calories/features/calorie_tracking/**"

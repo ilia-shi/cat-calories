@@ -12,7 +12,7 @@ import 'package:cat_calories/common/theme/theme.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_bloc.dart';
+import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/features/dashboard/ui/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

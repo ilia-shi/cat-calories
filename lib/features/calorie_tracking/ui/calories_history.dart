@@ -1,6 +1,6 @@
-import 'package:cat_calories/features/dashboard/ui/bloc/home_bloc.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_event.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_state.dart';
+import 'package:cat_calories/app/state/home_bloc.dart';
+import 'package:cat_calories/app/state/home_event.dart';
+import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';

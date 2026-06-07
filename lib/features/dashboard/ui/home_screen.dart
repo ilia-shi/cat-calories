@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:cat_calories/features/dashboard/ui/bloc/home_bloc.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_event.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_state.dart';
+import 'package:cat_calories/app/state/home_bloc.dart';
+import 'package:cat_calories/app/state/home_event.dart';
+import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calories_history.dart';
 import 'package:cat_calories/features/dashboard/ui/tabs/main_info_tab.dart';

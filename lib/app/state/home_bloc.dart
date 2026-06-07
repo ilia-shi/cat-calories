@@ -12,7 +12,7 @@ import 'package:cat_calories/features/sync/sync_service.dart';
 import 'package:cat_calories/common/utils/expression_executor.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:cat_calories/features/dashboard/ui/bloc/home_state.dart';
+import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
