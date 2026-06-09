@@ -1,0 +1,962 @@
+import 'dart:async';
+
+import 'package:cat_calories/app/state/home_bloc.dart';
+import 'package:cat_calories/app/state/home_event.dart';
+import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/days_screen.dart';
+import 'package:cat_calories/features/dashboard/ui/widgets/calorie_chip.dart';
+import 'package:cat_calories/features/embedded_server/embedded_server_service.dart';
+import 'package:cat_calories/features/products/ui/categories_screen.dart';
+import 'package:cat_calories/features/products/ui/create_product_screen.dart';
+import 'package:cat_calories/features/sync/syncer.dart';
+import 'package:cat_calories/features/sync/ui/servers_screen.dart';
+import 'package:cat_calories/features/waking_periods/ui/waking_periods_screen.dart';
+import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
+import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const HomeAppBar({super.key});
+
+  @override
+  Size get preferredSize =>
+      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+
+  static const _tabMenuItems = [
+    Tab(text: 'Tracking'),
+    Tab(text: 'Products'),
+    Tab(text: 'kCal'),
+    Tab(text: 'Info'),
+  ];
+
+  List<PopupMenuEntry<String>> _buildMenuItems() {
+    return [
+      const PopupMenuItem<String>(
+        value: 'export_json',
+        child: ListTile(
+          leading: Icon(Icons.file_download),
+          title: Text('Export to JSON'),
+        ),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<String>(
+        value: 'categories',
+        child: ListTile(
+          leading: Icon(Icons.category),
+          title: Text('Manage Categories'),
+        ),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<String>(
+        value: 'calories',
+        child: ListTile(title: Text('Calories')),
+      ),
+      const PopupMenuItem<String>(
+        value: 'create_product',
+        child: ListTile(title: Text('Create product (legacy)')),
+      ),
+      const PopupMenuItem<String>(
+        value: 'days',
+        child: ListTile(title: Text('Days (legacy)')),
+      ),
+      const PopupMenuItem<String>(
+        value: 'periods',
+        child: ListTile(title: Text('Waking Periods (legacy)')),
+      ),
+    ];
+  }
+
+  void _handleMenuSelection(
+      BuildContext context, String value, HomeFetched state) {
+    if (value == 'export_json') {
+      _showExportDialog(context, state);
+      return;
+    }
+
+    final routes = <String, Widget Function()>{
+      'create_product': () => CreateProductScreen(state.activeProfile),
+      'calories': () => DayCaloriesPage(state.startDate),
+      'days': () => DaysScreen(),
+      'periods': () => WakingPeriodsScreen(),
+      'categories': () => const ProductCategoriesScreen(),
+    };
+
+    final builder = routes[value];
+    if (builder != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => builder()));
+    }
+  }
+
+  void _showExportDialog(BuildContext context, HomeFetched state) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Export to JSON'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Choose what to export:'),
+              const SizedBox(height: 16),
+              _ExportSummaryWidget(state: state),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _exportToday(context, state);
+              },
+              child: const Text('Today'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _exportPeriod(context, state);
+              },
+              child: const Text('Period'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _exportAll(context, state);
+              },
+              child: const Text('All Data'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _exportToday(BuildContext context, HomeFetched state) async {
+    try {
+      _showLoadingSnackBar(context, 'Preparing export...');
+      await CalorieExporter.exportTodayAndShare(
+        todayCalorieItems: state.todayCalorieItems,
+        profile: state.activeProfile,
+      );
+      _showSuccessSnackBar(context, 'Today\'s data exported successfully!');
+    } catch (e) {
+      _showErrorSnackBar(context, 'Export failed: $e');
+    }
+  }
+
+  Future<void> _exportPeriod(BuildContext context, HomeFetched state) async {
+    try {
+      _showLoadingSnackBar(context, 'Preparing export...');
+      await CalorieExporter.exportPeriodAndShare(
+        periodCalorieItems: state.periodCalorieItems,
+        profile: state.activeProfile,
+        currentWakingPeriod: state.currentWakingPeriod,
+      );
+      _showSuccessSnackBar(context, 'Period data exported successfully!');
+    } catch (e) {
+      _showErrorSnackBar(context, 'Export failed: $e');
+    }
+  }
+
+  Future<void> _exportAll(BuildContext context, HomeFetched state) async {
+    try {
+      _showLoadingSnackBar(context, 'Preparing export...');
+
+      final allItems = <String, dynamic>{};
+      for (final item in state.todayCalorieItems) {
+        if (item.id != null) allItems[item.id!] = item;
+      }
+      for (final item in state.periodCalorieItems) {
+        if (item.id != null) allItems[item.id!] = item;
+      }
+      for (final item in state.rollingWindowCalorieItems) {
+        if (item.id != null) allItems[item.id!] = item;
+      }
+
+      await CalorieExporter.exportAndShare(
+        calorieItems: allItems.values.toList().cast(),
+        profile: state.activeProfile,
+        products: state.products,
+        wakingPeriods: state.wakingPeriods,
+        exportType: 'full',
+      );
+
+      _showSuccessSnackBar(context, 'All data exported successfully!');
+    } catch (e) {
+      _showErrorSnackBar(context, 'Export failed: $e');
+    }
+  }
+
+  void _showLoadingSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 16),
+            Text(message),
+          ],
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 16),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final menuItems = _buildMenuItems();
+
+    return AppBar(
+      actions: [
+        _SyncIndicator(),
+        _WebServerIndicator(),
+        BlocBuilder<HomeBloc, AbstractHomeState>(
+          builder: (context, state) {
+            if (state is HomeFetched) {
+              return PopupMenuButton(
+                itemBuilder: (BuildContext context) => menuItems,
+                onSelected: (String value) =>
+                    _handleMenuSelection(context, value, state),
+              );
+            }
+
+            return PopupMenuButton(
+              enabled: false,
+              itemBuilder: (BuildContext context) => [],
+            );
+          },
+        ),
+      ],
+      bottom: const TabBar(
+        labelStyle: TextStyle(fontSize: 12),
+        tabs: _tabMenuItems,
+      ),
+      title: BlocBuilder<HomeBloc, AbstractHomeState>(
+        builder: (context, state) {
+          if (state is HomeFetched) {
+            return _CompactCalorieDisplay(state: state);
+          }
+
+          return Text('...');
+        },
+      ),
+    );
+  }
+}
+
+class _ExportSummaryWidget extends StatelessWidget {
+  final HomeFetched state;
+
+  const _ExportSummaryWidget({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final todaySummary =
+        CalorieExporter.getExportSummary(state.todayCalorieItems);
+    final periodSummary =
+        CalorieExporter.getExportSummary(state.periodCalorieItems);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SummaryRow(
+            label: 'Today',
+            value:
+                '${todaySummary['eaten_items']} items, ${todaySummary['total_calories'].toStringAsFixed(0)} kcal',
+          ),
+          const SizedBox(height: 4),
+          _SummaryRow(
+            label: 'Period',
+            value:
+                '${periodSummary['eaten_items']} items, ${periodSummary['total_calories'].toStringAsFixed(0)} kcal',
+          ),
+          const SizedBox(height: 4),
+          _SummaryRow(
+            label: 'Products',
+            value: '${state.products.length} items',
+          ),
+          const SizedBox(height: 4),
+          _SummaryRow(
+            label: 'Categories',
+            value: '${state.productCategories.length} items',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        Text(value,
+            style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+      ],
+    );
+  }
+}
+
+class _CompactCalorieDisplay extends StatelessWidget {
+  final HomeFetched state;
+
+  const _CompactCalorieDisplay({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final todayEaten = state.getTodayCaloriesEatenSum();
+    final todayGoal = state.activeProfile.caloriesLimitGoal;
+    final todayOver = todayEaten > todayGoal;
+
+    final macros = MacroData.fromCalorieItems(state.todayCalorieItems);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(width: 8),
+        CalorieChip(
+          label: 'T',
+          value: todayEaten.round(),
+          goal: todayGoal.round(),
+          isOver: todayOver,
+          tooltip: 'Today',
+        ),
+        if (macros.hasAnyData) ...[
+          const SizedBox(width: 8),
+          _MacroText(
+            label: 'P',
+            value: macros.proteinGrams,
+            color: Colors.blue.shade300,
+          ),
+          const SizedBox(width: 6),
+          _MacroText(
+            label: 'F',
+            value: macros.fatGrams,
+            color: Colors.orange.shade300,
+          ),
+          const SizedBox(width: 6),
+          _MacroText(
+            label: 'C',
+            value: macros.carbGrams,
+            color: Colors.green.shade300,
+          ),
+        ],
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+}
+
+class _MacroText extends StatelessWidget {
+  final String label;
+  final double? value;
+  final Color color;
+
+  const _MacroText({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: '$label: ${(value ?? 0).toStringAsFixed(1)} g',
+      child: Text(
+        '$label ${(value ?? 0).round()}',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _WebServerIndicator extends StatefulWidget {
+  @override
+  State<_WebServerIndicator> createState() => _WebServerIndicatorState();
+}
+
+class _WebServerIndicatorState extends State<_WebServerIndicator> {
+  final _webServer = locator.get<EmbeddedServerService>();
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_webServer.isRunning) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => _showMenu(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Icon(
+          Icons.lan,
+          size: 16,
+          color: Colors.green.shade400,
+        ),
+      ),
+    );
+  }
+
+  void _showMenu(BuildContext context) {
+    final address = _webServer.address ?? 'unknown';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lan, color: Colors.green.shade400, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Web Server',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Running',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green.shade400,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.link, size: 20),
+                  title: const Text('Address',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: SelectableText(
+                    'http://$address',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.numbers, size: 20),
+                  title: const Text('Port',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: Text(
+                    '${EmbeddedServerService.defaultPort}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 16, color: Colors.grey.shade500),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Open the address on any device in the same network',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.stop_circle_outlined,
+                      color: Colors.red.shade400, size: 22),
+                  title: Text('Stop server',
+                      style: TextStyle(color: Colors.red.shade400)),
+                  onTap: () async {
+                    await _webServer.stop();
+                    if (mounted) setState(() {});
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SyncIndicator extends StatefulWidget {
+  @override
+  State<_SyncIndicator> createState() => _SyncIndicatorState();
+}
+
+class _SyncIndicatorState extends State<_SyncIndicator> {
+  final _serverRepo = locator.get<SyncServerRepositoryInterface>();
+  final _credentialsRepo = locator.get<AuthCredentialsRepositoryInterface>();
+  final _syncer = locator.get<Syncer>();
+
+  late final Timer _timer;
+  List<SyncServer> _servers = [];
+  int _authedCount = 0;
+  bool _isSyncing = false;
+  String? _lastSyncedAt;
+
+  @override
+  void initState() {
+    print('[BOOT] _SyncIndicator.initState()');
+    super.initState();
+    _loadState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) _loadState();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadState() async {
+    print('[BOOT] _SyncIndicator._loadState - start');
+    final servers = await _serverRepo.findAll();
+    print('[BOOT] _SyncIndicator._loadState - got ${servers.length} servers');
+    int authed = 0;
+    for (final s in servers) {
+      final creds = await _credentialsRepo.findByServer(s.id);
+      if (creds != null) authed++;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final lastSync = prefs.getString('sync_last_synced_at');
+    if (mounted) {
+      setState(() {
+        _servers = servers;
+        _authedCount = authed;
+        _lastSyncedAt = lastSync;
+      });
+    }
+  }
+
+  bool get _hasServers => _servers.isNotEmpty && _authedCount > 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _hasServers
+          ? () => _doQuickSync(context)
+          : () => _showDisconnectedMenu(context),
+      onLongPress: _hasServers ? () => _showConnectedMenu(context) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: _isSyncing
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.green.shade400,
+                ),
+              )
+            : Icon(
+                Icons.sync_rounded,
+                size: 18,
+                color:
+                    _hasServers ? Colors.green.shade400 : Colors.grey.shade500,
+              ),
+      ),
+    );
+  }
+
+  Future<void> _doQuickSync(BuildContext context) async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+
+    final result = await _syncer.syncAll();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'sync_last_synced_at', DateTime.now().toUtc().toIso8601String());
+    await _loadState();
+
+    if (mounted) {
+      setState(() => _isSyncing = false);
+      if (result.hasChanges) {
+        BlocProvider.of<HomeBloc>(context)
+            .add(CalorieItemListFetchingInProgressEvent());
+      }
+      final allFailed = result.serverResults.isNotEmpty &&
+          result.totalFailed == result.serverResults.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          duration: const Duration(seconds: 2),
+          backgroundColor:
+              allFailed ? Colors.red.shade600 : Colors.green.shade600,
+        ),
+      );
+    }
+  }
+
+  String _formatLastSync() {
+    if (_lastSyncedAt == null) return 'Never';
+    try {
+      final dt = DateTime.parse(_lastSyncedAt!).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${dt.day}.${dt.month.toString().padLeft(2, '0')} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return _lastSyncedAt ?? 'Unknown';
+    }
+  }
+
+  void _showConnectedMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Icon(Icons.sync_rounded,
+                              color: Colors.green.shade400, size: 20),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Remote Sync',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$_authedCount server${_authedCount == 1 ? '' : 's'}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green.shade400,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    for (final server in _servers)
+                      ListTile(
+                        leading: const Icon(Icons.dns_outlined, size: 20),
+                        title: Text(
+                          server.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          server.serverUrls.first,
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    ListTile(
+                      leading: const Icon(Icons.schedule, size: 20),
+                      title: const Text('Last sync',
+                          style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      subtitle: Text(
+                        _formatLastSync(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(Icons.sync_rounded,
+                          color: _isSyncing
+                              ? Colors.grey
+                              : Theme.of(context).colorScheme.primary,
+                          size: 22),
+                      title: Text(
+                        _isSyncing ? 'Syncing...' : 'Sync all servers',
+                        style: TextStyle(
+                          color: _isSyncing
+                              ? Colors.grey
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      onTap: _isSyncing
+                          ? null
+                          : () async {
+                              setSheetState(() => _isSyncing = true);
+                              setState(() => _isSyncing = true);
+                              final result = await _syncer.syncAll();
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.setString('sync_last_synced_at',
+                                  DateTime.now().toUtc().toIso8601String());
+                              await _loadState();
+                              if (sheetContext.mounted) {
+                                setSheetState(() => _isSyncing = false);
+                              }
+                              if (mounted) {
+                                setState(() => _isSyncing = false);
+                                if (result.hasChanges) {
+                                  BlocProvider.of<HomeBloc>(context).add(
+                                      CalorieItemListFetchingInProgressEvent());
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result.message),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: Colors.green.shade600,
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.settings,
+                          color: Colors.grey.shade600, size: 22),
+                      title: Text('Manage servers',
+                          style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black54)),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const EditServersScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDisconnectedMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync_rounded,
+                          color: Colors.grey.shade500, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Remote Sync',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'No servers',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.schedule, size: 20),
+                  title: const Text('Last sync',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  subtitle: Text(
+                    _formatLastSync(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.add_circle_outline,
+                      color: Theme.of(context).colorScheme.primary, size: 22),
+                  title: Text(
+                    'Add server',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.primary),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const EditServersScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
