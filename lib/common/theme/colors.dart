@@ -5,9 +5,9 @@ const DangerColor = Color(0xFFE3002F);
 const DangerLiteColor = Color(0xFFEE657F);
 
 /// Macro nutrient colors
-const MacroProteinColor = Colors.red;
-const MacroFatColor = Colors.amber;
-const MacroCarbColor = Colors.green;
+const MacroProteinColor = Color(0xFF1E88E5); // blue 600
+const MacroFatColor = Color(0xFFFB8C00); // orange 600
+const MacroCarbColor = Color(0xFF43A047); // green 600
 
 /// Theme-aware color helpers accessed via `AppColors.of(context)`
 class AppColors {

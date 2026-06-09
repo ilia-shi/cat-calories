@@ -3,6 +3,7 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -680,13 +681,12 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildMacroChip('P', protein, Colors.blue),
-              _buildMacroChip('F', fat, Colors.orange),
-              _buildMacroChip('C', carbs, Colors.purple),
-            ],
+          Center(
+            child: MacroBadgesRow(
+              protein: protein,
+              fat: fat,
+              carbs: carbs,
+            ),
           ),
           if (hasAllMacros && calculatedCalories > 0) ...[
             const SizedBox(height: 12),
@@ -741,49 +741,6 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
               ),
             ],
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMacroChip(String label, double value, Color color) {
-    final appColors = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: appColors.tintedSurface(color),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '${value.toStringAsFixed(1)}g',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: appColors.tintedText(color),
-            ),
-          ),
         ],
       ),
     );

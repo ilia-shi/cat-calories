@@ -1,5 +1,6 @@
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:flutter/material.dart';
 
 class ProportionalEditResult {
@@ -226,7 +227,7 @@ class _ProportionalEditBottomSheetState
             const SizedBox(height: 6),
             _buildComparisonRow(
               label: 'P',
-              color: Colors.blue.shade600,
+              color: MacroProteinColor,
               oldValue: '${item.proteinGrams!.toStringAsFixed(0)}g',
               newValue: _newProtein != null
                   ? '${_newProtein!.toStringAsFixed(0)}g'
@@ -238,7 +239,7 @@ class _ProportionalEditBottomSheetState
             const SizedBox(height: 6),
             _buildComparisonRow(
               label: 'F',
-              color: Colors.orange.shade600,
+              color: MacroFatColor,
               oldValue: '${item.fatGrams!.toStringAsFixed(0)}g',
               newValue:
                   _newFat != null ? '${_newFat!.toStringAsFixed(0)}g' : null,
@@ -249,7 +250,7 @@ class _ProportionalEditBottomSheetState
             const SizedBox(height: 6),
             _buildComparisonRow(
               label: 'C',
-              color: Colors.green.shade600,
+              color: MacroCarbColor,
               oldValue: '${item.carbGrams!.toStringAsFixed(0)}g',
               newValue: _newCarbs != null
                   ? '${_newCarbs!.toStringAsFixed(0)}g'
@@ -277,23 +278,9 @@ class _ProportionalEditBottomSheetState
           width: 28,
           child: icon != null
               ? Icon(icon, size: 16, color: color)
-              : Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      label!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ),
+              : Align(
+                  alignment: Alignment.centerLeft,
+                  child: MacroCircle(label: label!, color: color),
                 ),
         ),
         // Old value

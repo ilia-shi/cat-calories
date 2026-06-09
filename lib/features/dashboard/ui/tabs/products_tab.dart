@@ -808,12 +808,11 @@ class _ProductListItem extends StatelessWidget {
         children: [
           if (product.hasNutrition) ...[
             const SizedBox(height: 4),
-            MacrosRow(
+            MacroBadgesRow(
               calories: product.caloriesPer100g,
               protein: product.proteinsPer100g,
               fat: product.fatsPer100g,
               carbs: product.carbsPer100g,
-              compact: true,
             ),
           ],
           if (category != null)
@@ -933,7 +932,7 @@ class _ProductGridItem extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                MacrosInline(
+                MacroBadgesRow(
                   protein: product.proteinsPer100g,
                   fat: product.fatsPer100g,
                   carbs: product.carbsPer100g,

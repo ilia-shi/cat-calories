@@ -4,6 +4,7 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
@@ -380,53 +381,14 @@ class _CompactCalorieDisplay extends StatelessWidget {
         ),
         if (macros.hasAnyData) ...[
           const SizedBox(width: 8),
-          _MacroText(
-            label: 'P',
-            value: macros.proteinGrams,
-            color: Colors.blue.shade300,
-          ),
-          const SizedBox(width: 6),
-          _MacroText(
-            label: 'F',
-            value: macros.fatGrams,
-            color: Colors.orange.shade300,
-          ),
-          const SizedBox(width: 6),
-          _MacroText(
-            label: 'C',
-            value: macros.carbGrams,
-            color: Colors.green.shade300,
+          MacroBadgesRow(
+            protein: macros.proteinGrams,
+            fat: macros.fatGrams,
+            carbs: macros.carbGrams,
           ),
         ],
         const SizedBox(width: 8),
       ],
-    );
-  }
-}
-
-class _MacroText extends StatelessWidget {
-  final String label;
-  final double? value;
-  final Color color;
-
-  const _MacroText({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: '$label: ${(value ?? 0).toStringAsFixed(1)} g',
-      child: Text(
-        '$label ${(value ?? 0).round()}',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
     );
   }
 }

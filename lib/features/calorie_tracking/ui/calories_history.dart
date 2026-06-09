@@ -7,6 +7,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/material.dart';
@@ -333,13 +334,12 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildSummaryMacro('P', _totalProtein, Colors.blue.shade300),
-                  _buildSummaryMacro('F', _totalFat, Colors.orange.shade300),
-                  _buildSummaryMacro('C', _totalCarbs, Colors.green.shade300),
-                ],
+              child: Center(
+                child: MacroBadgesRow(
+                  protein: _totalProtein,
+                  fat: _totalFat,
+                  carbs: _totalCarbs,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -361,41 +361,6 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSummaryMacro(String label, double value, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.3),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          '${value.round()}g',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 
@@ -654,52 +619,13 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         color: appColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildMacroChip('P', summary.totalProtein, summary.hasProteinData, Colors.blue.shade600),
-          const SizedBox(width: 12),
-          _buildMacroChip('F', summary.totalFat, summary.hasFatData, Colors.orange.shade600),
-          const SizedBox(width: 12),
-          _buildMacroChip('C', summary.totalCarbs, summary.hasCarbData, Colors.green.shade600),
-        ],
+      child: Center(
+        child: MacroBadgesRow(
+          protein: summary.hasProteinData ? summary.totalProtein : null,
+          fat: summary.hasFatData ? summary.totalFat : null,
+          carbs: summary.hasCarbData ? summary.totalCarbs : null,
+        ),
       ),
-    );
-  }
-
-  Widget _buildMacroChip(String label, double value, bool hasData, Color color) {
-    final appColors = AppColors.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: appColors.macroCircleBg(color, hasData),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: appColors.macroCircleText(color, hasData),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          hasData ? '${value.round()}g' : '—',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: appColors.macroValueText(hasData),
-          ),
-        ),
-      ],
     );
   }
 
@@ -891,20 +817,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _buildItemMacroIndicator(
-            'P',
-            item.proteinGrams,
-            Colors.blue.shade600,
-          ),
-          _buildItemMacroIndicator(
-            'F',
-            item.fatGrams,
-            Colors.orange.shade600,
-          ),
-          _buildItemMacroIndicator(
-            'C',
-            item.carbGrams,
-            Colors.green.shade600,
+          MacroBadgesRow(
+            protein: item.proteinGrams,
+            fat: item.fatGrams,
+            carbs: item.carbGrams,
           ),
           if (item.weightGrams != null)
             Row(
@@ -933,43 +849,6 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildItemMacroIndicator(String label, double? value, Color color) {
-    final appColors = AppColors.of(context);
-    final hasValue = value != null;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            color: appColors.macroCircleBg(color, hasValue),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                color: appColors.macroCircleText(color, hasValue),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          hasValue ? '${value.round()}g' : '—',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: appColors.macroValueText(hasValue),
-          ),
-        ),
-      ],
     );
   }
 

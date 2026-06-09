@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -317,58 +318,10 @@ final class IndicatorsWidget extends StatelessWidget {
 
   /// Compact inline macro display for indicator cards
   Widget _buildInlineMacros(BuildContext context, MacroData macros) {
-    final theme = Theme.of(context);
-
-    return Row(
-      children: [
-        _buildMiniMacro('P', macros.proteinGrams, Colors.blue.shade600, theme),
-        const SizedBox(width: 6),
-        _buildMiniMacro('F', macros.fatGrams, Colors.orange.shade600, theme),
-        const SizedBox(width: 6),
-        _buildMiniMacro('C', macros.carbGrams, Colors.green.shade600, theme),
-      ],
-    );
-  }
-
-  /// Mini macro indicator for inline display
-  Widget _buildMiniMacro(String label, double? value, Color color, ThemeData theme) {
-    final isUndefined = value == null;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: isUndefined
-                ? Colors.grey.withValues(alpha: 0.2)
-                : color.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 7,
-                fontWeight: FontWeight.bold,
-                color: isUndefined ? Colors.grey : color,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          isUndefined ? '—' : '${value.round()}',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: isUndefined
-                ? Colors.grey
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+    return MacroBadgesRow(
+      protein: macros.proteinGrams,
+      fat: macros.fatGrams,
+      carbs: macros.carbGrams,
     );
   }
 

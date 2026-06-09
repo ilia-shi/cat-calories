@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,11 +80,11 @@ extension NutritionFieldExtension on NutritionField {
       case NutritionField.calories:
         return Colors.orange;
       case NutritionField.protein:
-        return Colors.red;
+        return MacroProteinColor;
       case NutritionField.fat:
-        return Colors.amber;
+        return MacroFatColor;
       case NutritionField.carbs:
-        return Colors.green;
+        return MacroCarbColor;
     }
   }
 }
