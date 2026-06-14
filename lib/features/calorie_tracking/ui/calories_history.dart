@@ -7,6 +7,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:cat_calories/common/locator.dart';
@@ -272,27 +273,18 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     final avgPerDay = totalDays > 0 ? _totalAllTime / totalDays : 0.0;
     final hasMacroData = _totalProtein > 0 || _totalFat > 0 || _totalCarbs > 0;
 
-    return Container(
+    return AppCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.8),
-            Theme.of(context).primaryColor,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+      gradient: LinearGradient(
+        colors: [
+          Theme.of(context).primaryColor.withValues(alpha: 0.8),
+          Theme.of(context).primaryColor,
         ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
+      shadowColor: Theme.of(context).primaryColor,
       child: Column(
         children: [
           Row(
@@ -330,9 +322,9 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           if (hasMacroData) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
+              decoration: ShapeDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                shape: AppCard.squircleBorder(radius: 12),
               ),
               child: Center(
                 child: MacroBadgesRow(
@@ -346,9 +338,9 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
+              shape: AppCard.squircleBorder(radius: 20),
             ),
             child: Text(
               '$_totalItems entries total',
@@ -410,21 +402,14 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       dateLabel = DateFormat('EEEE, MMM d, y').format(date);
     }
 
-    return Card(
+    final headerShape = AppCard.squircleBorder(bottom: !isExpanded);
+
+    return AppCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: isToday ? 4 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: isToday
-            ? BorderSide(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-          width: 2,
-        )
-            : BorderSide.none,
-      ),
+      padding: EdgeInsets.zero,
+      emphasized: isToday,
       child: Column(
         children: [
-          // Date Header
           InkWell(
             onTap: () {
               setState(() {
@@ -435,26 +420,19 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 }
               });
             },
-            borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(16),
-              bottom: isExpanded ? Radius.zero : const Radius.circular(16),
-            ),
+            customBorder: headerShape,
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: ShapeDecoration(
                 color: isToday
                     ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
                     : null,
-                borderRadius: BorderRadius.vertical(
-                  top: const Radius.circular(16),
-                  bottom: isExpanded ? Radius.zero : const Radius.circular(16),
-                ),
+                shape: headerShape,
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      // Date Badge
                       Container(
                         width: 56,
                         height: 56,
@@ -497,7 +475,6 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Day Info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1041,9 +1018,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return ProportionalEditBottomSheet(
           item: item,

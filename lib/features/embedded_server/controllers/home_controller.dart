@@ -28,21 +28,18 @@ class HomeController extends Controller {
         .where((item) => (item.eatenAt ?? item.createdAt).isAfter(twentyFourHoursAgo))
         .fold(0.0, (sum, item) => sum + item.value);
 
-    // Today (calendar day)
     final todayStart = DateTime(now.year, now.month, now.day);
     final today = eatenItems.where((item) {
       final t = item.eatenAt ?? item.createdAt;
       return !t.isBefore(todayStart) && t.isBefore(todayStart.add(const Duration(days: 1)));
     }).fold(0.0, (sum, item) => sum + item.value);
 
-    // Yesterday
     final yesterdayStart = todayStart.subtract(const Duration(days: 1));
     final yesterday = eatenItems.where((item) {
       final t = item.eatenAt ?? item.createdAt;
       return !t.isBefore(yesterdayStart) && t.isBefore(todayStart);
     }).fold(0.0, (sum, item) => sum + item.value);
 
-    // 7-day average (last 7 completed days, excluding today)
     final days = await repo.fetchDaysByProfile(profile, 30);
     final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
     final relevantDays = days.where((day) {
@@ -67,7 +64,6 @@ class HomeController extends Controller {
       periodGoal = currentPeriod.caloriesLimitGoal;
     }
 
-    // Recent meals (last 24h)
     final recentMeals = eatenItems
         .where((item) => (item.eatenAt ?? item.createdAt).isAfter(twentyFourHoursAgo))
         .map((item) => <String, dynamic>{

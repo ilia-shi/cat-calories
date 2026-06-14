@@ -1,9 +1,7 @@
-import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:flutter/material.dart';
-
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
 
-/// Widget displaying recent calorie entries within the 24h window
 class RecentEntriesWidget extends StatelessWidget {
   final List<CalorieEntry> entries;
   final DateTime currentTime;
@@ -70,24 +68,10 @@ class RecentEntriesWidget extends StatelessWidget {
     final displayEntries = entries.take(maxEntries).toList();
     final hasMore = entries.length > maxEntries;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Text(
@@ -115,7 +99,6 @@ class RecentEntriesWidget extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Entries list
           if (entries.isEmpty)
             Center(
               child: Padding(
@@ -170,20 +153,8 @@ class RecentEntriesWidget extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isExpiringSoon
-            ? AppColors.of(context).tintedSurface(Colors.green, alpha: 0.08)
-            : theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isExpiringSoon
-              ? AppColors.of(context).tintedSurface(Colors.green, alpha: 0.3)
-              : theme.dividerColor.withValues(alpha: 0.5),
-        ),
-      ),
       child: Row(
         children: [
-          // Dot indicator
           Container(
             width: 10,
             height: 10,
@@ -201,7 +172,6 @@ class RecentEntriesWidget extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Value
           Text(
             '${entry.value.toStringAsFixed(entry.value.truncateToDouble() == entry.value ? 0 : 1)} kcal',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -209,7 +179,6 @@ class RecentEntriesWidget extends StatelessWidget {
             ),
           ),
 
-          // Description if present
           if (entry.description != null) ...[
             const SizedBox(width: 8),
             Expanded(
@@ -224,7 +193,6 @@ class RecentEntriesWidget extends StatelessWidget {
           ] else
             const Spacer(),
 
-          // Time info
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

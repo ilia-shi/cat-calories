@@ -1,6 +1,9 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/common/theme/theme_cubit.dart';
 import 'package:cat_calories/common/theme/theme_state.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -19,31 +22,47 @@ class HomeAppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final background =
+        theme.drawerTheme.backgroundColor ?? theme.colorScheme.surface;
+
     return Drawer(
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: const [
-                _DrawerHeader(),
-                _ProfilesList(),
-                _CreateProfileTile(),
-                Divider(),
-                _CalorieHistoryTile(),
-                Divider(),
-                _WebServerTile(),
-                Divider(),
-                _ThemeSwitcherTile(),
-                Divider(),
-                _ProfileSettingsTile(),
-                Divider(),
-                _ServerSettingsTile(),
+      backgroundColor: Colors.transparent,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: CustomTheme.surfaceBlurSigma,
+            sigmaY: CustomTheme.surfaceBlurSigma,
+          ),
+          child: ColoredBox(
+            color: background.withValues(alpha: CustomTheme.surfaceOpacity),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: const [
+                      _DrawerHeader(),
+                      _ProfilesList(),
+                      _CreateProfileTile(),
+                      Divider(),
+                      _CalorieHistoryTile(),
+                      Divider(),
+                      _WebServerTile(),
+                      Divider(),
+                      _ThemeSwitcherTile(),
+                      Divider(),
+                      _ProfileSettingsTile(),
+                      Divider(),
+                      _ServerSettingsTile(),
+                    ],
+                  ),
+                ),
+                const _VersionFooter(),
               ],
             ),
           ),
-          const _VersionFooter(),
-        ],
+        ),
       ),
     );
   }
@@ -60,11 +79,7 @@ class _DrawerHeader extends StatelessWidget {
       builder: (context, state) {
         if (state is HomeFetched) {
           return UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Theme.of(context).colorScheme.surface
-                  : Colors.white,
-            ),
+            decoration: const BoxDecoration(color: Colors.transparent),
             accountName: Text(
               state.activeProfile.name,
               style: TextStyle(
@@ -79,7 +94,7 @@ class _DrawerHeader extends StatelessWidget {
             ),
             currentAccountPicture: CircleAvatar(
               backgroundImage:
-              CatAvatarResolver.getImageByProfile(state.activeProfile),
+                  CatAvatarResolver.getImageByProfile(state.activeProfile),
             ),
           );
         }
@@ -112,14 +127,16 @@ final class _ProfilesList extends StatelessWidget {
                 title: Text(profile.name),
                 trailing: isActive
                     ? Icon(
-                  Icons.check_circle,
-                  color: Theme.of(context).colorScheme.primary,
-                )
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
                     : null,
                 selected: isActive,
                 onTap: () {
                   if (!isActive) {
-                    context.read<HomeBloc>().add(ChangeProfileEvent(profile, () {}));
+                    context
+                        .read<HomeBloc>()
+                        .add(ChangeProfileEvent(profile, () {}));
                   }
                   Navigator.of(context).pop();
                 },
@@ -288,21 +305,21 @@ class _ThemeSwitcherTile extends StatelessWidget {
               return ListTile(
                 leading: Icon(
                   _getThemeIcon(mode),
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
+                  color:
+                      isSelected ? Theme.of(context).colorScheme.primary : null,
                 ),
                 title: Text(
                   _getThemeModeLabel(mode),
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
                 trailing: isSelected
                     ? Icon(
-                  Icons.check_circle,
-                  color: Theme.of(context).colorScheme.primary,
-                )
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
                     : null,
                 onTap: () {
                   context.read<ThemeCubit>().setThemeMode(mode);
@@ -355,15 +372,15 @@ class _ThemeDropdownButton extends StatelessWidget {
               children: [
                 Icon(
                   _getThemeIcon(mode),
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
+                  color:
+                      isSelected ? Theme.of(context).colorScheme.primary : null,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   _getThemeModeLabel(mode),
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected
                         ? Theme.of(context).colorScheme.primary
                         : null,

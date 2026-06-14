@@ -1,19 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
-import '../widgets/budget_display_widget.dart';
 import '../widgets/density_scale_widget.dart';
-import '../widgets/forecast_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
-import '../widgets/meal_recommendation_widget.dart';
 import '../widgets/recent_entries_widget.dart';
-import '../widgets/time_control_widget.dart';
-
 
 final class TrackingTab extends StatefulWidget {
   const TrackingTab({Key? key}) : super(key: key);
@@ -23,19 +17,11 @@ final class TrackingTab extends StatefulWidget {
 }
 
 class _TrackingTabState extends State<TrackingTab> {
-
   late DateTime _baseTime;
   double _hoursOffset = 0;
-
-  // Tracker instance
   late RollingCalorieTracker _tracker;
-
   List<CalorieEntry> _entries = [];
-
-  // FIXED: Timer for periodic refresh
   Timer? _refreshTimer;
-
-  // FIXED: Track the current day to detect day changes
   late int _lastKnownDay;
 
   @override
@@ -57,20 +43,15 @@ class _TrackingTabState extends State<TrackingTab> {
       ),
     );
 
-    // FIXED: Set up periodic refresh timer
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted) {
         final now = DateTime.now();
-
-        // Check if the day has changed
         if (now.day != _lastKnownDay) {
           _lastKnownDay = now.day;
-          // Day changed - trigger bloc refresh to get fresh data
           BlocProvider.of<HomeBloc>(context)
               .add(CalorieItemListFetchingInProgressEvent());
         }
 
-        // Always refresh UI to update time display when offset is 0
         if (_hoursOffset == 0) {
           setState(() {});
         }
@@ -80,35 +61,24 @@ class _TrackingTabState extends State<TrackingTab> {
 
   @override
   void dispose() {
-    // FIXED: Cancel timer on dispose
     _refreshTimer?.cancel();
     super.dispose();
   }
 
-  // FIXED: Use DateTime.now() when offset is 0 for accurate current time
   DateTime get _currentTime {
     if (_hoursOffset == 0) {
       return DateTime.now();
     }
+
     return _baseTime.add(Duration(
       minutes: (_hoursOffset * 60).round(),
     ));
   }
 
-  void _handleTimeOffsetChanged(double offset) {
-    setState(() {
-      _hoursOffset = offset;
-      // When user starts using time simulation, reset the base time
-      if (offset != 0) {
-        _baseTime = DateTime.now();
-      }
-    });
-  }
-
   void _handleRemoveEntry(CalorieEntry entry) {
     setState(() {
-      _entries.removeWhere((e) =>
-      e.createdAt == entry.createdAt && e.value == entry.value);
+      _entries.removeWhere(
+          (e) => e.createdAt == entry.createdAt && e.value == entry.value);
     });
   }
 
@@ -116,23 +86,20 @@ class _TrackingTabState extends State<TrackingTab> {
     return state.rollingWindowCalorieItems
         .where((item) => item.isEaten())
         .map((item) => CalorieEntry(
-      createdAt: item.eatenAt ?? item.createdAt,
-      value: item.value,
-      description: item.description,
-    ))
+              createdAt: item.eatenAt ?? item.createdAt,
+              value: item.value,
+              description: item.description,
+            ))
         .toList();
   }
 
-  /// Calculate indicators data from the bloc state
-  IndicatorData _calculateIndicatorData(HomeFetched state, List<CalorieEntry> entries) {
+  IndicatorData _calculateIndicatorData(
+      HomeFetched state, List<CalorieEntry> entries) {
     final now = _currentTime;
     final dailyGoal = state.activeProfile.caloriesLimitGoal;
 
-    // 1. Calories for last 24 hours (rolling window)
     final caloriesLast24Hours = _tracker.consumedInLast24h(entries, now);
 
-    // 2. Calories for today (calendar day)
-    // FIXED: When using time simulation, calculate "today" based on the simulated time
     final double caloriesToday;
     if (_hoursOffset == 0) {
       caloriesToday = state.todayCalorieItems
@@ -142,8 +109,9 @@ class _TrackingTabState extends State<TrackingTab> {
       final simulatedDayStart = DateTime(now.year, now.month, now.day);
       final simulatedDayEnd = simulatedDayStart.add(const Duration(days: 1));
       caloriesToday = entries
-          .where((e) => e.createdAt.isAfter(simulatedDayStart) &&
-          e.createdAt.isBefore(simulatedDayEnd))
+          .where((e) =>
+              e.createdAt.isAfter(simulatedDayStart) &&
+              e.createdAt.isBefore(simulatedDayEnd))
           .fold(0.0, (sum, e) => sum + e.value);
     }
 
@@ -153,20 +121,14 @@ class _TrackingTabState extends State<TrackingTab> {
         .where((item) => item.isEaten())
         .fold(0.0, (sum, item) => sum + item.value);
 
-    // Period goal
-    final periodGoal = state.currentWakingPeriod?.caloriesLimitGoal ?? dailyGoal;
+    final periodGoal =
+        state.currentWakingPeriod?.caloriesLimitGoal ?? dailyGoal;
     final hasPeriod = state.currentWakingPeriod != null;
 
-    // Calculate macro data for today
     final macrosToday = MacroData.fromCalorieItems(
       state.todayCalorieItems,
-      // You can add goals here if your profile has them
-      // proteinGoal: state.activeProfile.proteinGoal,
-      // fatGoal: state.activeProfile.fatGoal,
-      // carbGoal: state.activeProfile.carbGoal,
     );
 
-    // Calculate macro data for 24h rolling window
     final macros24h = MacroData.fromCalorieItems(
       state.rollingWindowCalorieItems,
     );
@@ -187,12 +149,12 @@ class _TrackingTabState extends State<TrackingTab> {
     );
   }
 
-  /// Calculate yesterday's calories from days30 data or rolling window
-  double _calculateYesterdayCalories(HomeFetched state, List<CalorieEntry> entries, DateTime now) {
-    final yesterdayStart = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+  double _calculateYesterdayCalories(
+      HomeFetched state, List<CalorieEntry> entries, DateTime now) {
+    final yesterdayStart = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 1));
     final yesterdayEnd = DateTime(now.year, now.month, now.day);
 
-    // Try to get from days30 data first (when not in simulation mode)
     if (_hoursOffset == 0) {
       for (final dayResult in state.days30) {
         final dayDate = dayResult.createdAtDay;
@@ -204,34 +166,33 @@ class _TrackingTabState extends State<TrackingTab> {
       }
     }
 
-    // Fallback or simulation mode: calculate from entries
     double yesterdayTotal = 0.0;
     for (final entry in entries) {
-      if (entry.createdAt.isAfter(yesterdayStart) && entry.createdAt.isBefore(yesterdayEnd)) {
+      if (entry.createdAt.isAfter(yesterdayStart) &&
+          entry.createdAt.isBefore(yesterdayEnd)) {
         yesterdayTotal += entry.value;
       }
     }
     return yesterdayTotal;
   }
 
-  /// Calculate average daily calories for last 7 days, excluding last 24 hours
-  double _calculateAverageLast7Days(HomeFetched state, List<CalorieEntry> entries, DateTime now) {
+  double _calculateAverageLast7Days(
+      HomeFetched state, List<CalorieEntry> entries, DateTime now) {
     // Use days30 data for historical average (excluding today)
     final todayStart = DateTime(now.year, now.month, now.day);
     final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
 
     final relevantDays = state.days30.where((day) {
       final dayDate = day.createdAtDay;
-      return dayDate.isAfter(sevenDaysAgo) &&
-          dayDate.isBefore(todayStart);
+      return dayDate.isAfter(sevenDaysAgo) && dayDate.isBefore(todayStart);
     }).toList();
 
     if (relevantDays.isEmpty) {
-      // Fallback: use tracker's average method
       return _tracker.getAverageDaily(entries, now, days: 7);
     }
 
-    final totalCalories = relevantDays.fold(0.0, (sum, day) => sum + day.valueSum);
+    final totalCalories =
+        relevantDays.fold(0.0, (sum, day) => sum + day.valueSum);
     return totalCalories / relevantDays.length;
   }
 
@@ -260,27 +221,24 @@ class _TrackingTabState extends State<TrackingTab> {
           config = _tracker.config;
         }
 
-        final recommendation = _tracker.getRecommendation(entries, _currentTime);
-        final forecast = _tracker.getForecast(entries, _currentTime, hours: 12);
         final recentEntries = _tracker.entriesInLast24h(entries, _currentTime);
 
         final indicatorData = state is HomeFetched
             ? _calculateIndicatorData(state, entries)
             : IndicatorData(
-          averageLast7Days: 0,
-          caloriesLast24Hours:
-          _tracker.consumedInLast24h(entries, _currentTime),
-          caloriesToday: 0,
-          caloriesYesterday: 0,
-          caloriesCurrentPeriod: 0,
-          dailyGoal: config.targetDailyCalories,
-          todayCalorieItems: [],
-          now: _baseTime,
-        );
+                averageLast7Days: 0,
+                caloriesLast24Hours:
+                    _tracker.consumedInLast24h(entries, _currentTime),
+                caloriesToday: 0,
+                caloriesYesterday: 0,
+                caloriesCurrentPeriod: 0,
+                dailyGoal: config.targetDailyCalories,
+                todayCalorieItems: [],
+                now: _baseTime,
+              );
 
         return RefreshIndicator(
           onRefresh: () async {
-            // FIXED: Reset base time and trigger bloc refresh on pull-to-refresh
             setState(() {
               _baseTime = DateTime.now();
               _lastKnownDay = DateTime.now().day;
@@ -290,59 +248,22 @@ class _TrackingTabState extends State<TrackingTab> {
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             child: Column(
               children: [
                 IndicatorsWidget(
                   data: indicatorData,
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 DensityScaleWidget(
                   entries: entries,
                   currentTime: _currentTime,
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                TimeControlWidget(
-                  baseTime: _baseTime,
-                  hoursOffset: _hoursOffset,
-                  onOffsetChanged: _handleTimeOffsetChanged,
-                  minOffset: -96,
-                  maxOffset: 96,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Budget Display
-                BudgetDisplayWidget(
-                  recommendation: recommendation,
-                ),
-
-                const SizedBox(height: 16),
-
-                const SizedBox(height: 16),
-
-                // Meal Recommendation
-                MealRecommendationWidget(
-                  recommendation: recommendation,
-                  currentTime: _currentTime,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Forecast
-                ForecastWidget(
-                  forecast: forecast,
-                  targetCalories: config.targetDailyCalories,
-                  currentTime: _currentTime,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Recent Entries
                 RecentEntriesWidget(
                   entries: recentEntries,
                   currentTime: _currentTime,

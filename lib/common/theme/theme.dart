@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
 class CustomTheme {
+  // Frosted-glass surfaces (app bar, drawer): the blur strength applied to the
+  // content behind the surface, and the opacity of the surface colour tint
+  // painted on top of that blur.
+  static const double surfaceBlurSigma = 4;
+  static const double surfaceOpacity = 0.7;
+
   // Primary colors
   static const Color _primaryLight = Color(0xFF6200EE);
   static const Color _primaryDark = Color(0xFFBB86FC);

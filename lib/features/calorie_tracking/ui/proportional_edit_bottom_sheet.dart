@@ -1,5 +1,9 @@
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_field_display.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_keypad.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_sheet.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:flutter/material.dart';
 
@@ -105,46 +109,25 @@ class _ProportionalEditBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final appColors = AppColors.of(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: appColors.surfaceElevated,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHandle(appColors),
-              _buildHeader(appColors),
-              const SizedBox(height: 12),
-              _buildWeightInput(appColors, isDarkMode),
-              const SizedBox(height: 8),
-              _buildComparison(appColors),
-              const SizedBox(height: 8),
-              _buildKeypad(isDarkMode),
-              const SizedBox(height: 8),
-            ],
-          ),
+    return CalculatorSheet(
+      header: _buildHeader(appColors),
+      children: [
+        const SizedBox(height: 12),
+        _buildWeightInput(appColors),
+        const SizedBox(height: 8),
+        _buildComparison(appColors),
+        const SizedBox(height: 8),
+        CalculatorKeypad(
+          canSubmit: _isValid,
+          submitLabel: 'Save',
+          submitAccent: Colors.teal,
+          onKey: _onKeyPress,
+          onSubmit: _onSubmit,
         ),
-      ),
-    );
-  }
-
-  Widget _buildHandle(AppColors appColors) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: appColors.textDisabled,
-        borderRadius: BorderRadius.circular(2),
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -155,9 +138,9 @@ class _ProportionalEditBottomSheetState
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: Colors.teal.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              shape: AppCard.squircleBorder(radius: 8),
             ),
             child: const Icon(Icons.scale, color: Colors.teal, size: 20),
           ),
@@ -194,9 +177,9 @@ class _ProportionalEditBottomSheetState
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(12),
+        shape: AppCard.squircleBorder(radius: 12),
       ),
       child: Column(
         children: [
@@ -318,170 +301,46 @@ class _ProportionalEditBottomSheetState
     );
   }
 
-  Widget _buildWeightInput(AppColors appColors, bool isDarkMode) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[850] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.teal.withValues(alpha: 0.5),
-          width: 2,
-        ),
-      ),
-      child: Column(
+  Widget _buildWeightInput(AppColors appColors) {
+    return CalculatorFieldDisplay(
+      icon: Icons.scale,
+      label: 'New Weight',
+      color: Colors.teal,
+      value: _weightText.isEmpty ? '0' : _weightText,
+      unit: 'g',
+      isPlaceholder: _weightText.isEmpty,
+      footer: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.scale, color: Colors.teal, size: 18),
-              const SizedBox(width: 8),
-              const Text(
-                'New Weight',
-                style: TextStyle(
-                  color: Colors.teal,
+          Text(
+            'was ${_originalWeight.toStringAsFixed(0)}g',
+            style: TextStyle(
+              fontSize: 12,
+              color: appColors.textTertiary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Opacity(
+            opacity: _isValid ? 1.0 : 0.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.teal.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                _isValid ? '\u00d7${_ratio.toStringAsFixed(1)}' : '\u00d71.0',
+                style: const TextStyle(
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  color: Colors.teal,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _weightText.isEmpty ? '0' : _weightText,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w500,
-                  color: _weightText.isEmpty
-                      ? appColors.textDisabled
-                      : (isDarkMode ? Colors.white : Colors.black87),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'g',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'was ${_originalWeight.toStringAsFixed(0)}g',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: appColors.textTertiary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Opacity(
-                opacity: _isValid ? 1.0 : 0.0,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _isValid ? '\u00d7${_ratio.toStringAsFixed(1)}' : '\u00d71.0',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.teal,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildKeypad(bool isDarkMode) {
-    final keys = [
-      ['1', '2', '3', '⌫'],
-      ['4', '5', '6', 'C'],
-      ['7', '8', '9', '.'],
-      ['0', 'Save'],
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: keys.map((row) {
-          return Row(
-            children: row.map((key) {
-              final isSave = key == 'Save';
-              final isWideZero = key == '0' && row.length == 2;
-              return Expanded(
-                flex: (isSave || isWideZero) ? 2 : 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: _buildKeypadButton(key, isDarkMode),
-                ),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildKeypadButton(String key, bool isDarkMode) {
-    final isSave = key == 'Save';
-
-    Color backgroundColor;
-    Color textColor;
-
-    if (isSave) {
-      backgroundColor = _isValid ? Colors.teal : Colors.grey;
-      textColor = Colors.white;
-    } else if (key == 'C') {
-      backgroundColor = Colors.red.withValues(alpha: 0.1);
-      textColor = Colors.red;
-    } else if (key == '⌫') {
-      backgroundColor = Colors.orange.withValues(alpha: 0.1);
-      textColor = Colors.orange;
-    } else {
-      backgroundColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
-      textColor = isDarkMode ? Colors.white : Colors.black87;
-    }
-
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: isSave ? _onSubmit : () => _onKeyPress(key),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 52,
-          alignment: Alignment.center,
-          child: key == '⌫'
-              ? Icon(Icons.backspace_outlined, color: textColor, size: 22)
-              : Text(
-                  key,
-                  style: TextStyle(
-                    fontSize: isSave ? 16 : 20,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
 }

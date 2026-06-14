@@ -1,3 +1,7 @@
+import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_field_display.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_keypad.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_sheet.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:flutter/material.dart';
 
@@ -56,12 +60,6 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
     final text = _controller.text.trim();
     if (text.isEmpty) return null;
     return double.tryParse(text);
-  }
-
-  double? get _calculatedCalories {
-    final weight = _currentWeight;
-    if (weight == null || weight <= 0) return null;
-    return widget.product.calculateCalories(weight);
   }
 
   bool get _isValidInput {
@@ -131,51 +129,31 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHandle(),
-            _buildProductHeader(isDarkMode),
-            const SizedBox(height: 8),
-            _buildWeightDisplay(isDarkMode),
-            const SizedBox(height: 8),
-            _buildNutritionSummary(isDarkMode),
-            if (widget.product.hasPackageWeight) ...[
-              const SizedBox(height: 8),
-              _buildEntirePackageButton(isDarkMode),
-            ],
-            const SizedBox(height: 16),
-            _buildKeypad(isDarkMode),
-            const SizedBox(height: 8),
-          ],
+    return CalculatorSheet(
+      header: _buildProductHeader(),
+      children: [
+        const SizedBox(height: 8),
+        _buildWeightDisplay(),
+        const SizedBox(height: 8),
+        _buildNutritionSummary(isDarkMode),
+        if (widget.product.hasPackageWeight) ...[
+          const SizedBox(height: 8),
+          _buildEntirePackageButton(isDarkMode),
+        ],
+        const SizedBox(height: 16),
+        CalculatorKeypad(
+          canSubmit: _isValidInput,
+          onKey: _onKeyPress,
+          onSubmit: _onSubmit,
         ),
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
-  Widget _buildHandle() {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Colors.grey[400],
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-
-  Widget _buildProductHeader(bool isDarkMode) {
+  Widget _buildProductHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -183,9 +161,9 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: Colors.orange.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              shape: AppCard.squircleBorder(radius: 12),
             ),
             child: const Icon(
               Icons.restaurant,
@@ -223,44 +201,14 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
     );
   }
 
-  Widget _buildWeightDisplay(bool isDarkMode) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.scale,
-            size: 24,
-            color: Colors.blueGrey[400],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _controller.text.isEmpty ? '' : _controller.text,
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w600,
-                color: _controller.text.isEmpty ? Colors.grey[400] : null,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Text(
-            'g',
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[500],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildWeightDisplay() {
+    return CalculatorFieldDisplay(
+      icon: Icons.scale,
+      label: 'Weight',
+      color: Colors.blueGrey,
+      value: _controller.text.isEmpty ? '0' : _controller.text,
+      unit: 'g',
+      isPlaceholder: _controller.text.isEmpty,
     );
   }
 
@@ -274,11 +222,13 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: isDarkMode ? Colors.grey[850] : Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+        shape: AppCard.squircleBorder(
+          radius: 12,
+          side: BorderSide(
+            color: isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+          ),
         ),
       ),
       child: Row(
@@ -330,52 +280,12 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: AppCard.squircleBorder(radius: 12),
         ),
       ),
     );
   }
 
-  Widget _buildKeypad(bool isDarkMode) {
-    const keys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['C', '0', '⌫'],
-      ['.', 'OK'],
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: keys.map((row) {
-          return Row(
-            children: row.map((key) {
-              final isOk = key == 'OK';
-              final isValid = _isValidInput;
-              final flex = isOk ? 2 : 1;
-
-              return Expanded(
-                flex: flex,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: _KeypadButton(
-                    label: key,
-                    onTap: isOk ? _onSubmit : () => _onKeyPress(key),
-                    isOk: isOk,
-                    isValid: isValid,
-                    isDarkMode: isDarkMode,
-                  ),
-                ),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
-    );
-  }
 }
 
 class _NutritionItem extends StatelessWidget {
@@ -425,61 +335,3 @@ class _NutritionItem extends StatelessWidget {
   }
 }
 
-class _KeypadButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool isOk;
-  final bool isValid;
-  final bool isDarkMode;
-
-  const _KeypadButton({
-    required this.label,
-    required this.onTap,
-    required this.isOk,
-    required this.isValid,
-    required this.isDarkMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    Color backgroundColor;
-    Color textColor;
-
-    if (isOk) {
-      backgroundColor = isValid ? Colors.green : Colors.grey;
-      textColor = Colors.white;
-    } else if (label == 'C') {
-      backgroundColor = Colors.red.withValues(alpha: 0.1);
-      textColor = Colors.red;
-    } else if (label == '⌫') {
-      backgroundColor = Colors.orange.withValues(alpha: 0.1);
-      textColor = Colors.orange;
-    } else {
-      backgroundColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
-      textColor = isDarkMode ? Colors.white : Colors.black87;
-    }
-
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 52,
-          alignment: Alignment.center,
-          child: label == '⌫'
-              ? Icon(Icons.backspace_outlined, color: textColor, size: 22)
-              : Text(
-            label,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

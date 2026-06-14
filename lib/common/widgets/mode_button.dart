@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 
 final class ModeButton extends StatelessWidget {
@@ -18,11 +19,11 @@ final class ModeButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: ShapeDecoration(
           color:
               isSelected ? Theme.of(context).primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          shape: AppCard.squircleBorder(radius: 8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -33,12 +34,16 @@ final class ModeButton extends StatelessWidget {
               color: isSelected ? Colors.white : Colors.grey[600],
             ),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey[600],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey[600],
+                ),
               ),
             ),
           ],

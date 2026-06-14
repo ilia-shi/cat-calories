@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 
-/// The colored circle holding a macro letter ('P', 'F', 'C').
+/// The colored circle holding a macro letter ('P', 'F', 'C') or an [icon].
 class MacroCircle extends StatelessWidget {
   final String label;
+  final IconData? icon;
   final Color color;
   final bool hasData;
 
   const MacroCircle({
     Key? key,
     required this.label,
+    this.icon,
     required this.color,
     this.hasData = true,
   }) : super(key: key);
@@ -17,6 +19,13 @@ class MacroCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    if (icon != null) {
+      return Icon(
+        icon,
+        size: 16,
+        color: appColors.tintedText(color),
+      );
+    }
     return Container(
       width: 16,
       height: 16,
@@ -42,29 +51,46 @@ class MacroCircle extends StatelessWidget {
 /// in grams. Renders an em dash when the value is null.
 class MacroBadge extends StatelessWidget {
   final String label;
+  final IconData? icon;
   final double? value;
   final Color color;
+  final String unit;
 
   const MacroBadge({
     Key? key,
     required this.label,
+    this.icon,
     required this.value,
     required this.color,
+    this.unit = 'g',
   }) : super(key: key);
 
   const MacroBadge.protein({Key? key, required this.value})
       : label = 'P',
+        icon = null,
         color = MacroProteinColor,
+        unit = 'g',
         super(key: key);
 
   const MacroBadge.fat({Key? key, required this.value})
       : label = 'F',
+        icon = null,
         color = MacroFatColor,
+        unit = 'g',
         super(key: key);
 
   const MacroBadge.carbs({Key? key, required this.value})
       : label = 'C',
+        icon = null,
         color = MacroCarbColor,
+        unit = 'g',
+        super(key: key);
+
+  const MacroBadge.calories({Key? key, required this.value})
+      : label = '',
+        icon = Icons.local_fire_department,
+        color = MacroCaloriesColor,
+        unit = '',
         super(key: key);
 
   @override
@@ -74,10 +100,15 @@ class MacroBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MacroCircle(label: label, color: color, hasData: hasData),
+        MacroCircle(
+          label: label,
+          icon: icon,
+          color: color,
+          hasData: hasData,
+        ),
         const SizedBox(width: 4),
         Text(
-          hasData ? '${value!.round()}g' : '—',
+          hasData ? '${value!.round()}$unit' : '0',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -89,8 +120,6 @@ class MacroBadge extends StatelessWidget {
   }
 }
 
-/// The standard P/F/C badge trio, with an optional leading kcal value.
-/// Scales down to fit when the parent is narrower than the badges.
 class MacroBadgesRow extends StatelessWidget {
   final double? calories;
   final double? protein;

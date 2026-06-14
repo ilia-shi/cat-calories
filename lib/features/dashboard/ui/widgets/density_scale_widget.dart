@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
 
 class DensityScaleWidget extends StatelessWidget {
@@ -23,9 +24,6 @@ class DensityScaleWidget extends StatelessWidget {
           !entry.createdAt.isAfter(currentTime)) {
         final hoursAgo =
             currentTime.difference(entry.createdAt).inMinutes / 60.0;
-
-        // FIXED: Clamp bucket index to valid range (0 to bucketCount-1)
-        // This fixes edge case where entries at exactly currentTime would get bucketIndex = bucketCount
         final bucketIndex = ((24 - hoursAgo) / 24 * bucketCount).floor().clamp(0, bucketCount - 1);
 
         buckets[bucketIndex] += entry.value;
@@ -48,12 +46,15 @@ class DensityScaleWidget extends StatelessWidget {
     if (intensity == 0) {
       return isDark ? Colors.grey.shade800 : Colors.grey.shade200;
     }
+
     if (intensity < 0.25) {
       return isDark ? Colors.blue.shade700 : Colors.blue.shade200;
     }
+
     if (intensity < 0.5) {
       return isDark ? Colors.blue.shade500 : Colors.blue.shade400;
     }
+
     if (intensity < 0.75) {
       return isDark ? Colors.orange.shade600 : Colors.orange.shade400;
     }
@@ -69,24 +70,10 @@ class DensityScaleWidget extends StatelessWidget {
     final maxDensity = densities.reduce(max);
     final totalCalories = densities.fold<double>(0, (a, b) => a + b);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Text(
@@ -115,13 +102,8 @@ class DensityScaleWidget extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Density heatmap
           Container(
             height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.dividerColor),
-            ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(7),
               child: Row(
@@ -131,7 +113,6 @@ class DensityScaleWidget extends StatelessWidget {
                   final color = _getDensityColor(value, maxDensity, context);
                   final isLast = index == densities.length - 1;
 
-                  // Calculate time label for tooltip
                   final hoursAgo = 24 - (index / bucketCount * 24);
                   final timeLabel = hoursAgo <= 1
                       ? 'Last hour'
@@ -165,7 +146,6 @@ class DensityScaleWidget extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Time labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

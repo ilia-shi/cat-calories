@@ -1,15 +1,16 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/days_screen.dart';
-import 'package:cat_calories/features/dashboard/ui/widgets/calorie_chip.dart';
 import 'package:cat_calories/features/embedded_server/embedded_server_service.dart';
 import 'package:cat_calories/features/products/ui/categories_screen.dart';
 import 'package:cat_calories/features/products/ui/create_product_screen.dart';
@@ -23,19 +24,79 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const HomeAppBar({super.key});
+class HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double topPadding;
+
+  const HomeHeaderDelegate({required this.topPadding});
+
+  static const double _toolbarHeight = kToolbarHeight;
 
   @override
-  Size get preferredSize =>
-      const Size.fromHeight(kToolbarHeight + kTextTabBarHeight);
+  double get maxExtent => topPadding + _toolbarHeight;
 
-  static const _tabMenuItems = [
-    Tab(text: 'Tracking'),
-    Tab(text: 'Products'),
-    Tab(text: 'kCal'),
-    Tab(text: 'Info'),
-  ];
+  @override
+  double get minExtent => topPadding;
+
+  @override
+  bool shouldRebuild(covariant HomeHeaderDelegate oldDelegate) =>
+      oldDelegate.topPadding != topPadding;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final theme = Theme.of(context);
+    final background =
+        theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface;
+
+    final visibleFraction = (1 - shrinkOffset / _toolbarHeight).clamp(0.0, 1.0);
+    final headerExtent = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
+
+    return SizedBox(
+      height: headerExtent,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: CustomTheme.surfaceBlurSigma,
+            sigmaY: CustomTheme.surfaceBlurSigma,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: background.withValues(alpha: CustomTheme.surfaceOpacity),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Padding(
+                padding: EdgeInsets.only(top: topPadding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Collapses (and fades) from full height down to nothing.
+                    ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: visibleFraction,
+                        child: Opacity(
+                          opacity: visibleFraction,
+                          child: const SizedBox(
+                            height: _toolbarHeight,
+                            child: _HomeToolbar(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeToolbar extends StatelessWidget {
+  const _HomeToolbar();
 
   List<PopupMenuEntry<String>> _buildMenuItems() {
     return [
@@ -250,8 +311,31 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final menuItems = _buildMenuItems();
 
-    return AppBar(
-      actions: [
+    return Row(
+      children: [
+        Builder(
+          builder: (context) => Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: BlocBuilder<HomeBloc, AbstractHomeState>(
+            builder: (context, state) {
+              if (state is HomeFetched) {
+                return _CompactCalorieDisplay(state: state);
+              }
+
+              return const Text('...');
+            },
+          ),
+        ),
         _SyncIndicator(),
         _WebServerIndicator(),
         BlocBuilder<HomeBloc, AbstractHomeState>(
@@ -271,19 +355,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           },
         ),
       ],
-      bottom: const TabBar(
-        labelStyle: TextStyle(fontSize: 12),
-        tabs: _tabMenuItems,
-      ),
-      title: BlocBuilder<HomeBloc, AbstractHomeState>(
-        builder: (context, state) {
-          if (state is HomeFetched) {
-            return _CompactCalorieDisplay(state: state);
-          }
-
-          return Text('...');
-        },
-      ),
     );
   }
 }
@@ -363,30 +434,20 @@ class _CompactCalorieDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final todayEaten = state.getTodayCaloriesEatenSum();
-    final todayGoal = state.activeProfile.caloriesLimitGoal;
-    final todayOver = todayEaten > todayGoal;
 
     final macros = MacroData.fromCalorieItems(state.todayCalorieItems);
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
+        MacroBadge.calories(value: todayEaten),
         const SizedBox(width: 8),
-        CalorieChip(
-          label: 'T',
-          value: todayEaten.round(),
-          goal: todayGoal.round(),
-          isOver: todayOver,
-          tooltip: 'Today',
-        ),
-        if (macros.hasAnyData) ...[
-          const SizedBox(width: 8),
-          MacroBadgesRow(
+        Flexible(
+          child: MacroBadgesRow(
             protein: macros.proteinGrams,
             fat: macros.fatGrams,
             carbs: macros.carbGrams,
           ),
-        ],
+        ),
         const SizedBox(width: 8),
       ],
     );

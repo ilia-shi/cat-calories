@@ -4,12 +4,11 @@ const SuccessColor = Color(0xFF00BD2D);
 const DangerColor = Color(0xFFE3002F);
 const DangerLiteColor = Color(0xFFEE657F);
 
-/// Macro nutrient colors
-const MacroProteinColor = Color(0xFF1E88E5); // blue 600
-const MacroFatColor = Color(0xFFFB8C00); // orange 600
-const MacroCarbColor = Color(0xFF43A047); // green 600
+const MacroProteinColor = Color(0xFF1E88E5);
+const MacroFatColor = Color(0xFFFB8C00);
+const MacroCarbColor = Color(0xFF43A047);
+const MacroCaloriesColor = Color(0xFFED7272);
 
-/// Theme-aware color helpers accessed via `AppColors.of(context)`
 class AppColors {
   final bool isDark;
 
@@ -19,22 +18,18 @@ class AppColors {
     return AppColors._(Theme.of(context).brightness == Brightness.dark);
   }
 
-  // Text colors
   Color get textPrimary => isDark ? Colors.white : Colors.black87;
   Color get textSecondary => isDark ? Colors.white70 : Colors.grey.shade600;
   Color get textTertiary => isDark ? Colors.white54 : Colors.grey.shade500;
   Color get textDisabled => isDark ? Colors.white38 : Colors.grey.shade400;
 
-  // Surface colors for chips, badges, containers
   Color get surfaceSubtle => isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100;
   Color get surfaceMuted => isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50;
-  Color get surfaceElevated => isDark ? const Color(0xFF2C2C2C) : Colors.white;
+  Color get surfaceElevated => isDark ? const Color(0xFF181818) : Colors.white;
 
-  // Border colors
   Color get border => isDark ? Colors.white.withValues(alpha: 0.12) : Colors.grey.shade200;
   Color get borderSubtle => isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100;
 
-  // Tinted surface (for colored chip backgrounds)
   Color tintedSurface(Color color, {double alpha = 0.1}) {
     return isDark
         ? color.withValues(alpha: alpha * 0.6)

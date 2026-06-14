@@ -1,10 +1,13 @@
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/theme/theme.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_field_display.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_keypad.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'mode_button.dart';
 
-/// Enum representing the different input fields in the nutrition calculator
 enum NutritionField {
   weight,
   calories,
@@ -13,7 +16,6 @@ enum NutritionField {
   carbs,
 }
 
-/// Extension to provide display names and units for nutrition fields
 extension NutritionFieldExtension on NutritionField {
   String get label {
     switch (this) {
@@ -93,6 +95,7 @@ extension NutritionFieldExtension on NutritionField {
 enum NutritionInputMode {
   /// User enters calories directly (weight + calories required)
   enterCalories,
+
   /// Calories calculated from macros (weight + protein + fat + carbs required)
   calculateFromMacros,
 }
@@ -133,6 +136,14 @@ class NutritionCalculatorWidget extends StatefulWidget {
   /// Callback when the user submits valid nutrition data
   final void Function(NutritionResult result) onSubmit;
 
+  /// When provided, the calculation mode is controlled by the parent and the
+  /// internal mode toggle is hidden. Mode changes are reported via
+  /// [onModeChanged] instead of being managed (and persisted) internally.
+  final NutritionInputMode? inputMode;
+
+  /// Called when the user requests a mode change while [inputMode] is set.
+  final void Function(NutritionInputMode mode)? onModeChanged;
+
   /// Optional initial values (per 100g, except weight which is actual grams)
   final double? initialWeight;
   final double? initialCaloriesPer100g;
@@ -143,6 +154,8 @@ class NutritionCalculatorWidget extends StatefulWidget {
   const NutritionCalculatorWidget({
     Key? key,
     required this.onSubmit,
+    this.inputMode,
+    this.onModeChanged,
     this.initialWeight,
     this.initialCaloriesPer100g,
     this.initialProteinPer100g,
@@ -151,7 +164,8 @@ class NutritionCalculatorWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<NutritionCalculatorWidget> createState() => _NutritionCalculatorWidgetState();
+  State<NutritionCalculatorWidget> createState() =>
+      _NutritionCalculatorWidgetState();
 }
 
 class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
@@ -183,12 +197,34 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
 
     // Mark initial values as edited
     if (widget.initialWeight != null) _editedFields.add(NutritionField.weight);
-    if (widget.initialCaloriesPer100g != null) _editedFields.add(NutritionField.calories);
-    if (widget.initialProteinPer100g != null) _editedFields.add(NutritionField.protein);
+    if (widget.initialCaloriesPer100g != null)
+      _editedFields.add(NutritionField.calories);
+    if (widget.initialProteinPer100g != null)
+      _editedFields.add(NutritionField.protein);
     if (widget.initialFatPer100g != null) _editedFields.add(NutritionField.fat);
-    if (widget.initialCarbsPer100g != null) _editedFields.add(NutritionField.carbs);
+    if (widget.initialCarbsPer100g != null)
+      _editedFields.add(NutritionField.carbs);
 
-    _loadSavedCalcMode();
+    if (widget.inputMode != null) {
+      _inputMode = widget.inputMode!;
+    } else {
+      _loadSavedCalcMode();
+    }
+  }
+
+  @override
+  void didUpdateWidget(NutritionCalculatorWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When the parent controls the mode, keep internal state in sync.
+    if (widget.inputMode != null && widget.inputMode != _inputMode) {
+      setState(() {
+        _inputMode = widget.inputMode!;
+        if (_inputMode == NutritionInputMode.calculateFromMacros &&
+            _selectedField == NutritionField.calories) {
+          _selectedField = NutritionField.weight;
+        }
+      });
+    }
   }
 
   /// Load the previously saved calculation mode
@@ -216,7 +252,9 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _NutritionPrefsKeys.calcMode,
-        mode == NutritionInputMode.calculateFromMacros ? 'fromMacros' : 'enterCalories',
+        mode == NutritionInputMode.calculateFromMacros
+            ? 'fromMacros'
+            : 'enterCalories',
       );
     } catch (e) {
       debugPrint('Failed to save calc mode preference: $e');
@@ -225,6 +263,11 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
 
   /// Update the calculation mode and persist the choice
   void _setCalcMode(NutritionInputMode mode) {
+    // When controlled by the parent, delegate the change upward.
+    if (widget.inputMode != null) {
+      widget.onModeChanged?.call(mode);
+      return;
+    }
     setState(() {
       _inputMode = mode;
       // If switching to fromMacros and currently on calories field, move to weight
@@ -415,18 +458,24 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildModeToggle(isDarkMode),
-        const SizedBox(height: 8),
-        _buildCurrentFieldDisplay(isDarkMode),
+        if (widget.inputMode == null) ...[
+          _buildModeToggle(isDarkMode),
+          const SizedBox(height: 8),
+        ],
+        _buildCurrentFieldDisplay(),
         const SizedBox(height: 8),
         _buildSummaryPanel(isDarkMode),
         const SizedBox(height: 8),
-        _buildKeypad(isPortrait, isDarkMode),
+        CalculatorKeypad(
+          showNextField: true,
+          canSubmit: _isValidInput(),
+          onKey: _onKeyPress,
+          onSubmit: _onSubmit,
+        ),
       ],
     );
   }
@@ -434,9 +483,10 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
   Widget _buildModeToggle(bool isDarkMode) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
+      decoration: ShapeDecoration(
+        color: (isDarkMode ? Colors.grey[800]! : Colors.grey[200]!)
+            .withValues(alpha: CustomTheme.surfaceOpacity),
+        shape: AppCard.squircleBorder(radius: 8),
       ),
       child: Row(
         children: [
@@ -461,75 +511,26 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     );
   }
 
-  Widget _buildCurrentFieldDisplay(bool isDarkMode) {
+  Widget _buildCurrentFieldDisplay() {
     final controller = _currentController;
     final field = _selectedField;
     final isPerHundredGrams = field != NutritionField.weight;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[850] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: field.color.withValues(alpha: 0.5),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(field.icon, color: field.color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                field.label,
-                style: TextStyle(
-                  color: field.color,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+    return CalculatorFieldDisplay(
+      icon: field.icon,
+      label: field.label,
+      color: field.color,
+      value: controller.text.isEmpty ? '0' : controller.text,
+      unit: field.unit,
+      labelTrailing: isPerHundredGrams
+          ? Text(
+              '(per 100g)',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
               ),
-              if (isPerHundredGrams) ...[
-                const SizedBox(width: 4),
-                Text(
-                  '(per 100g)',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                controller.text.isEmpty ? '0' : controller.text,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w500,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                field.unit,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 
@@ -582,14 +583,16 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
                 unit: 'g',
                 color: NutritionField.weight.color,
                 isSelected: _selectedField == NutritionField.weight,
-                onTap: () => setState(() => _selectedField = NutritionField.weight),
+                onTap: () =>
+                    setState(() => _selectedField = NutritionField.weight),
               ),
               _SummaryItem(
                 label: 'Cal',
                 value: result?.calories,
                 unit: 'kcal',
                 color: NutritionField.calories.color,
-                isCalculated: _inputMode == NutritionInputMode.calculateFromMacros,
+                isCalculated:
+                    _inputMode == NutritionInputMode.calculateFromMacros,
                 isSelected: _selectedField == NutritionField.calories,
                 onTap: () {
                   if (_inputMode != NutritionInputMode.enterCalories) {
@@ -604,7 +607,8 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
                 unit: 'g',
                 color: NutritionField.protein.color,
                 isSelected: _selectedField == NutritionField.protein,
-                onTap: () => setState(() => _selectedField = NutritionField.protein),
+                onTap: () =>
+                    setState(() => _selectedField = NutritionField.protein),
               ),
               _SummaryItem(
                 label: 'F',
@@ -612,7 +616,8 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
                 unit: 'g',
                 color: NutritionField.fat.color,
                 isSelected: _selectedField == NutritionField.fat,
-                onTap: () => setState(() => _selectedField = NutritionField.fat),
+                onTap: () =>
+                    setState(() => _selectedField = NutritionField.fat),
               ),
               _SummaryItem(
                 label: 'C',
@@ -620,7 +625,8 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
                 unit: 'g',
                 color: NutritionField.carbs.color,
                 isSelected: _selectedField == NutritionField.carbs,
-                onTap: () => setState(() => _selectedField = NutritionField.carbs),
+                onTap: () =>
+                    setState(() => _selectedField = NutritionField.carbs),
               ),
             ],
           ),
@@ -629,42 +635,6 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     );
   }
 
-  Widget _buildKeypad(bool isPortrait, bool isDarkMode) {
-    final keys = [
-      ['1', '2', '3', '→'],
-      ['4', '5', '6', '⌫'],
-      ['7', '8', '9', 'C'],
-      ['.', '0', 'OK'],
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: keys.map((row) {
-          return Row(
-            children: row.map((key) {
-              final isOk = key == 'OK';
-              final isValid = _isValidInput();
-
-              return Expanded(
-                flex: isOk ? 2 : 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: _KeypadButton(
-                    label: key,
-                    onTap: isOk ? _onSubmit : () => _onKeyPress(key),
-                    isOk: isOk,
-                    isValid: isValid,
-                    isDarkMode: isDarkMode,
-                  ),
-                ),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
-    );
-  }
 }
 
 class _SummaryItem extends StatelessWidget {
@@ -699,12 +669,15 @@ class _SummaryItem extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           margin: const EdgeInsets.symmetric(horizontal: 2),
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? color : Colors.transparent,
-              width: 1.5,
+          decoration: ShapeDecoration(
+            color:
+                isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+            shape: AppCard.squircleBorder(
+              radius: 8,
+              side: BorderSide(
+                color: isSelected ? color : Colors.transparent,
+                width: 1.5,
+              ),
             ),
           ),
           child: Column(
@@ -756,66 +729,3 @@ class _SummaryItem extends StatelessWidget {
   }
 }
 
-class _KeypadButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool isOk;
-  final bool isValid;
-  final bool isDarkMode;
-
-  const _KeypadButton({
-    required this.label,
-    required this.onTap,
-    required this.isOk,
-    required this.isValid,
-    required this.isDarkMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    Color backgroundColor;
-    Color textColor;
-
-    if (isOk) {
-      backgroundColor = isValid ? Colors.green : Colors.grey;
-      textColor = Colors.white;
-    } else if (label == 'C') {
-      backgroundColor = Colors.red.withValues(alpha: 0.1);
-      textColor = Colors.red;
-    } else if (label == '⌫') {
-      backgroundColor = Colors.orange.withValues(alpha: 0.1);
-      textColor = Colors.orange;
-    } else if (label == '→') {
-      backgroundColor = Colors.blue.withValues(alpha: 0.1);
-      textColor = Colors.blue;
-    } else {
-      backgroundColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
-      textColor = isDarkMode ? Colors.white : Colors.black87;
-    }
-
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 52,
-          alignment: Alignment.center,
-          child: label == '⌫'
-              ? Icon(Icons.backspace_outlined, color: textColor, size: 22)
-              : label == '→'
-              ? Icon(Icons.arrow_forward, color: textColor, size: 22)
-              : Text(
-            label,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

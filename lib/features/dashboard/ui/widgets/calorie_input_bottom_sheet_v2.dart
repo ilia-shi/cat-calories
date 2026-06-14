@@ -3,7 +3,10 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:cat_calories/common/theme/colors.dart';
-import 'package:cat_calories/common/widgets/calculator_widget.dart';
+import 'package:cat_calories/common/theme/theme.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_keypad.dart';
+import 'package:cat_calories/common/widgets/calculator/calculator_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,10 +17,13 @@ import 'package:cat_calories/common/widgets/nutrition_calculator_widget.dart';
 /// Input mode for the calorie input bottom sheet
 enum CalorieInputMode {
   /// Simple mode - just enter calories quickly
-  simple,
+  quickAdd,
 
-  /// Detailed mode - enter weight and nutritional info per 100g
-  detailed,
+  /// Nutrition calculator, entering calories per 100g directly
+  enterCalories,
+
+  /// Nutrition calculator, calories computed from macros
+  fromMacros,
 }
 
 /// Keys for SharedPreferences
@@ -43,7 +49,7 @@ class CalorieInputBottomSheetV2 extends StatefulWidget {
 
 class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   late final TextEditingController _simpleController;
-  CalorieInputMode _inputMode = CalorieInputMode.simple;
+  CalorieInputMode _inputMode = CalorieInputMode.quickAdd;
   bool _isSubmitting = false;
   bool _isLoading = true;
 
@@ -61,15 +67,31 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
       final prefs = await SharedPreferences.getInstance();
       final savedMode = prefs.getString(_PrefsKeys.inputMode);
 
-      if (savedMode != null && mounted) {
+      CalorieInputMode? mode;
+      switch (savedMode) {
+        case 'simple':
+          mode = CalorieInputMode.quickAdd;
+          break;
+        case 'enterCalories':
+          mode = CalorieInputMode.enterCalories;
+          break;
+        case 'fromMacros':
+          mode = CalorieInputMode.fromMacros;
+          break;
+        case 'detailed':
+          // Legacy value: resolve the nutrition sub-mode from its own pref.
+          mode =
+              prefs.getString(_PrefsKeys.nutritionCalcMode) == 'fromMacros'
+                  ? CalorieInputMode.fromMacros
+                  : CalorieInputMode.enterCalories;
+          break;
+      }
+
+      if (mounted) {
         setState(() {
-          _inputMode = savedMode == 'detailed'
-              ? CalorieInputMode.detailed
-              : CalorieInputMode.simple;
+          if (mode != null) _inputMode = mode;
           _isLoading = false;
         });
-      } else {
-        setState(() => _isLoading = false);
       }
     } catch (e) {
       // If loading fails, just use default and continue
@@ -83,15 +105,36 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   Future<void> _saveMode(CalorieInputMode mode) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _PrefsKeys.inputMode,
-        mode == CalorieInputMode.detailed ? 'detailed' : 'simple',
-      );
+      await prefs.setString(_PrefsKeys.inputMode, _modeToPref(mode));
+      // Keep the nutrition sub-mode pref in sync for the calculator default.
+      if (mode != CalorieInputMode.quickAdd) {
+        await prefs.setString(
+          _PrefsKeys.nutritionCalcMode,
+          mode == CalorieInputMode.fromMacros ? 'fromMacros' : 'enterCalories',
+        );
+      }
     } catch (e) {
       // Silently fail - saving preference is not critical
       debugPrint('Failed to save input mode preference: $e');
     }
   }
+
+  String _modeToPref(CalorieInputMode mode) {
+    switch (mode) {
+      case CalorieInputMode.quickAdd:
+        return 'simple';
+      case CalorieInputMode.enterCalories:
+        return 'enterCalories';
+      case CalorieInputMode.fromMacros:
+        return 'fromMacros';
+    }
+  }
+
+  /// The nutrition calculator mode corresponding to the current input mode.
+  NutritionInputMode get _nutritionMode =>
+      _inputMode == CalorieInputMode.fromMacros
+          ? NutritionInputMode.calculateFromMacros
+          : NutritionInputMode.enterCalories;
 
   /// Update the input mode and persist the choice
   void _setInputMode(CalorieInputMode mode) {
@@ -186,53 +229,25 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final appColors = AppColors.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: appColors.surfaceElevated,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHandle(),
-              _buildModeToggle(isDarkMode),
-              if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                )
-              else
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _inputMode == CalorieInputMode.simple
-                      ? _buildSimpleMode(isDarkMode)
-                      : _buildDetailedMode(isDarkMode),
-                ),
-              const SizedBox(height: 8),
-            ],
+    return CalculatorSheet(
+      children: [
+        _buildModeToggle(isDarkMode),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          )
+        else
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _inputMode == CalorieInputMode.quickAdd
+                ? _buildSimpleMode(isDarkMode)
+                : _buildDetailedMode(isDarkMode),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHandle() {
-    final appColors = AppColors.of(context);
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: appColors.textDisabled,
-        borderRadius: BorderRadius.circular(2),
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -240,9 +255,10 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
     final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(10),
+      decoration: ShapeDecoration(
+        color: appColors.surfaceSubtle
+            .withValues(alpha: CustomTheme.surfaceOpacity),
+        shape: AppCard.squircleBorder(radius: 10),
       ),
       child: Row(
         children: [
@@ -250,16 +266,24 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
             child: ModeButton(
               label: 'Quick Add',
               icon: Icons.bolt,
-              isSelected: _inputMode == CalorieInputMode.simple,
-              onTap: () => _setInputMode(CalorieInputMode.simple),
+              isSelected: _inputMode == CalorieInputMode.quickAdd,
+              onTap: () => _setInputMode(CalorieInputMode.quickAdd),
             ),
           ),
           Expanded(
             child: ModeButton(
-              label: 'With Nutrition',
-              icon: Icons.restaurant_menu,
-              isSelected: _inputMode == CalorieInputMode.detailed,
-              onTap: () => _setInputMode(CalorieInputMode.detailed),
+              label: 'Enter Calories',
+              icon: Icons.edit,
+              isSelected: _inputMode == CalorieInputMode.enterCalories,
+              onTap: () => _setInputMode(CalorieInputMode.enterCalories),
+            ),
+          ),
+          Expanded(
+            child: ModeButton(
+              label: 'From Macros',
+              icon: Icons.calculate,
+              isSelected: _inputMode == CalorieInputMode.fromMacros,
+              onTap: () => _setInputMode(CalorieInputMode.fromMacros),
             ),
           ),
         ],
@@ -274,22 +298,42 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
         _buildSimpleInputField(isDarkMode),
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: CalculatorWidget(
-            controller: _simpleController,
-            onPressed: _submitSimpleCalories,
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _simpleController,
+            builder: (context, value, _) => CalculatorKeypad(
+              showOperators: true,
+              canSubmit: value.text.trim().isNotEmpty,
+              onKey: _onSimpleKey,
+              onSubmit: _submitSimpleCalories,
+            ),
           ),
         ),
       ],
     );
   }
 
+  /// Applies a [CalculatorKeypad] key press to the expression in
+  /// [_simpleController] (mirrors the old expression-based calculator).
+  void _onSimpleKey(String key) {
+    final text = _simpleController.text;
+    if (key == 'C') {
+      _simpleController.text = '';
+    } else if (key == '⌫') {
+      if (text.isNotEmpty) {
+        _simpleController.text = text.substring(0, text.length - 1);
+      }
+    } else {
+      _simpleController.text = text + key;
+    }
+  }
+
   Widget _buildSimpleInputField(bool isDarkMode) {
     final appColors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(8),
+        shape: AppCard.squircleBorder(radius: 8),
       ),
       child: TextField(
         controller: _simpleController,
@@ -348,56 +392,11 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: NutritionCalculatorWidget(
         onSubmit: _submitNutritionCalories,
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TabButton({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-    final unselectedColor = appColors.textSecondary;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color:
-              isSelected ? Theme.of(context).primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? Colors.white : unselectedColor,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : unselectedColor,
-              ),
-            ),
-          ],
+        inputMode: _nutritionMode,
+        onModeChanged: (mode) => _setInputMode(
+          mode == NutritionInputMode.calculateFromMacros
+              ? CalorieInputMode.fromMacros
+              : CalorieInputMode.enterCalories,
         ),
       ),
     );

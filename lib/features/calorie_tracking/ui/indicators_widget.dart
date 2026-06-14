@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:flutter/material.dart';
@@ -95,11 +96,7 @@ final class IndicatorData {
   final bool hasPeriod;
   final List<CalorieRecord> todayCalorieItems;
   final DateTime now;
-
-  /// Macronutrient data for today
   final MacroData? macrosToday;
-
-  /// Macronutrient data for 24h rolling window
   final MacroData? macros24h;
 
   const IndicatorData({
@@ -185,7 +182,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   icon: Icons.history,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildCompactIndicator(
                   context: context,
@@ -196,7 +193,7 @@ final class IndicatorsWidget extends StatelessWidget {
                 ),
               ),
               if (data.hasPeriod) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildCompactIndicator(
                     context: context,
@@ -209,11 +206,6 @@ final class IndicatorsWidget extends StatelessWidget {
               ],
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Progress summary
-          _buildProgressSummary(context),
         ],
       ),
     );
@@ -235,17 +227,8 @@ final class IndicatorsWidget extends StatelessWidget {
     final isOver = value > goal;
     final remaining = goal - value;
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? color.withValues(alpha: 0.15)
-            : color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.3 : 0.2),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -316,7 +299,6 @@ final class IndicatorsWidget extends StatelessWidget {
     );
   }
 
-  /// Compact inline macro display for indicator cards
   Widget _buildInlineMacros(BuildContext context, MacroData macros) {
     return MacroBadgesRow(
       protein: macros.proteinGrams,
@@ -346,17 +328,7 @@ final class IndicatorsWidget extends StatelessWidget {
       indicatorColor = theme.colorScheme.primary;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-            : theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.5),
-        ),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -407,76 +379,6 @@ final class IndicatorsWidget extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressSummary(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Calculate overall status
-    final rolling24hPercent = data.dailyGoal > 0
-        ? (data.caloriesLast24Hours / data.dailyGoal * 100).round()
-        : 0;
-
-    String statusText;
-    IconData statusIcon;
-    Color statusColor;
-
-    if (rolling24hPercent < 70) {
-      statusText =
-      'Under target - ${100 - rolling24hPercent}% budget remaining';
-      statusIcon = Icons.trending_down;
-      statusColor = Colors.blue.shade600;
-    } else if (rolling24hPercent <= 100) {
-      statusText = 'On track - ${100 - rolling24hPercent}% budget remaining';
-      statusIcon = Icons.check_circle_outline;
-      statusColor = Colors.green.shade600;
-    } else if (rolling24hPercent <= 115) {
-      statusText = 'Slightly over target (+${rolling24hPercent - 100}%)';
-      statusIcon = Icons.warning_amber_outlined;
-      statusColor = Colors.orange.shade600;
-    } else {
-      statusText = 'Over target (+${rolling24hPercent - 100}%)';
-      statusIcon = Icons.error_outline;
-      statusColor = Colors.red.shade600;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: isDark ? 0.15 : 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: statusColor.withValues(alpha: isDark ? 0.3 : 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            statusIcon,
-            size: 18,
-            color: statusColor,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              statusText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color:
-                isDark ? statusColor.withValues(alpha: 0.9) : statusColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            'Goal: ${data.dailyGoal.round()}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
           ),
         ],
       ),
