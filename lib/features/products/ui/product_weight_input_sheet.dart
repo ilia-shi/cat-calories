@@ -1,3 +1,4 @@
+import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/calculator/calculator_field_display.dart';
 import 'package:cat_calories/common/widgets/calculator/calculator_keypad.dart';
@@ -137,7 +138,7 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
         const SizedBox(height: 8),
         _buildWeightDisplay(),
         const SizedBox(height: 8),
-        _buildNutritionSummary(isDarkMode),
+        _buildNutritionSummary(),
         if (widget.product.hasPackageWeight) ...[
           const SizedBox(height: 8),
           _buildEntirePackageButton(isDarkMode),
@@ -212,7 +213,8 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
     );
   }
 
-  Widget _buildNutritionSummary(bool isDarkMode) {
+  Widget _buildNutritionSummary() {
+    final appColors = AppColors.of(context);
     final weight = _currentWeight ?? 0;
     final calories = weight > 0 ? widget.product.calculateCalories(weight) : null;
     final protein = weight > 0 ? widget.product.calculateProtein(weight) : null;
@@ -221,15 +223,10 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: ShapeDecoration(
-        color: isDarkMode ? Colors.grey[850] : Colors.grey[50],
-        shape: AppCard.squircleBorder(
-          radius: 12,
-          side: BorderSide(
-            color: isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
-          ),
-        ),
+        color: appColors.surfaceSubtle,
+        shape: AppCard.squircleBorder(radius: 12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

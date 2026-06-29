@@ -44,30 +44,24 @@ class CalculatorFieldDisplay extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       decoration: ShapeDecoration(
-        color: isDark ? Colors.grey[850] : Colors.grey[100],
-        shape: AppCard.squircleBorder(
-          radius: 12,
-          side: BorderSide(
-            color: color.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
+        color: appColors.surfaceSubtle,
+        shape: AppCard.squircleBorder(radius: 12),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   color: color,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
               ),
               if (labelTrailing != null) ...[
@@ -76,7 +70,7 @@ class CalculatorFieldDisplay extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -85,25 +79,25 @@ class CalculatorFieldDisplay extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: 30,
                   fontWeight: FontWeight.w500,
                   color: isPlaceholder
                       ? appColors.textDisabled
                       : (isDark ? Colors.white : Colors.black87),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 unit,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   color: Colors.grey[600],
                 ),
               ),
             ],
           ),
           if (footer != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             footer!,
           ],
         ],

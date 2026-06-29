@@ -344,26 +344,30 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
         autofocus: false,
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 24,
+          fontSize: 20,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
+            vertical: 10,
             horizontal: 16,
           ),
+          filled: true,
+          fillColor: Colors.transparent,
           border: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          enabledBorder: InputBorder.none,
           hintText: '0',
           hintStyle: TextStyle(
             color: appColors.textTertiary,
-            fontSize: 24,
+            fontSize: 20,
           ),
           prefixIcon: const Padding(
             padding: EdgeInsets.only(left: 16),
             child: Text(
               '+',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.w500,
                 color: SuccessColor,
               ),
@@ -375,7 +379,7 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
             child: Text(
               'kcal',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 color: appColors.textSecondary,
               ),
             ),
