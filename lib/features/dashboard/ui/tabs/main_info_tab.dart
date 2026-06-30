@@ -6,6 +6,7 @@ import 'package:cat_calories_core/features/waking_periods/domain/waking_period.d
 import 'package:cat_calories/features/waking_periods/ui/edit_waking_period_screen.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/progress_bar.dart';
+import 'package:cat_calories/common/widgets/debug_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -340,7 +341,9 @@ class _MainInfoViewState extends State<MainInfoView> {
             ),
 
             // === "TODAY" CARD ===
-            Card(
+            DebugLabel(
+              'MainInfoView · Today card',
+              child: Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -373,6 +376,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
 

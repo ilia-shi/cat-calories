@@ -1,4 +1,5 @@
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/debug_label.dart';
 import 'package:flutter/material.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
 
@@ -68,7 +69,9 @@ class RecentEntriesWidget extends StatelessWidget {
     final displayEntries = entries.take(maxEntries).toList();
     final hasMore = entries.length > maxEntries;
 
-    return AppCard(
+    return DebugLabel(
+      'RecentEntriesWidget',
+      child: AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -139,6 +142,7 @@ class RecentEntriesWidget extends StatelessWidget {
               ],
             ),
         ],
+      ),
       ),
     );
   }
