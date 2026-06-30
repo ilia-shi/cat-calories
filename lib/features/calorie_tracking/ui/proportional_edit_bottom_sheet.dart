@@ -50,7 +50,9 @@ class _ProportionalEditBottomSheetState
 
   double get _ratio {
     final nw = _newWeight;
-    if (nw == null || nw <= 0 || _originalWeight <= 0) return 0;
+    if (nw == null || nw <= 0 || _originalWeight <= 0) {
+      return 0;
+    }
     return nw / _originalWeight;
   }
 
@@ -60,17 +62,23 @@ class _ProportionalEditBottomSheetState
   double? get _newCalories => _isValid ? _originalCalories * _ratio : null;
 
   double? get _newProtein {
-    if (!_isValid || widget.item.proteinGrams == null) return null;
+    if (!_isValid || widget.item.proteinGrams == null) {
+      return null;
+    }
     return widget.item.proteinGrams! * _ratio;
   }
 
   double? get _newFat {
-    if (!_isValid || widget.item.fatGrams == null) return null;
+    if (!_isValid || widget.item.fatGrams == null) {
+      return null;
+    }
     return widget.item.fatGrams! * _ratio;
   }
 
   double? get _newCarbs {
-    if (!_isValid || widget.item.carbGrams == null) return null;
+    if (!_isValid || widget.item.carbGrams == null) {
+      return null;
+    }
     return widget.item.carbGrams! * _ratio;
   }
 
@@ -97,7 +105,9 @@ class _ProportionalEditBottomSheetState
   }
 
   void _onSubmit() {
-    if (!_isValid) return;
+    if (!_isValid) {
+      return;
+    }
     widget.onSave(ProportionalEditResult(
       weightGrams: _newWeight!,
       calories: _newCalories!,

@@ -46,8 +46,12 @@ class UuidTableMigrator {
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
       [table],
     );
-    if (exists.isEmpty) return;
-    if (await _isAlreadyText(db, table)) return;
+    if (exists.isEmpty) {
+      return;
+    }
+    if (await _isAlreadyText(db, table)) {
+      return;
+    }
 
     final oldTableInfo = await db.rawQuery('PRAGMA table_info($table)');
 

@@ -82,7 +82,9 @@ class EditProfileScreenState extends State<EditProfileScreen>
   }
 
   void _saveProfile() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     widget.profile.caloriesLimitGoal = double.parse(_caloriesLimitGoal.text);
     widget.profile.setExpectedWakingDuration(

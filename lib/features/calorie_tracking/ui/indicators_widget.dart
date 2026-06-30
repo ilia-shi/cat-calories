@@ -56,7 +56,9 @@ final class MacroData {
     int itemsWithMacros = 0;
 
     for (final item in items) {
-      if (!item.isEaten()) continue;
+      if (!item.isEaten()) {
+        continue;
+      }
 
       final hasMacro = item.proteinGrams != null ||
           item.fatGrams != null ||
@@ -389,8 +391,12 @@ final class IndicatorsWidget extends StatelessWidget {
     final percentage =
     data.dailyGoal > 0 ? data.caloriesLast24Hours / data.dailyGoal : 0.0;
 
-    if (percentage > 1.0) return Colors.red.shade600;
-    if (percentage > 0.9) return Colors.orange.shade600;
+    if (percentage > 1.0) {
+      return Colors.red.shade600;
+    }
+    if (percentage > 0.9) {
+      return Colors.orange.shade600;
+    }
     return Colors.blue.shade600;
   }
 

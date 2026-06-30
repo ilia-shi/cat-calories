@@ -38,7 +38,9 @@ class ProductCategoriesScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: categories.length,
               onReorder: (oldIndex, newIndex) {
-                if (newIndex > oldIndex) newIndex--;
+                if (newIndex > oldIndex) {
+                  newIndex--;
+                }
                 final reorderedCategories = List<ProductCategory>.from(categories);
                 final item = reorderedCategories.removeAt(oldIndex);
                 reorderedCategories.insert(newIndex, item);
@@ -200,7 +202,9 @@ class _CategoryListItem extends StatelessWidget {
   });
 
   Color? _parseColor() {
-    if (category.colorHex == null) return null;
+    if (category.colorHex == null) {
+      return null;
+    }
     try {
       final hex = category.colorHex!.replaceFirst('#', '');
       return Color(int.parse('FF$hex', radix: 16));

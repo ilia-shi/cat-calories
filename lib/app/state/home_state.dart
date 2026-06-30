@@ -199,7 +199,9 @@ class HomeFetched extends AbstractHomeState {
 
   /// Get category by UUID
   ProductCategory? getCategoryById(String? categoryId) {
-    if (categoryId == null) return null;
+    if (categoryId == null) {
+      return null;
+    }
     try {
       return productCategories.firstWhere((c) => c.id == categoryId);
     } catch (e) {

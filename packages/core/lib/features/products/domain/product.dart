@@ -74,20 +74,36 @@ final class Product {
 
   /// Helper to parse int from various types
   static int? _parseInt(dynamic value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value);
-    if (value is double) return value.toInt();
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    if (value is double) {
+      return value.toInt();
+    }
 
     return null;
   }
 
   /// Helper to parse double from various types
   static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
+    if (value == null) {
+      return null;
+    }
+    if (value is double) {
+      return value;
+    }
+    if (value is int) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value);
+    }
 
     return null;
   }
@@ -113,26 +129,34 @@ final class Product {
 
   /// Calculate calories for a given weight in grams
   double? calculateCalories(double weightGrams) {
-    if (caloriesPer100g == null) return null;
+    if (caloriesPer100g == null) {
+      return null;
+    }
 
     return (caloriesPer100g! / 100) * weightGrams;
   }
 
   /// Calculate protein for a given weight in grams
   double? calculateProtein(double weightGrams) {
-    if (proteinsPer100g == null) return null;
+    if (proteinsPer100g == null) {
+      return null;
+    }
     return (proteinsPer100g! / 100) * weightGrams;
   }
 
   /// Calculate fat for a given weight in grams
   double? calculateFat(double weightGrams) {
-    if (fatsPer100g == null) return null;
+    if (fatsPer100g == null) {
+      return null;
+    }
     return (fatsPer100g! / 100) * weightGrams;
   }
 
   /// Calculate carbs for a given weight in grams
   double? calculateCarbs(double weightGrams) {
-    if (carbsPer100g == null) return null;
+    if (carbsPer100g == null) {
+      return null;
+    }
     return (carbsPer100g! / 100) * weightGrams;
   }
 

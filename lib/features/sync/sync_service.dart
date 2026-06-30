@@ -80,7 +80,9 @@ class SyncService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
-      if (res.statusCode != 200) return null;
+      if (res.statusCode != 200) {
+        return null;
+      }
       final data = jsonDecode(res.body);
       final tok = data['token'] as String?;
       if (tok != null) {
@@ -102,7 +104,9 @@ class SyncService {
     final url = await serverUrl;
     final em = await email;
     final pw = await password;
-    if (url.isEmpty || em.isEmpty || pw.isEmpty) return false;
+    if (url.isEmpty || em.isEmpty || pw.isEmpty) {
+      return false;
+    }
     final tok = await login(url, em, pw);
     return tok != null;
   }
@@ -141,12 +145,18 @@ class SyncService {
 
   /// Perform a sync with the remote server.
   Future<bool> sync() async {
-    if (_syncing) return false;
-    if (!await isEnabled) return false;
+    if (_syncing) {
+      return false;
+    }
+    if (!await isEnabled) {
+      return false;
+    }
 
     final url = await serverUrl;
     final tok = await token;
-    if (url.isEmpty || tok.isEmpty) return false;
+    if (url.isEmpty || tok.isEmpty) {
+      return false;
+    }
 
     _syncing = true;
     try {
@@ -220,7 +230,9 @@ class SyncService {
     final serverItems = response['calorie_items'] as List<dynamic>? ?? [];
     for (final itemJson in serverItems) {
       final serverItem = _itemFromSyncJson(itemJson as Map<String, dynamic>);
-      if (serverItem.id == null) continue;
+      if (serverItem.id == null) {
+        continue;
+      }
 
       final existing = await calorieRepo.find(serverItem.id!);
       if (existing == null) {

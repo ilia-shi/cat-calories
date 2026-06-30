@@ -36,6 +36,10 @@ See `README.md` for the full feature list and project layout.
 - **Keep the API contract in lock-step.** After changing `api/openapi.yaml` or any
   server JSON shape, run `make test-dart` and `make test-web` (the latter regenerates
   `web/src/generated-api.d.ts`).
+- **Always brace flow control.** Never write a brace-less `if`/`else`/`for`/`while`
+  body, not even one-liners like `if (x) return;`. Use `if (x) { return; }` on
+  separate lines. The analyzer enforces this (`curly_braces_in_flow_control_structures`
+  + `always_put_control_body_on_new_line` in `analysis_options.yaml`).
 - **Verify before claiming done.** `flutter analyze` + `make arch` for app/architecture
   changes; `dart test` in the touched package for logic changes. See
   [docs/testing.md](docs/testing.md).

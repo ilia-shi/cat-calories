@@ -23,11 +23,15 @@ class TokenAuth {
   /// Verify a bearer token. Returns the user ID if valid, null otherwise.
   String? verify(String token) {
     final parts = token.split(':');
-    if (parts.length != 2) return null;
+    if (parts.length != 2) {
+      return null;
+    }
     final userId = parts[0];
     final providedHmac = parts[1];
     final expectedHmac = _sign(userId);
-    if (providedHmac != expectedHmac) return null;
+    if (providedHmac != expectedHmac) {
+      return null;
+    }
     return userId;
   }
 

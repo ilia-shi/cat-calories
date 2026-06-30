@@ -23,9 +23,13 @@ class Route {
   }
 
   Map<String, String>? match(String method, String path) {
-    if (this.method != method) return null;
+    if (this.method != method) {
+      return null;
+    }
     final m = _regex.firstMatch(path);
-    if (m == null) return null;
+    if (m == null) {
+      return null;
+    }
 
     final params = <String, String>{};
     for (var i = 0; i < _paramNames.length; i++) {
@@ -58,7 +62,9 @@ class Router {
   (RouteHandler handler, Map<String, String> params)? resolve(String method, String path) {
     for (final route in _routes) {
       final params = route.match(method, path);
-      if (params != null) return (route.handler, params);
+      if (params != null) {
+        return (route.handler, params);
+      }
     }
     return null;
   }

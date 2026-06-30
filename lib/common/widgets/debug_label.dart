@@ -11,7 +11,9 @@ class DebugLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kDebugMode || !enabled) return child;
+    if (!kDebugMode || !enabled) {
+      return child;
+    }
     return Stack(
       children: [
         child,

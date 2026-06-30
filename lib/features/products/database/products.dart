@@ -100,7 +100,9 @@ class Products {
         bool includeTopLevelOnly = false,
         int? limit,
       }) {
-    if (query.isEmpty) return [];
+    if (query.isEmpty) {
+      return [];
+    }
 
     final lowerQuery = query.toLowerCase();
     var results = _allProducts.where((p) {
@@ -113,9 +115,15 @@ class Products {
       }
 
       // Apply filters
-      if (category != null && p.category != category) return false;
-      if (includeVariantsOnly && !p.isVariant) return false;
-      if (includeTopLevelOnly && !p.isTopLevel) return false;
+      if (category != null && p.category != category) {
+        return false;
+      }
+      if (includeVariantsOnly && !p.isVariant) {
+        return false;
+      }
+      if (includeTopLevelOnly && !p.isTopLevel) {
+        return false;
+      }
 
       return true;
     });
@@ -125,17 +133,29 @@ class Products {
       ..sort((a, b) {
         final aExact = a.title.toLowerCase() == lowerQuery;
         final bExact = b.title.toLowerCase() == lowerQuery;
-        if (aExact && !bExact) return -1;
-        if (!aExact && bExact) return 1;
+        if (aExact && !bExact) {
+          return -1;
+        }
+        if (!aExact && bExact) {
+          return 1;
+        }
 
         final aStartsWith = a.title.toLowerCase().startsWith(lowerQuery);
         final bStartsWith = b.title.toLowerCase().startsWith(lowerQuery);
-        if (aStartsWith && !bStartsWith) return -1;
-        if (!aStartsWith && bStartsWith) return 1;
+        if (aStartsWith && !bStartsWith) {
+          return -1;
+        }
+        if (!aStartsWith && bStartsWith) {
+          return 1;
+        }
 
         // Top-level products before variants
-        if (a.isTopLevel && !b.isTopLevel) return -1;
-        if (!a.isTopLevel && b.isTopLevel) return 1;
+        if (a.isTopLevel && !b.isTopLevel) {
+          return -1;
+        }
+        if (!a.isTopLevel && b.isTopLevel) {
+          return 1;
+        }
 
         return a.title.length.compareTo(b.title.length);
       });
@@ -170,7 +190,9 @@ class Products {
   /// Get the parent product of a variant
   Product? getParent(String productId) {
     final product = findById(productId);
-    if (product == null || product.parentId == null) return null;
+    if (product == null || product.parentId == null) {
+      return null;
+    }
     return findById(product.parentId!);
   }
 
@@ -212,7 +234,9 @@ class Products {
 
   /// Get products by multiple tags (AND logic - must have all tags)
   List<Product> getByTags(List<String> tags) {
-    if (tags.isEmpty) return [];
+    if (tags.isEmpty) {
+      return [];
+    }
 
     final lowerTags = tags.map((t) => t.toLowerCase()).toSet();
     return _allProducts
@@ -225,7 +249,9 @@ class Products {
 
   /// Get products by any of the tags (OR logic - must have at least one tag)
   List<Product> getByAnyTag(List<String> tags) {
-    if (tags.isEmpty) return [];
+    if (tags.isEmpty) {
+      return [];
+    }
 
     final lowerTags = tags.map((t) => t.toLowerCase()).toSet();
     return _allProducts
@@ -253,9 +279,15 @@ class Products {
   }) {
     return _allProducts.where((p) {
       final avgCalories = p.caloriesPer100g.average;
-      if (minCalories != null && avgCalories < minCalories) return false;
-      if (maxCalories != null && avgCalories > maxCalories) return false;
-      if (category != null && p.category != category) return false;
+      if (minCalories != null && avgCalories < minCalories) {
+        return false;
+      }
+      if (maxCalories != null && avgCalories > maxCalories) {
+        return false;
+      }
+      if (category != null && p.category != category) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -281,7 +313,9 @@ class Products {
     var products = category != null ? getByCategory(category) : all;
     products = products.toList()
       ..sort((a, b) => b.proteinPer100g.average.compareTo(a.proteinPer100g.average));
-    if (limit != null) return products.take(limit).toList();
+    if (limit != null) {
+      return products.take(limit).toList();
+    }
     return products;
   }
 
@@ -291,7 +325,9 @@ class Products {
       ..sort((a, b) => ascending
           ? a.caloriesPer100g.average.compareTo(b.caloriesPer100g.average)
           : b.caloriesPer100g.average.compareTo(a.caloriesPer100g.average));
-    if (limit != null) return products.take(limit).toList();
+    if (limit != null) {
+      return products.take(limit).toList();
+    }
     return products;
   }
 
@@ -299,7 +335,9 @@ class Products {
     var products = category != null ? getByCategory(category) : all;
     products = products.toList()
       ..sort((a, b) => (b.fiberPer100g?.average ?? 0).compareTo(a.fiberPer100g?.average ?? 0));
-    if (limit != null) return products.take(limit).toList();
+    if (limit != null) {
+      return products.take(limit).toList();
+    }
     return products;
   }
 

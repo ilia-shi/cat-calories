@@ -21,8 +21,12 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
   Future<List<CalorieRecord>> fetchAllByProfile(Profile profile,
       {String orderBy = 'id ASC', int? limit, int? offset}) async {
     var sql = 'SELECT * FROM calorie_items WHERE profile_id = ? ORDER BY $orderBy';
-    if (limit != null) sql += ' LIMIT $limit';
-    if (offset != null) sql += ' OFFSET $offset';
+    if (limit != null) {
+      sql += ' LIMIT $limit';
+    }
+    if (offset != null) {
+      sql += ' OFFSET $offset';
+    }
     final result = _db.select(sql, [profile.id]);
     return result.map(_rowToRecord).toList();
   }
@@ -39,8 +43,12 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         .round();
     var sql =
         'SELECT * FROM calorie_items WHERE profile_id = ? AND created_at_day >= ? AND created_at_day <= ? ORDER BY $orderBy';
-    if (limit != null) sql += ' LIMIT $limit';
-    if (offset != null) sql += ' OFFSET $offset';
+    if (limit != null) {
+      sql += ' LIMIT $limit';
+    }
+    if (offset != null) {
+      sql += ' OFFSET $offset';
+    }
     final result = _db.select(sql, [profile.id, dayTimestamp, dayTimestamp]);
     return result.map(_rowToRecord).toList();
   }
@@ -85,7 +93,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
   @override
   Future<CalorieRecord?> find(String id) async {
     final result = _db.select('SELECT * FROM calorie_items WHERE id = ?', [id]);
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToRecord(result.first);
   }
 

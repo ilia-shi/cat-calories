@@ -134,7 +134,9 @@ final class RestSyncTransport implements SyncTransport {
       final response = await _client
           .get(Uri.parse('$_baseUrl/health'))
           .timeout(const Duration(seconds: 5));
-      if (response.statusCode != 200) return false;
+      if (response.statusCode != 200) {
+        return false;
+      }
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       return json['database'] == true;
     } catch (_) {

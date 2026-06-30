@@ -78,19 +78,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   double? _parseDouble(String value) {
-    if (value.isEmpty) return null;
+    if (value.isEmpty) {
+      return null;
+    }
     return double.tryParse(value);
   }
 
   String? _parseBarcode(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty) {
+      return null;
+    }
     return trimmed;
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
-    if (_isSaving) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_isSaving) {
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -132,7 +140,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   void _confirmDelete() {
-    if (widget.product == null) return;
+    if (widget.product == null) {
+      return;
+    }
 
     showDialog(
       context: context,

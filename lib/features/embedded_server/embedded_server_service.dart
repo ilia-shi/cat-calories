@@ -60,18 +60,24 @@ class EmbeddedServerService {
   }
 
   Future<void> _loadAssets() async {
-    if (_assetCache.isNotEmpty) return;
+    if (_assetCache.isNotEmpty) {
+      return;
+    }
 
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final allAssets = manifest.listAssets();
 
     for (final assetKey in allAssets) {
-      if (!assetKey.startsWith('web/dist/')) continue;
+      if (!assetKey.startsWith('web/dist/')) {
+        continue;
+      }
 
       // Map asset key to URL path: "web/dist/index.html" -> "/"
       // "web/dist/assets/index-HASH.js" -> "/assets/index-HASH.js"
       var urlPath = assetKey.substring('web/dist'.length);
-      if (urlPath == '/index.html') urlPath = '/';
+      if (urlPath == '/index.html') {
+        urlPath = '/';
+      }
 
       final data = await rootBundle.load(assetKey);
       _assetCache[urlPath] = _CachedAsset(
@@ -82,12 +88,24 @@ class EmbeddedServerService {
   }
 
   ContentType _contentTypeForPath(String path) {
-    if (path.endsWith('.html')) return ContentType.html;
-    if (path.endsWith('.js')) return ContentType('application', 'javascript', charset: 'utf-8');
-    if (path.endsWith('.css')) return ContentType('text', 'css', charset: 'utf-8');
-    if (path.endsWith('.json')) return ContentType.json;
-    if (path.endsWith('.svg')) return ContentType('image', 'svg+xml');
-    if (path.endsWith('.png')) return ContentType('image', 'png');
+    if (path.endsWith('.html')) {
+      return ContentType.html;
+    }
+    if (path.endsWith('.js')) {
+      return ContentType('application', 'javascript', charset: 'utf-8');
+    }
+    if (path.endsWith('.css')) {
+      return ContentType('text', 'css', charset: 'utf-8');
+    }
+    if (path.endsWith('.json')) {
+      return ContentType.json;
+    }
+    if (path.endsWith('.svg')) {
+      return ContentType('image', 'svg+xml');
+    }
+    if (path.endsWith('.png')) {
+      return ContentType('image', 'png');
+    }
     return ContentType.binary;
   }
 
@@ -127,7 +145,9 @@ class EmbeddedServerService {
 
       if (match != null) {
         final (handler, params) = match;
-        if (request.method == 'GET') screenEnergy.onClientPoll();
+        if (request.method == 'GET') {
+          screenEnergy.onClientPoll();
+        }
         await handler(request, params);
       } else {
         _handleStaticFile(request);

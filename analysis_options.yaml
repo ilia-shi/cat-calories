@@ -17,6 +17,16 @@ analyzer:
   plugins:
     - import_lint
 
+# Style lints. Keep brace-less flow control out of the codebase: every `if`,
+# `else`, `for`, `while`, etc. body must be wrapped in `{ }`, even one-liners
+# like `if (x) return;`. The two rules together force this: the first requires
+# braces around any multi-line body, the second forbids the body sharing the
+# `if`'s line — so the only form that satisfies both is a braced block.
+linter:
+  rules:
+    curly_braces_in_flow_control_structures: true
+    always_put_control_body_on_new_line: true
+
 import_lint:
   severity: "warning"
   rules:

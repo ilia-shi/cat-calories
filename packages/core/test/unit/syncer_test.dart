@@ -99,7 +99,9 @@ class _FakeTransport implements SyncTransport {
   @override
   Future<SyncResult> push(SyncBatch batch) async {
     pushedBatches.add(batch);
-    if (pushHandler != null) return pushHandler!(batch);
+    if (pushHandler != null) {
+      return pushHandler!(batch);
+    }
     return SyncResult(accepted: batch.entries.length);
   }
 

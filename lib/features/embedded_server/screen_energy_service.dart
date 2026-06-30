@@ -62,7 +62,9 @@ class ScreenEnergyService {
 
   /// Call when a polling request is received from a browser client.
   void onClientPoll() {
-    if (!_active) return;
+    if (!_active) {
+      return;
+    }
     _lastPollTime = DateTime.now();
     if (!_hasClients) {
       _hasClients = true;
@@ -73,7 +75,9 @@ class ScreenEnergyService {
 
   /// Call on user interaction (touch) to restore brightness and reset timers.
   void onUserActivity() {
-    if (!_active) return;
+    if (!_active) {
+      return;
+    }
     _enableWakelock();
     _resetTimers();
   }
@@ -95,7 +99,9 @@ class ScreenEnergyService {
   Future<void> setTimeoutMinutes(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(screenTimeoutKey, minutes);
-    if (_active) _resetTimers();
+    if (_active) {
+      _resetTimers();
+    }
   }
 
   Future<int> getDimTimeoutMinutes() async {
@@ -106,7 +112,9 @@ class ScreenEnergyService {
   Future<void> setDimTimeoutMinutes(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(dimTimeoutKey, minutes);
-    if (_active) _resetTimers();
+    if (_active) {
+      _resetTimers();
+    }
   }
 
   // -- Private --
@@ -114,7 +122,9 @@ class ScreenEnergyService {
   void _startClientCheck() {
     _clientCheckTimer?.cancel();
     _clientCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!_hasClients) return;
+      if (!_hasClients) {
+        return;
+      }
       final lastPoll = _lastPollTime;
       if (lastPoll != null &&
           DateTime.now().difference(lastPoll) > _clientTimeout) {
@@ -178,7 +188,9 @@ class ScreenEnergyService {
   }
 
   Future<void> _disableWakelock() async {
-    if (!_wakelockEnabled && !_isDimmed) return;
+    if (!_wakelockEnabled && !_isDimmed) {
+      return;
+    }
     try {
       await _wakelockChannel.invokeMethod('disable');
       _wakelockEnabled = false;

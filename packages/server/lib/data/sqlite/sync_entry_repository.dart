@@ -79,7 +79,9 @@ class SyncEntryRepository {
       'SELECT accepted FROM sync_idempotency WHERE idempotency_key = ? AND user_id = ?',
       [key, userId],
     );
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return result.first['accepted'] as int;
   }
 
@@ -96,7 +98,9 @@ class SyncEntryRepository {
       'SELECT version FROM sync_entries WHERE entity_type = ? AND entity_id = ?',
       [entityType, entityId],
     );
-    if (result.isEmpty) return 0;
+    if (result.isEmpty) {
+      return 0;
+    }
     return result.first['version'] as int;
   }
 
@@ -188,7 +192,9 @@ class SyncEntryRepository {
       'SELECT * FROM sync_entries WHERE entity_type = ? AND entity_id = ?',
       [entityType, entityId],
     );
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToEntry(result.first);
   }
 
@@ -199,7 +205,9 @@ class SyncEntryRepository {
       'SELECT payload FROM sync_entries WHERE user_id = ? AND entity_type = ? AND payload IS NOT NULL LIMIT 1',
       [userId, 'calorie_item'],
     );
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     final payload = jsonDecode(result.first['payload'] as String) as Map<String, dynamic>;
     return payload['profile_id'] as String?;
   }

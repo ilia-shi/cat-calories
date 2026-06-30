@@ -89,7 +89,9 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
 
       if (mounted) {
         setState(() {
-          if (mode != null) _inputMode = mode;
+          if (mode != null) {
+            _inputMode = mode;
+          }
           _isLoading = false;
         });
       }
@@ -161,7 +163,9 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
       return;
     }
 
-    if (_isSubmitting) return;
+    if (_isSubmitting) {
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -178,7 +182,9 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
   }
 
   void _submitNutritionCalories(NutritionResult result) {
-    if (_isSubmitting) return;
+    if (_isSubmitting) {
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;

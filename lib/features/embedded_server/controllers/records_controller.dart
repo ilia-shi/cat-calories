@@ -83,19 +83,33 @@ class RecordsController extends Controller {
 
     final data = await parseJsonBody(request);
 
-    if (data.containsKey('value')) item.value = (data['value'] as num).toDouble();
-    if (data.containsKey('description')) item.description = data['description'] as String?;
-    if (data.containsKey('weight_grams')) item.weightGrams = (data['weight_grams'] as num?)?.toDouble();
-    if (data.containsKey('protein_grams')) item.proteinGrams = (data['protein_grams'] as num?)?.toDouble();
-    if (data.containsKey('fat_grams')) item.fatGrams = (data['fat_grams'] as num?)?.toDouble();
-    if (data.containsKey('carb_grams')) item.carbGrams = (data['carb_grams'] as num?)?.toDouble();
+    if (data.containsKey('value')) {
+      item.value = (data['value'] as num).toDouble();
+    }
+    if (data.containsKey('description')) {
+      item.description = data['description'] as String?;
+    }
+    if (data.containsKey('weight_grams')) {
+      item.weightGrams = (data['weight_grams'] as num?)?.toDouble();
+    }
+    if (data.containsKey('protein_grams')) {
+      item.proteinGrams = (data['protein_grams'] as num?)?.toDouble();
+    }
+    if (data.containsKey('fat_grams')) {
+      item.fatGrams = (data['fat_grams'] as num?)?.toDouble();
+    }
+    if (data.containsKey('carb_grams')) {
+      item.carbGrams = (data['carb_grams'] as num?)?.toDouble();
+    }
     if (data.containsKey('eaten_at')) {
       final raw = data['eaten_at'] as String?;
       item.eatenAt = raw != null ? DateTime.parse(raw) : null;
     }
     if (data.containsKey('created_at')) {
       final raw = data['created_at'] as String?;
-      if (raw != null) item.createdAt = DateTime.parse(raw);
+      if (raw != null) {
+        item.createdAt = DateTime.parse(raw);
+      }
     }
 
     item.updatedAt = DateTime.now();

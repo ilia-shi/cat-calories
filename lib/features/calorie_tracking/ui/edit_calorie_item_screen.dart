@@ -77,7 +77,9 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   }
 
   double? _parseNullableDouble(String text) {
-    if (text.isEmpty) return null;
+    if (text.isEmpty) {
+      return null;
+    }
     return double.tryParse(text);
   }
 

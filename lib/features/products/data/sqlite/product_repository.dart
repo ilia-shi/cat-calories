@@ -189,7 +189,9 @@ class ProductRepository implements ProductRepositoryInterface {
       limit: 1,
     );
 
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return Product.fromJson(result.first);
   }
 
@@ -202,7 +204,9 @@ class ProductRepository implements ProductRepositoryInterface {
       limit: 1,
     );
 
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return Product.fromJson(result.first);
   }
 

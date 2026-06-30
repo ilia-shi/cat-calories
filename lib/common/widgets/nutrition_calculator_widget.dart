@@ -196,14 +196,21 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     };
 
     // Mark initial values as edited
-    if (widget.initialWeight != null) _editedFields.add(NutritionField.weight);
-    if (widget.initialCaloriesPer100g != null)
+    if (widget.initialWeight != null) {
+      _editedFields.add(NutritionField.weight);
+    }
+    if (widget.initialCaloriesPer100g != null) {
       _editedFields.add(NutritionField.calories);
-    if (widget.initialProteinPer100g != null)
+    }
+    if (widget.initialProteinPer100g != null) {
       _editedFields.add(NutritionField.protein);
-    if (widget.initialFatPer100g != null) _editedFields.add(NutritionField.fat);
-    if (widget.initialCarbsPer100g != null)
+    }
+    if (widget.initialFatPer100g != null) {
+      _editedFields.add(NutritionField.fat);
+    }
+    if (widget.initialCarbsPer100g != null) {
       _editedFields.add(NutritionField.carbs);
+    }
 
     if (widget.inputMode != null) {
       _inputMode = widget.inputMode!;
@@ -291,7 +298,9 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
 
   double? _parseField(NutritionField field) {
     final text = _controllers[field]!.text.trim();
-    if (text.isEmpty) return null;
+    if (text.isEmpty) {
+      return null;
+    }
     return double.tryParse(text);
   }
 
@@ -305,7 +314,9 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
   /// Check if the current input is valid for submission
   bool _isValidInput() {
     final weight = _parseField(NutritionField.weight);
-    if (weight == null || weight <= 0) return false;
+    if (weight == null || weight <= 0) {
+      return false;
+    }
 
     if (_inputMode == NutritionInputMode.enterCalories) {
       final calories = _parseField(NutritionField.calories);
@@ -347,7 +358,9 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
 
   NutritionResult? _calculateResult() {
     final weight = _parseField(NutritionField.weight);
-    if (weight == null || weight <= 0) return null;
+    if (weight == null || weight <= 0) {
+      return null;
+    }
 
     final ratio = weight / 100.0;
 

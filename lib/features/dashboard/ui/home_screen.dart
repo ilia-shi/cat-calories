@@ -135,7 +135,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _onNavTap(int index) {
-    if (index == _currentIndex) return;
+    if (index == _currentIndex) {
+      return;
+    }
     _animateIndicatorTo(_currentIndex, index);
     setState(() => _currentIndex = index);
     _tabController.animateTo(index);

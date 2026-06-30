@@ -256,7 +256,9 @@ class SyncEngine {
         limit: batchSize,
       );
 
-      if (pending.isEmpty) break;
+      if (pending.isEmpty) {
+        break;
+      }
 
       final batch = SyncBatch(
         idempotencyKey: _generateUuid(),
@@ -317,7 +319,9 @@ class SyncEngine {
         limit: batchSize,
       );
 
-      if (result.entries.isEmpty) break;
+      if (result.entries.isEmpty) {
+        break;
+      }
 
       await _storage.applyPulled(
         entityType: entityType,
@@ -335,7 +339,9 @@ class SyncEngine {
 
       totalPulled += result.entries.length;
 
-      if (!result.hasMore) break;
+      if (!result.hasMore) {
+        break;
+      }
     }
 
     return totalPulled;

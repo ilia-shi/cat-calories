@@ -29,7 +29,9 @@ class SyncV2Handler extends Controller {
 
   Future<void> _push(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final data = await parseJsonBody(request);
     final idempotencyKey = data['idempotency_key'] as String? ?? '';
@@ -126,7 +128,9 @@ class SyncV2Handler extends Controller {
       db.execute('DELETE FROM calorie_items WHERE id = ?', [entityId]);
       return;
     }
-    if (payload == null) return;
+    if (payload == null) {
+      return;
+    }
 
     db.execute('''
       INSERT OR REPLACE INTO calorie_items (
@@ -155,13 +159,17 @@ class SyncV2Handler extends Controller {
 
   Future<void> _pull(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final queryParams = request.uri.queryParameters;
     final entityType = queryParams['entity_type'] ?? '';
     final sinceHlc = queryParams['since'] ?? '';
     var limit = int.tryParse(queryParams['limit'] ?? '') ?? 100;
-    if (limit > 1000) limit = 1000;
+    if (limit > 1000) {
+      limit = 1000;
+    }
 
     final entries = syncEntries.findSince(
       userId: userId,

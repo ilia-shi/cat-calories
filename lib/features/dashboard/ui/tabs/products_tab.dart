@@ -127,7 +127,9 @@ class _ProductsTabState extends State<ProductsTab> {
       ) {
     // Filter by search query
     var filtered = products.where((product) {
-      if (_searchQuery.isEmpty) return true;
+      if (_searchQuery.isEmpty) {
+        return true;
+      }
       return product.title.toLowerCase().contains(_searchQuery) ||
           (product.description?.toLowerCase().contains(_searchQuery) ?? false);
     }).toList();
@@ -152,8 +154,12 @@ class _ProductsTabState extends State<ProductsTab> {
           if (a.lastUsedAt == null && b.lastUsedAt == null) {
             return b.usesCount.compareTo(a.usesCount);
           }
-          if (a.lastUsedAt == null) return 1;
-          if (b.lastUsedAt == null) return -1;
+          if (a.lastUsedAt == null) {
+            return 1;
+          }
+          if (b.lastUsedAt == null) {
+            return -1;
+          }
           return b.lastUsedAt!.compareTo(a.lastUsedAt!);
         });
         break;
@@ -727,7 +733,9 @@ class _CategoryChip extends StatelessWidget {
   });
 
   Color? _parseColor() {
-    if (colorHex == null) return null;
+    if (colorHex == null) {
+      return null;
+    }
     try {
       final hex = colorHex!.replaceFirst('#', '');
       return Color(int.parse('FF$hex', radix: 16));

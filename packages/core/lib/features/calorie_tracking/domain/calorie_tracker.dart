@@ -224,7 +224,9 @@ class RollingCalorieTracker {
   /// Get the last meal time
   DateTime? lastMealTime(List<CalorieEntry> entries, DateTime asOf) {
     final recent = entries.where((e) => !e.createdAt.isAfter(asOf)).toList();
-    if (recent.isEmpty) return null;
+    if (recent.isEmpty) {
+      return null;
+    }
 
     return recent.reduce((latest, e) =>
     e.createdAt.isAfter(latest.createdAt) ? e : latest
@@ -234,7 +236,9 @@ class RollingCalorieTracker {
   /// Get hours since last meal
   double? hoursSinceLastMeal(List<CalorieEntry> entries, DateTime asOf) {
     final last = lastMealTime(entries, asOf);
-    if (last == null) return null;
+    if (last == null) {
+      return null;
+    }
 
     return asOf.difference(last).inMinutes / 60.0;
   }
@@ -259,7 +263,9 @@ class RollingCalorieTracker {
       final periodEndHoursAgo = i * periodHours;
       final periodStartHoursAgo = min((i + 1) * periodHours, windowHours);
 
-      if (periodEndHoursAgo >= windowHours) continue;
+      if (periodEndHoursAgo >= windowHours) {
+        continue;
+      }
 
       final periodEnd = asOf.subtract(Duration(hours: periodEndHoursAgo));
       final periodStart = asOf.subtract(Duration(hours: periodStartHoursAgo));
@@ -471,7 +477,9 @@ class RollingCalorieTracker {
         .where((e) => e.createdAt.isAfter(startDate) && e.createdAt.isBefore(asOf))
         .toList();
 
-    if (relevantEntries.isEmpty) return 0;
+    if (relevantEntries.isEmpty) {
+      return 0;
+    }
 
     final total = relevantEntries.fold(0.0, (sum, e) => sum + e.value);
     return total / days;

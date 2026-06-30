@@ -38,13 +38,17 @@ final class SyncAdapterRegistry {
 
   SyncAdapter<T> getAdapter<T>(String type) {
     final reg = _registrations[type];
-    if (reg == null) throw StateError('No adapter for $type');
+    if (reg == null) {
+      throw StateError('No adapter for $type');
+    }
     return reg.adapter as SyncAdapter<T>;
   }
 
   SyncEntityRepository<T> getRepository<T>(String type) {
     final reg = _registrations[type];
-    if (reg == null) throw StateError('No repository for $type');
+    if (reg == null) {
+      throw StateError('No repository for $type');
+    }
     return reg.repository as SyncEntityRepository<T>;
   }
 

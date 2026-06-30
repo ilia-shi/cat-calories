@@ -33,7 +33,9 @@ class RecordsHandler extends Controller {
 
   Future<void> _list(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final profile = await profiles.getOrCreateForUser(userId);
     final allRecords = await records.fetchAllByProfile(
@@ -52,7 +54,9 @@ class RecordsHandler extends Controller {
 
   Future<void> _create(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final profile = await profiles.getOrCreateForUser(userId);
     final data = await parseJsonBody(request);
@@ -85,7 +89,9 @@ class RecordsHandler extends Controller {
 
   Future<void> _update(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final id = params['id']!;
     final profile = await profiles.getOrCreateForUser(userId);
@@ -111,7 +117,9 @@ class RecordsHandler extends Controller {
     }
     if (data.containsKey('created_at')) {
       final parsed = DateTime.tryParse(data['created_at'] as String);
-      if (parsed != null) existing.createdAt = parsed;
+      if (parsed != null) {
+        existing.createdAt = parsed;
+      }
     }
     if (data.containsKey('weight_grams')) {
       existing.weightGrams = (data['weight_grams'] as num?)?.toDouble();
@@ -134,7 +142,9 @@ class RecordsHandler extends Controller {
 
   Future<void> _delete(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final id = params['id']!;
     final profile = await profiles.getOrCreateForUser(userId);

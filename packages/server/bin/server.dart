@@ -186,20 +186,26 @@ Future<void> _materializeSyncEntries(
   ServerProfileRepository profileRepo,
 ) async {
   final entries = syncEntryRepo.findAllByType('calorie_item');
-  if (entries.isEmpty) return;
+  if (entries.isEmpty) {
+    return;
+  }
 
   final profileCache = <String, String>{};
   int materialized = 0;
 
   for (final entry in entries) {
-    if (entry.payload == null) continue;
+    if (entry.payload == null) {
+      continue;
+    }
 
     // Skip if already materialized
     final existing = db.select(
       'SELECT 1 FROM calorie_items WHERE id = ?',
       [entry.entityId],
     );
-    if (existing.isNotEmpty) continue;
+    if (existing.isNotEmpty) {
+      continue;
+    }
 
     // Resolve profile for this user
     if (!profileCache.containsKey(entry.userId)) {
@@ -240,12 +246,26 @@ Future<void> _materializeSyncEntries(
 }
 
 ContentType _contentTypeForPath(String path) {
-  if (path.endsWith('.html')) return ContentType.html;
-  if (path.endsWith('.js')) return ContentType('application', 'javascript', charset: 'utf-8');
-  if (path.endsWith('.css')) return ContentType('text', 'css', charset: 'utf-8');
-  if (path.endsWith('.json')) return ContentType.json;
-  if (path.endsWith('.svg')) return ContentType('image', 'svg+xml');
-  if (path.endsWith('.png')) return ContentType('image', 'png');
-  if (path.endsWith('.ico')) return ContentType('image', 'x-icon');
+  if (path.endsWith('.html')) {
+    return ContentType.html;
+  }
+  if (path.endsWith('.js')) {
+    return ContentType('application', 'javascript', charset: 'utf-8');
+  }
+  if (path.endsWith('.css')) {
+    return ContentType('text', 'css', charset: 'utf-8');
+  }
+  if (path.endsWith('.json')) {
+    return ContentType.json;
+  }
+  if (path.endsWith('.svg')) {
+    return ContentType('image', 'svg+xml');
+  }
+  if (path.endsWith('.png')) {
+    return ContentType('image', 'png');
+  }
+  if (path.endsWith('.ico')) {
+    return ContentType('image', 'x-icon');
+  }
   return ContentType.binary;
 }

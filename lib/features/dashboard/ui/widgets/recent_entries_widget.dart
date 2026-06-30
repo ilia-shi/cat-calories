@@ -18,8 +18,12 @@ class RecentEntriesWidget extends StatelessWidget {
   }) : super(key: key);
 
   Color _getMealAgeColor(double hoursAgo) {
-    if (hoursAgo < 4) return Colors.blue.shade500;
-    if (hoursAgo < 12) return Colors.orange.shade500;
+    if (hoursAgo < 4) {
+      return Colors.blue.shade500;
+    }
+    if (hoursAgo < 12) {
+      return Colors.orange.shade500;
+    }
     return Colors.green.shade500;
   }
 

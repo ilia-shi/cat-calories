@@ -24,7 +24,9 @@ class ServerProfileRepository implements ProfileRepositoryInterface {
 
   Future<Profile?> findById(String id) async {
     final result = _db.select('SELECT * FROM profiles WHERE id = ?', [id]);
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToProfile(result.first);
   }
 
@@ -75,7 +77,9 @@ class ServerProfileRepository implements ProfileRepositoryInterface {
   /// Returns the first profile for [userId], creating a default one if none exists.
   Future<Profile> getOrCreateForUser(String userId) async {
     final userProfiles = await fetchByUser(userId);
-    if (userProfiles.isNotEmpty) return userProfiles.first;
+    if (userProfiles.isNotEmpty) {
+      return userProfiles.first;
+    }
 
     final now = DateTime.now();
     return insertForUser(

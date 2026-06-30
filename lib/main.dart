@@ -17,11 +17,15 @@ import 'package:cat_calories/features/dashboard/ui/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 Future<void> _seedIfNeeded() async {
-  if (!kDebugMode) return;
+  if (!kDebugMode) {
+    return;
+  }
 
   await AppDatabase.instance.getDatabase();
 
-  if (!AppDatabase.instance.isNewDatabase) return;
+  if (!AppDatabase.instance.isNewDatabase) {
+    return;
+  }
 
   final profile = await ProfileSeeds.seed();
   await CalorieItemSeedExecutor.seedIfNeeded(profileId: profile.id!);

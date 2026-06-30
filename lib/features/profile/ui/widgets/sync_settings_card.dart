@@ -71,7 +71,9 @@ class _SyncSettingsCardState extends State<SyncSettingsCard> {
 
     final token = await _syncService.login(url, email, password);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (token != null) {
       await _syncService.setEnabled(true);
@@ -99,7 +101,9 @@ class _SyncSettingsCardState extends State<SyncSettingsCard> {
 
     final success = await _syncService.sync();
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _isSyncing = false;
@@ -115,7 +119,9 @@ class _SyncSettingsCardState extends State<SyncSettingsCard> {
 
     final success = await _syncService.reconnect();
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (success) {
       await _syncService.setEnabled(true);
@@ -185,7 +191,9 @@ class _SyncSettingsCardState extends State<SyncSettingsCard> {
                   onChanged: (value) async {
                     await _syncService.setEnabled(value);
                     setState(() => _syncEnabled = value);
-                    if (value) _doSync();
+                    if (value) {
+                      _doSync();
+                    }
                   },
                 ),
             ],

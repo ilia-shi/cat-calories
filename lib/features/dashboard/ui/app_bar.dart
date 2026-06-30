@@ -235,13 +235,19 @@ class _HomeToolbar extends StatelessWidget {
 
       final allItems = <String, dynamic>{};
       for (final item in state.todayCalorieItems) {
-        if (item.id != null) allItems[item.id!] = item;
+        if (item.id != null) {
+          allItems[item.id!] = item;
+        }
       }
       for (final item in state.periodCalorieItems) {
-        if (item.id != null) allItems[item.id!] = item;
+        if (item.id != null) {
+          allItems[item.id!] = item;
+        }
       }
       for (final item in state.rollingWindowCalorieItems) {
-        if (item.id != null) allItems[item.id!] = item;
+        if (item.id != null) {
+          allItems[item.id!] = item;
+        }
       }
 
       await CalorieExporter.exportAndShare(
@@ -467,7 +473,9 @@ class _WebServerIndicatorState extends State<_WebServerIndicator> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     });
   }
 
@@ -479,7 +487,9 @@ class _WebServerIndicatorState extends State<_WebServerIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_webServer.isRunning) return const SizedBox.shrink();
+    if (!_webServer.isRunning) {
+      return const SizedBox.shrink();
+    }
 
     return GestureDetector(
       onTap: () => _showMenu(context),
@@ -599,8 +609,12 @@ class _WebServerIndicatorState extends State<_WebServerIndicator> {
                       style: TextStyle(color: Colors.red.shade400)),
                   onTap: () async {
                     await _webServer.stop();
-                    if (mounted) setState(() {});
-                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                    if (mounted) {
+                      setState(() {});
+                    }
+                    if (sheetContext.mounted) {
+                      Navigator.of(sheetContext).pop();
+                    }
                   },
                 ),
               ],
@@ -634,7 +648,9 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
     super.initState();
     _loadState();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted) _loadState();
+      if (mounted) {
+        _loadState();
+      }
     });
   }
 
@@ -651,7 +667,9 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
     int authed = 0;
     for (final s in servers) {
       final creds = await _credentialsRepo.findByServer(s.id);
-      if (creds != null) authed++;
+      if (creds != null) {
+        authed++;
+      }
     }
     final prefs = await SharedPreferences.getInstance();
     final lastSync = prefs.getString('sync_last_synced_at');
@@ -695,7 +713,9 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   }
 
   Future<void> _doQuickSync(BuildContext context) async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      return;
+    }
     setState(() => _isSyncing = true);
 
     final result = await _syncer.syncAll();
@@ -725,14 +745,22 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   }
 
   String _formatLastSync() {
-    if (_lastSyncedAt == null) return 'Never';
+    if (_lastSyncedAt == null) {
+      return 'Never';
+    }
     try {
       final dt = DateTime.parse(_lastSyncedAt!).toLocal();
       final now = DateTime.now();
       final diff = now.difference(dt);
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inMinutes < 1) {
+        return 'Just now';
+      }
+      if (diff.inMinutes < 60) {
+        return '${diff.inMinutes}m ago';
+      }
+      if (diff.inHours < 24) {
+        return '${diff.inHours}h ago';
+      }
       return '${dt.day}.${dt.month.toString().padLeft(2, '0')} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return _lastSyncedAt ?? 'Unknown';

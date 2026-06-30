@@ -44,15 +44,25 @@ class _WebServerSettingsCardState extends State<WebServerSettingsCard> {
   }
 
   String _formatTimeout(int minutes) {
-    if (minutes == 0) return 'Never';
-    if (minutes == 1) return '1 minute';
+    if (minutes == 0) {
+      return 'Never';
+    }
+    if (minutes == 1) {
+      return '1 minute';
+    }
     return '$minutes minutes';
   }
 
   String _formatDimTimeout(int minutes) {
-    if (minutes == -1) return 'Default';
-    if (minutes == 0) return 'Never';
-    if (minutes == 1) return '1 minute';
+    if (minutes == -1) {
+      return 'Default';
+    }
+    if (minutes == 0) {
+      return 'Never';
+    }
+    if (minutes == 1) {
+      return '1 minute';
+    }
     return '$minutes minutes';
   }
 
@@ -174,7 +184,9 @@ class _LabeledDropdown extends StatelessWidget {
                 );
               }).toList(),
               onChanged: (v) {
-                if (v == null) return;
+                if (v == null) {
+                  return;
+                }
                 onChanged(v);
               },
             ),

@@ -75,7 +75,9 @@ class ProfileAvatarHeader extends StatelessWidget {
   }
 
   String _getInitials(String name) {
-    if (name.isEmpty) return '?';
+    if (name.isEmpty) {
+      return '?';
+    }
     final parts = name.trim().split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();

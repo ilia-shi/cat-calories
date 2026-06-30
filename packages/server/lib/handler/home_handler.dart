@@ -25,7 +25,9 @@ class HomeHandler extends Controller {
 
   Future<void> _home(HttpRequest request, Map<String, String> params) async {
     final userId = await requireAuth(request, userExtractor);
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     final profile = await profiles.getOrCreateForUser(userId);
     final profileId = profile.id!;

@@ -34,7 +34,9 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
       limit: 1,
     );
 
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return ProductCategory.fromJson(result.first);
   }
 
@@ -106,7 +108,9 @@ class ProductCategoryRepository implements ProductCategoryRepositoryInterface {
   /// Create default categories for a profile if none exist
   Future<void> createDefaultCategoriesIfNeeded(Profile profile) async {
     final existing = await fetchByProfile(profile);
-    if (existing.isNotEmpty) return;
+    if (existing.isNotEmpty) {
+      return;
+    }
 
     final defaultCategories = [
       ('Beverages', 'local_drink', '#2196F3'),

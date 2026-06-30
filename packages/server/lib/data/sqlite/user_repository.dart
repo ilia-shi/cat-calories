@@ -32,13 +32,17 @@ class UserRepository {
 
   User? findById(String id) {
     final result = _db.select('SELECT * FROM users WHERE id = ?', [id]);
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToUser(result.first);
   }
 
   User? findByEmail(String email) {
     final result = _db.select('SELECT * FROM users WHERE email = ?', [email]);
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToUser(result.first);
   }
 
@@ -47,7 +51,9 @@ class UserRepository {
       'SELECT * FROM users WHERE provider = ? AND subject = ?',
       [provider, subject],
     );
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
     return _rowToUser(result.first);
   }
 
@@ -80,7 +86,9 @@ class UserRepository {
   /// Find or create a user for an OAuth provider/subject pair.
   String findOrCreateByProvider(String provider, String subject) {
     final existing = findByProviderSubject(provider, subject);
-    if (existing != null) return existing.id;
+    if (existing != null) {
+      return existing.id;
+    }
 
     return create(
       email: '$subject@$provider',

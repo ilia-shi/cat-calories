@@ -438,7 +438,9 @@ class EditServersScreenState extends State<EditServersScreen> {
   }
 
   Future<void> _syncServer(SyncServer server) async {
-    if (_syncingServers.contains(server.id)) return;
+    if (_syncingServers.contains(server.id)) {
+      return;
+    }
     setState(() => _syncingServers.add(server.id));
 
     try {
@@ -551,12 +553,20 @@ class EditServerScreenState extends State<EditServerScreen> {
 
   bool _isValidServerUrl(String url) {
     final trimmed = url.trim();
-    if (trimmed.isEmpty) return false;
+    if (trimmed.isEmpty) {
+      return false;
+    }
 
     String host = trimmed;
-    if (host.startsWith('http://')) host = host.substring(7);
-    if (host.startsWith('https://')) host = host.substring(8);
-    if (host.endsWith('/')) host = host.substring(0, host.length - 1);
+    if (host.startsWith('http://')) {
+      host = host.substring(7);
+    }
+    if (host.startsWith('https://')) {
+      host = host.substring(8);
+    }
+    if (host.endsWith('/')) {
+      host = host.substring(0, host.length - 1);
+    }
 
     final pattern = RegExp(
       r'^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(:\d{1,5})?$|'
@@ -572,7 +582,9 @@ class EditServerScreenState extends State<EditServerScreen> {
 
   String _serverDisplayName() {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) return name;
+    if (name.isNotEmpty) {
+      return name;
+    }
     return _config?.serverName ?? _primaryUrl();
   }
 
@@ -580,7 +592,9 @@ class EditServerScreenState extends State<EditServerScreen> {
       _urlControllers.map((c) => c.text.trim()).where((u) => u.isNotEmpty).toList();
 
   Future<void> _connect() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() {
       _isConnecting = true;

@@ -59,7 +59,9 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
 
   double? get _currentWeight {
     final text = _controller.text.trim();
-    if (text.isEmpty) return null;
+    if (text.isEmpty) {
+      return null;
+    }
     return double.tryParse(text);
   }
 
@@ -93,7 +95,9 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
   }
 
   void _onSubmit() {
-    if (!_isValidInput || _isSubmitting) return;
+    if (!_isValidInput || _isSubmitting) {
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
@@ -111,7 +115,9 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
   }
 
   void _onEatEntirePackage() {
-    if (_isSubmitting || !widget.product.hasPackageWeight) return;
+    if (_isSubmitting || !widget.product.hasPackageWeight) {
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 

@@ -16,7 +16,9 @@ class AppDatabase implements DatabaseClient {
   bool get isNewDatabase => _isNewDatabase;
 
   Future<Database?> get database async {
-    if (_database != null) return _database;
+    if (_database != null) {
+      return _database;
+    }
     _database = await _initDb();
     return _database;
   }

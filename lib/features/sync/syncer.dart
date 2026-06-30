@@ -34,10 +34,14 @@ class Syncer {
 
   Future<ServerSyncResult> syncServer(SyncServer server) async {
     final creds = await _credentialsRepo.findByServer(server.id);
-    if (creds == null) return ServerSyncResult.failed('No credentials');
+    if (creds == null) {
+      return ServerSyncResult.failed('No credentials');
+    }
 
     final links = await _linkRepo.findByServer(server.id);
-    if (links.isEmpty) return ServerSyncResult.failed('No linked profiles');
+    if (links.isEmpty) {
+      return ServerSyncResult.failed('No linked profiles');
+    }
 
     final linkedScopes = links.map((l) => l.scope).toSet();
 
@@ -165,7 +169,9 @@ class Syncer {
         }
       }
 
-      if (!pullResult.hasMore || pullResult.serverTimestamp == null) break;
+      if (!pullResult.hasMore || pullResult.serverTimestamp == null) {
+        break;
+      }
       sinceHlc = pullResult.serverTimestamp!;
     }
 
@@ -198,10 +204,18 @@ final class SyncResult {
       return 'Sync failed';
     }
     final parts = <String>[];
-    if (totalPushed > 0) parts.add('$totalPushed pushed');
-    if (totalPulled > 0) parts.add('$totalPulled pulled');
-    if (totalDeleted > 0) parts.add('$totalDeleted deleted');
-    if (parts.isEmpty) return 'Synced, no changes';
+    if (totalPushed > 0) {
+      parts.add('$totalPushed pushed');
+    }
+    if (totalPulled > 0) {
+      parts.add('$totalPulled pulled');
+    }
+    if (totalDeleted > 0) {
+      parts.add('$totalDeleted deleted');
+    }
+    if (parts.isEmpty) {
+      return 'Synced, no changes';
+    }
     return 'Synced: ${parts.join(', ')}';
   }
 }
@@ -226,10 +240,18 @@ final class ServerSyncResult {
 
   String get message {
     final parts = <String>[];
-    if (pushed > 0) parts.add('$pushed pushed');
-    if (pulled > 0) parts.add('$pulled pulled');
-    if (deleted > 0) parts.add('$deleted deleted');
-    if (parts.isEmpty) return 'Synced, no changes';
+    if (pushed > 0) {
+      parts.add('$pushed pushed');
+    }
+    if (pulled > 0) {
+      parts.add('$pulled pulled');
+    }
+    if (deleted > 0) {
+      parts.add('$deleted deleted');
+    }
+    if (parts.isEmpty) {
+      return 'Synced, no changes';
+    }
     return 'Synced: ${parts.join(', ')}';
   }
 }

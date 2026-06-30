@@ -48,17 +48,23 @@ class AppColors {
 
   // Macro chip colors (for day summaries, item macros)
   Color macroCircleBg(Color color, bool hasData) {
-    if (!hasData) return isDark ? Colors.grey.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.15);
+    if (!hasData) {
+      return isDark ? Colors.grey.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.15);
+    }
     return isDark ? color.withValues(alpha: 0.25) : color.withValues(alpha: 0.15);
   }
 
   Color macroCircleText(Color color, bool hasData) {
-    if (!hasData) return isDark ? Colors.grey.shade600 : Colors.grey;
+    if (!hasData) {
+      return isDark ? Colors.grey.shade600 : Colors.grey;
+    }
     return isDark ? color.withValues(alpha: 0.9) : color;
   }
 
   Color macroValueText(bool hasData) {
-    if (!hasData) return isDark ? Colors.grey.shade600 : Colors.grey.shade400;
+    if (!hasData) {
+      return isDark ? Colors.grey.shade600 : Colors.grey.shade400;
+    }
     return isDark ? Colors.grey.shade300 : Colors.grey.shade700;
   }
 }

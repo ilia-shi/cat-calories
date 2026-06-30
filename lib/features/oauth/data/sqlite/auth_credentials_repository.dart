@@ -16,7 +16,9 @@ class AuthCredentialsRepository implements AuthCredentialsRepositoryInterface {
       whereArgs: [serverId],
       limit: 1,
     );
-    if (rows.isEmpty) return null;
+    if (rows.isEmpty) {
+      return null;
+    }
     return AuthCredentials.fromJson(rows.first);
   }
 
