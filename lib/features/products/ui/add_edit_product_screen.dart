@@ -31,6 +31,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   late final TextEditingController _fatController;
   late final TextEditingController _carbsController;
   late final TextEditingController _packageWeightController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _priceCurrencyController;
 
   String? _selectedCategoryId;
   bool _isSaving = false;
@@ -61,6 +63,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _packageWeightController = TextEditingController(
       text: product?.packageWeightGrams?.toString() ?? '',
     );
+    _priceController = TextEditingController(
+      text: product?.pricePerPackage?.toString() ?? '',
+    );
+    _priceCurrencyController = TextEditingController(
+      text: product?.priceCurrency ?? '',
+    );
     _selectedCategoryId = product?.categoryId;
   }
 
@@ -74,7 +82,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _fatController.dispose();
     _carbsController.dispose();
     _packageWeightController.dispose();
+    _priceController.dispose();
+    _priceCurrencyController.dispose();
     super.dispose();
+  }
+
+  String? _parseCurrency(String value) {
+    final trimmed = value.trim().toUpperCase();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
   }
 
   double? _parseDouble(String value) {
@@ -103,6 +121,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     setState(() => _isSaving = true);
 
     if (widget.isEditing) {
+      final newPrice = _parseDouble(_priceController.text.trim());
+      final priceChanged = newPrice != widget.product!.pricePerPackage;
+
       // Update existing product
       final updatedProduct = widget.product!.copyWith(
         title: _titleController.text.trim(),
@@ -116,6 +137,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         carbsPer100g: _parseDouble(_carbsController.text.trim()),
         packageWeightGrams: _parseDouble(_packageWeightController.text.trim()),
         categoryId: _selectedCategoryId,
+        pricePerPackage: newPrice,
+        priceCurrency: _parseCurrency(_priceCurrencyController.text),
+        priceUpdatedAt: priceChanged ? DateTime.now() : null,
       );
 
       context.read<HomeBloc>().add(UpdateProductEvent(updatedProduct));
@@ -133,6 +157,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         carbsPer100g: _parseDouble(_carbsController.text.trim()),
         packageWeightGrams: _parseDouble(_packageWeightController.text.trim()),
         categoryId: _selectedCategoryId,
+        pricePerPackage: _parseDouble(_priceController.text.trim()),
+        priceCurrency: _parseCurrency(_priceCurrencyController.text),
       ));
     }
 
@@ -423,10 +449,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildPackageSection() {
+    final state = context.read<HomeBloc>().state;
+    final defaultCurrency =
+        state is HomeFetched ? state.activeProfile.defaultCurrency : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Package Weight (optional)', Icons.inventory_2_outlined),
+        _buildSectionTitle('Package (optional)', Icons.inventory_2_outlined),
         TextFormField(
           controller: _packageWeightController,
           decoration: const InputDecoration(
@@ -445,6 +475,55 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             }
             return null;
           },
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Package Price',
+                  hintText: 'e.g., 3.50',
+                  border: OutlineInputBorder(),
+                  helperText: 'The price you currently pay',
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    if (double.tryParse(value) == null) {
+                      return 'Invalid number';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                controller: _priceCurrencyController,
+                decoration: InputDecoration(
+                  labelText: 'Currency',
+                  hintText: defaultCurrency ?? 'EUR',
+                  border: const OutlineInputBorder(),
+                  helperText: defaultCurrency == null
+                      ? null
+                      : 'Empty = $defaultCurrency',
+                ),
+                textCapitalization: TextCapitalization.characters,
+                maxLength: 3,
+                buildCounter: (context,
+                        {required currentLength,
+                        required isFocused,
+                        maxLength}) =>
+                    null,
+              ),
+            ),
+          ],
         ),
       ],
     );

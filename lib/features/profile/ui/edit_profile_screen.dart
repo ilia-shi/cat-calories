@@ -26,6 +26,7 @@ class EditProfileScreenState extends State<EditProfileScreen>
   late TextEditingController _nameController;
   late TextEditingController _wakingTimeHours;
   late TextEditingController _caloriesLimitGoal;
+  late TextEditingController _defaultCurrency;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -42,11 +43,14 @@ class EditProfileScreenState extends State<EditProfileScreen>
         text: widget.profile.getExpectedWakingDuration().inHours.toString());
     _caloriesLimitGoal =
         TextEditingController(text: widget.profile.caloriesLimitGoal.toString());
+    _defaultCurrency =
+        TextEditingController(text: widget.profile.defaultCurrency ?? '');
 
     // Track changes
     _nameController.addListener(_onFieldChanged);
     _wakingTimeHours.addListener(_onFieldChanged);
     _caloriesLimitGoal.addListener(_onFieldChanged);
+    _defaultCurrency.addListener(_onFieldChanged);
 
     // Setup animations
     _animationController = AnimationController(
@@ -77,6 +81,7 @@ class EditProfileScreenState extends State<EditProfileScreen>
     _nameController.dispose();
     _wakingTimeHours.dispose();
     _caloriesLimitGoal.dispose();
+    _defaultCurrency.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -90,6 +95,8 @@ class EditProfileScreenState extends State<EditProfileScreen>
     widget.profile.setExpectedWakingDuration(
         Duration(hours: int.parse(_wakingTimeHours.text)));
     widget.profile.name = _nameController.text;
+    final currency = _defaultCurrency.text.trim().toUpperCase();
+    widget.profile.defaultCurrency = currency.isEmpty ? null : currency;
     widget.profile.updatedAt = DateTime.now();
 
     BlocProvider.of<HomeBloc>(context).add(ProfileUpdatingEvent(widget.profile));
@@ -161,6 +168,7 @@ class EditProfileScreenState extends State<EditProfileScreen>
                         ProfileGoalsCard(
                           calorieController: _caloriesLimitGoal,
                           wakingController: _wakingTimeHours,
+                          currencyController: _defaultCurrency,
                           isDark: isDark,
                           primaryColor: primaryColor,
                         ),

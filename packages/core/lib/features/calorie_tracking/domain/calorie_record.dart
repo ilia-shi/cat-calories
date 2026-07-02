@@ -14,6 +14,15 @@ final class CalorieRecord {
   double? carbGrams;
   String? productId;
 
+  /// Cost snapshotted at logging time from the product's then-current price —
+  /// the product price may change later without corrupting history.
+  double? costValue;
+  String? costCurrency;
+
+  /// True after the user edits the cost by hand; auto-recompute on
+  /// weight/product change must not clobber a manual correction.
+  bool costIsManual;
+
   CalorieRecord({
     required this.id,
     required this.value,
@@ -29,6 +38,9 @@ final class CalorieRecord {
     this.fatGrams = null,
     this.carbGrams = null,
     this.productId = null,
+    this.costValue = null,
+    this.costCurrency = null,
+    this.costIsManual = false,
   }) : updatedAt = updatedAt ?? createdAt;
 
   factory CalorieRecord.fromJson(Map<String, dynamic> json) =>
@@ -52,6 +64,11 @@ final class CalorieRecord {
         fatGrams: json['fat_grams'] ?? null,
         carbGrams: json['carb_grams'] ?? null,
         productId: json['product_id'] ?? null,
+        costValue: json['cost_value'] ?? null,
+        costCurrency: json['cost_currency'] ?? null,
+        // sqlite stores booleans as 0/1
+        costIsManual: json['cost_is_manual'] == true ||
+            json['cost_is_manual'] == 1,
       );
 
   Map<String, dynamic> toJson() => {
@@ -75,6 +92,9 @@ final class CalorieRecord {
         'fat_grams': fatGrams,
         'carb_grams': carbGrams,
         'product_id': productId,
+        'cost_value': costValue,
+        'cost_currency': costCurrency,
+        'cost_is_manual': costIsManual ? 1 : 0,
       };
 
   bool isEaten() {

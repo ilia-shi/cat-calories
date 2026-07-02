@@ -194,6 +194,16 @@ components:
           type: number
           format: double
           nullable: true
+        cost_value:
+          type: number
+          format: double
+          nullable: true
+        cost_currency:
+          type: string
+          nullable: true
+        cost_is_manual:
+          type: boolean
+          default: false
 
     Profile:
       type: object
@@ -291,6 +301,16 @@ components:
           type: number
           format: double
           nullable: true
+        cost_value:
+          type: number
+          format: double
+          nullable: true
+        cost_currency:
+          type: string
+          nullable: true
+        cost_is_manual:
+          type: boolean
+          nullable: true
 
     UpdateRecordRequest:
       type: object
@@ -323,6 +343,16 @@ components:
         carb_grams:
           type: number
           format: double
+          nullable: true
+        cost_value:
+          type: number
+          format: double
+          nullable: true
+        cost_currency:
+          type: string
+          nullable: true
+        cost_is_manual:
+          type: boolean
           nullable: true
 
     DeleteResponse:

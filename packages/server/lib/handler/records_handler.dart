@@ -80,6 +80,9 @@ class RecordsHandler extends Controller {
       proteinGrams: (data['protein_grams'] as num?)?.toDouble(),
       fatGrams: (data['fat_grams'] as num?)?.toDouble(),
       carbGrams: (data['carb_grams'] as num?)?.toDouble(),
+      costValue: (data['cost_value'] as num?)?.toDouble(),
+      costCurrency: data['cost_currency'] as String?,
+      costIsManual: data['cost_is_manual'] == true,
     );
 
     await records.insert(record);
@@ -132,6 +135,15 @@ class RecordsHandler extends Controller {
     }
     if (data.containsKey('carb_grams')) {
       existing.carbGrams = (data['carb_grams'] as num?)?.toDouble();
+    }
+    if (data.containsKey('cost_value')) {
+      existing.costValue = (data['cost_value'] as num?)?.toDouble();
+    }
+    if (data.containsKey('cost_currency')) {
+      existing.costCurrency = data['cost_currency'] as String?;
+    }
+    if (data.containsKey('cost_is_manual')) {
+      existing.costIsManual = data['cost_is_manual'] == true;
     }
     existing.updatedAt = DateTime.now();
 
@@ -217,5 +229,8 @@ class RecordsHandler extends Controller {
         'protein_grams': r.proteinGrams,
         'fat_grams': r.fatGrams,
         'carb_grams': r.carbGrams,
+        'cost_value': r.costValue,
+        'cost_currency': r.costCurrency,
+        'cost_is_manual': r.costIsManual,
       };
 }

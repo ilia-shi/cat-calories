@@ -12,9 +12,10 @@ import 'package:cat_calories/database/migrations/v009_migrate_waking_periods_to_
 import 'package:cat_calories/database/migrations/v010_add_sync_servers.dart';
 import 'package:cat_calories/database/migrations/v011_add_auth_credentials.dart';
 import 'package:cat_calories/database/migrations/v012_add_server_urls.dart';
+import 'package:cat_calories/database/migrations/v013_add_price_and_cost.dart';
 
 class MigrationRunner {
-  static const currentVersion = 12;
+  static const currentVersion = 13;
 
   static final List<Migration> _migrations = [
     V002AddNutritionColumns(),
@@ -28,6 +29,7 @@ class MigrationRunner {
     V010AddSyncServers(),
     V011AddAuthCredentials(),
     V012AddServerUrls(),
+    V013AddPriceAndCost(),
   ];
 
   Future<void> onCreate(Database db, int version) async {

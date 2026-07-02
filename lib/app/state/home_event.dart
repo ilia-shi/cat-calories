@@ -195,6 +195,8 @@ class CreateProductEvent extends AbstractHomeEvent {
   final double? carbsPer100g;
   final double? packageWeightGrams;
   final String? categoryId;
+  final double? pricePerPackage;
+  final String? priceCurrency;
 
   CreateProductEvent({
     required this.title,
@@ -206,6 +208,8 @@ class CreateProductEvent extends AbstractHomeEvent {
     this.carbsPer100g,
     this.packageWeightGrams,
     this.categoryId,
+    this.pricePerPackage,
+    this.priceCurrency,
   });
 }
 

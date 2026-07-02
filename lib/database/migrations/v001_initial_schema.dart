@@ -14,7 +14,8 @@ class V001InitialSchema extends Migration {
         created_at INT,
         updated_at INT,
         waking_time_seconds INT,
-        calories_limit_goal REAL
+        calories_limit_goal REAL,
+        default_currency TEXT NULL
       )
     ''');
 
@@ -52,6 +53,9 @@ class V001InitialSchema extends Migration {
         fat_grams REAL NULL,
         carb_grams REAL NULL,
         product_id TEXT NULL,
+        cost_value REAL NULL,
+        cost_currency TEXT NULL,
+        cost_is_manual INT NOT NULL DEFAULT 0,
         FOREIGN KEY(profile_id) REFERENCES profiles(id),
         FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
         FOREIGN KEY(product_id) REFERENCES products(id)
@@ -90,6 +94,9 @@ class V001InitialSchema extends Migration {
         package_weight_grams REAL NULL,
         category_id TEXT NULL,
         last_used_at INT NULL,
+        price_per_package REAL NULL,
+        price_currency TEXT NULL,
+        price_updated_at INT NULL,
         FOREIGN KEY(profile_id) REFERENCES profiles(id),
         FOREIGN KEY(category_id) REFERENCES product_categories(id)
       )

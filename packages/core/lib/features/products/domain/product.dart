@@ -18,6 +18,16 @@ final class Product {
   /// Optional package weight in grams for "eat entire package" feature
   double? packageWeightGrams;
 
+  /// Price of one package in [priceCurrency] — "the price I currently pay",
+  /// entered once per product. Cost math needs [packageWeightGrams] too.
+  double? pricePerPackage;
+
+  /// ISO 4217 code; prefilled from the profile default, never typed by hand.
+  String? priceCurrency;
+
+  /// When the price was last changed, so stale prices can be flagged.
+  DateTime? priceUpdatedAt;
+
   /// Category UUID for custom product categorization
   String? categoryId;
 
@@ -41,6 +51,9 @@ final class Product {
     this.packageWeightGrams,
     this.categoryId,
     this.lastUsedAt,
+    this.pricePerPackage,
+    this.priceCurrency,
+    this.priceUpdatedAt,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -69,6 +82,12 @@ final class Product {
     lastUsedAt: json['last_used_at'] != null
         ? DateTime.fromMillisecondsSinceEpoch(
         _parseInt(json['last_used_at']) ?? 0)
+        : null,
+    pricePerPackage: _parseDouble(json['price_per_package']),
+    priceCurrency: json['price_currency']?.toString(),
+    priceUpdatedAt: json['price_updated_at'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(
+        _parseInt(json['price_updated_at']) ?? 0)
         : null,
   );
 
@@ -125,6 +144,9 @@ final class Product {
     'package_weight_grams': packageWeightGrams,
     'category_id': categoryId,
     'last_used_at': lastUsedAt?.millisecondsSinceEpoch,
+    'price_per_package': pricePerPackage,
+    'price_currency': priceCurrency,
+    'price_updated_at': priceUpdatedAt?.millisecondsSinceEpoch,
   };
 
   /// Calculate calories for a given weight in grams
@@ -171,6 +193,18 @@ final class Product {
   bool get hasPackageWeight =>
       packageWeightGrams != null && packageWeightGrams! > 0;
 
+  /// Cost math needs both the package price and the package weight.
+  bool get hasPrice => pricePerPackage != null && hasPackageWeight;
+
+  /// Calculate cost for a given weight in grams (in [priceCurrency])
+  double? calculateCost(double weightGrams) {
+    if (!hasPrice) {
+      return null;
+    }
+
+    return pricePerPackage! / packageWeightGrams! * weightGrams;
+  }
+
   Product copyWith({
     String? id,
     String? title,
@@ -188,6 +222,9 @@ final class Product {
     double? packageWeightGrams,
     String? categoryId,
     DateTime? lastUsedAt,
+    double? pricePerPackage,
+    String? priceCurrency,
+    DateTime? priceUpdatedAt,
   }) {
     return Product(
       id: id ?? this.id,
@@ -206,6 +243,9 @@ final class Product {
       packageWeightGrams: packageWeightGrams ?? this.packageWeightGrams,
       categoryId: categoryId ?? this.categoryId,
       lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      pricePerPackage: pricePerPackage ?? this.pricePerPackage,
+      priceCurrency: priceCurrency ?? this.priceCurrency,
+      priceUpdatedAt: priceUpdatedAt ?? this.priceUpdatedAt,
     );
   }
 }

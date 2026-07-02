@@ -28,6 +28,7 @@ void _migrate(Database db) {
       name                TEXT NOT NULL DEFAULT '',
       waking_time_seconds INTEGER NOT NULL DEFAULT 57600,
       calories_limit_goal REAL    NOT NULL DEFAULT 2000,
+      default_currency    TEXT,
       created_at          INTEGER NOT NULL,
       updated_at          INTEGER NOT NULL
     );
@@ -44,6 +45,9 @@ void _migrate(Database db) {
       protein_grams    REAL,
       fat_grams        REAL,
       carb_grams       REAL,
+      cost_value       REAL,
+      cost_currency    TEXT,
+      cost_is_manual   INTEGER NOT NULL DEFAULT 0,
       created_at_day   INTEGER,
       eaten_at         INTEGER,
       created_at       INTEGER NOT NULL,
@@ -63,6 +67,9 @@ void _migrate(Database db) {
       fats_per_100g     REAL,
       carbs_per_100g    REAL,
       package_weight_grams REAL,
+      price_per_package REAL,
+      price_currency    TEXT,
+      price_updated_at  INTEGER,
       uses_count        INTEGER NOT NULL DEFAULT 0,
       last_used_at      INTEGER,
       sort_order        INTEGER NOT NULL DEFAULT 0,
@@ -124,4 +131,26 @@ void _migrate(Database db) {
     CREATE INDEX IF NOT EXISTS idx_products_category      ON products(category_id);
     CREATE INDEX IF NOT EXISTS idx_sync_entries_pull       ON sync_entries(user_id, entity_type, server_hlc);
   ''');
+
+  // CREATE TABLE IF NOT EXISTS doesn't alter pre-existing databases —
+  // columns added after first release need explicit, idempotent ALTERs.
+  _addColumnIfMissing(db, 'calorie_items', 'cost_value', 'REAL');
+  _addColumnIfMissing(db, 'calorie_items', 'cost_currency', 'TEXT');
+  _addColumnIfMissing(
+      db, 'calorie_items', 'cost_is_manual', 'INTEGER NOT NULL DEFAULT 0');
+  _addColumnIfMissing(db, 'products', 'price_per_package', 'REAL');
+  _addColumnIfMissing(db, 'products', 'price_currency', 'TEXT');
+  _addColumnIfMissing(db, 'products', 'price_updated_at', 'INTEGER');
+  _addColumnIfMissing(db, 'profiles', 'default_currency', 'TEXT');
+}
+
+void _addColumnIfMissing(
+    Database db, String table, String column, String definition) {
+  final existing = db
+      .select('PRAGMA table_info($table)')
+      .map((row) => row['name'] as String)
+      .toSet();
+  if (!existing.contains(column)) {
+    db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+  }
 }

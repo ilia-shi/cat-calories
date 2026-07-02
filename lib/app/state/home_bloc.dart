@@ -324,13 +324,35 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         packageWeightGrams: event.packageWeightGrams,
         categoryId: event.categoryId,
         sortOrder: 0,
+        pricePerPackage: event.pricePerPackage,
+        priceCurrency: event.priceCurrency,
+        priceUpdatedAt:
+            event.pricePerPackage == null ? null : DateTime.now(),
       );
 
+      await _applyPriceCurrencyDefaults(product);
       await productRepository.offsetSortOrder();
       await productRepository.insert(product);
       await _emitHomeData(emit);
     } catch (e, stackTrace) {
       _emitError(emit, e, stackTrace);
+    }
+  }
+
+  /// Currency laziness contract: an empty currency falls back to the profile
+  /// default, and the first currency the user ever enters becomes that
+  /// default — nobody should type ISO codes twice.
+  Future<void> _applyPriceCurrencyDefaults(Product product) async {
+    if (product.pricePerPackage == null) {
+      return;
+    }
+    final currency = product.priceCurrency;
+    if (currency == null || currency.isEmpty) {
+      product.priceCurrency = _activeProfile!.defaultCurrency;
+    } else if (_activeProfile!.defaultCurrency == null) {
+      _activeProfile!.defaultCurrency = currency;
+      _activeProfile!.updatedAt = DateTime.now();
+      await profileRepository.update(_activeProfile!);
     }
   }
 
@@ -353,6 +375,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     try {
       await _ensureActiveProfile();
+      await _applyPriceCurrencyDefaults(event.product);
       await productRepository.update(event.product);
       await _emitHomeData(emit);
     } catch (e, stackTrace) {
@@ -390,6 +413,9 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         fatGrams: fat,
         carbGrams: carbs,
         productId: product.id,
+        costValue: product.calculateCost(weightGrams),
+        costCurrency:
+            product.calculateCost(weightGrams) == null ? null : product.priceCurrency,
       );
 
       await calorieItemRepository.offsetSortOrder();
@@ -439,6 +465,10 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         fatGrams: fat,
         carbGrams: carbs,
         productId: product.id,
+        // Whole package eaten: full package price even without package weight
+        costValue: product.pricePerPackage,
+        costCurrency:
+            product.pricePerPackage == null ? null : product.priceCurrency,
       );
 
       await calorieItemRepository.offsetSortOrder();

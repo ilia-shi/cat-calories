@@ -40,10 +40,11 @@ class ProfileInfoCard extends StatelessWidget {
   }
 }
 
-/// "Daily Goals" card — daily calorie target and active-hours fields.
+/// "Daily Goals" card — daily calorie target, active-hours and currency fields.
 class ProfileGoalsCard extends StatelessWidget {
   final TextEditingController calorieController;
   final TextEditingController wakingController;
+  final TextEditingController currencyController;
   final bool isDark;
   final Color primaryColor;
 
@@ -51,6 +52,7 @@ class ProfileGoalsCard extends StatelessWidget {
     super.key,
     required this.calorieController,
     required this.wakingController,
+    required this.currencyController,
     required this.isDark,
     required this.primaryColor,
   });
@@ -101,6 +103,25 @@ class ProfileGoalsCard extends StatelessWidget {
               final hours = int.tryParse(value);
               if (hours == null || hours < 1 || hours > 24) {
                 return 'Please enter a value between 1-24';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          ProfileInputField(
+            controller: currencyController,
+            label: 'Default Currency',
+            hint: 'e.g., EUR',
+            icon: Icons.payments_outlined,
+            isDark: isDark,
+            primaryColor: primaryColor,
+            textCapitalization: TextCapitalization.characters,
+            helperText: 'Prefills the currency on product prices',
+            validator: (value) {
+              if (value != null &&
+                  value.trim().isNotEmpty &&
+                  value.trim().length != 3) {
+                return 'Use a 3-letter code like EUR';
               }
               return null;
             },

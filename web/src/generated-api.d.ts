@@ -78,6 +78,11 @@ export interface components {
             fat_grams: number | null;
             /** Format: double */
             carb_grams: number | null;
+            /** Format: double */
+            cost_value?: number | null;
+            cost_currency?: string | null;
+            /** @default false */
+            cost_is_manual: boolean;
         };
         Profile: {
             name: string;
@@ -118,6 +123,10 @@ export interface components {
             fat_grams?: number | null;
             /** Format: double */
             carb_grams?: number | null;
+            /** Format: double */
+            cost_value?: number | null;
+            cost_currency?: string | null;
+            cost_is_manual?: boolean | null;
         };
         UpdateRecordRequest: {
             /** Format: double */
@@ -135,6 +144,10 @@ export interface components {
             fat_grams?: number | null;
             /** Format: double */
             carb_grams?: number | null;
+            /** Format: double */
+            cost_value?: number | null;
+            cost_currency?: string | null;
+            cost_is_manual?: boolean | null;
         };
         DeleteResponse: {
             deleted: boolean;

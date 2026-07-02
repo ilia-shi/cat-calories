@@ -131,8 +131,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       INSERT INTO calorie_items (
         id, profile_id, waking_period_id, product_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
+        cost_value, cost_currency, cost_is_manual,
         created_at_day, eaten_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       json['id'],
       json['profile_id'],
@@ -145,6 +146,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['protein_grams'],
       json['fat_grams'],
       json['carb_grams'],
+      json['cost_value'],
+      json['cost_currency'],
+      json['cost_is_manual'] ?? 0,
       json['created_at_day'],
       json['eaten_at'],
       json['created_at'],
@@ -165,6 +169,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       UPDATE calorie_items SET
         value = ?, description = ?, sort_order = ?,
         weight_grams = ?, protein_grams = ?, fat_grams = ?, carb_grams = ?,
+        cost_value = ?, cost_currency = ?, cost_is_manual = ?,
         eaten_at = ?, updated_at = ?, product_id = ?, waking_period_id = ?
       WHERE id = ?
     ''', [
@@ -175,6 +180,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['protein_grams'],
       json['fat_grams'],
       json['carb_grams'],
+      json['cost_value'],
+      json['cost_currency'],
+      json['cost_is_manual'] ?? 0,
       json['eaten_at'],
       json['updated_at'],
       json['product_id'],
@@ -219,6 +227,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       'protein_grams': row['protein_grams'],
       'fat_grams': row['fat_grams'],
       'carb_grams': row['carb_grams'],
+      'cost_value': row['cost_value'],
+      'cost_currency': row['cost_currency'],
+      'cost_is_manual': row['cost_is_manual'],
       'eaten_at': row['eaten_at'],
       'created_at': row['created_at'],
       'updated_at': row['updated_at'],

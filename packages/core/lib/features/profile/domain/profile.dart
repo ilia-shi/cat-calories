@@ -6,6 +6,10 @@ final class Profile {
   final DateTime createdAt;
   DateTime updatedAt;
 
+  /// ISO 4217 code used to prefill product price forms; null until the user
+  /// first sets a price anywhere.
+  String? defaultCurrency;
+
   Profile({
     required this.id,
     required this.name,
@@ -13,6 +17,7 @@ final class Profile {
     required this.caloriesLimitGoal,
     required this.createdAt,
     required this.updatedAt,
+    this.defaultCurrency,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
@@ -22,6 +27,7 @@ final class Profile {
         caloriesLimitGoal: json['calories_limit_goal'],
         createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at']),
         updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updated_at']),
+        defaultCurrency: json['default_currency']?.toString(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -31,6 +37,7 @@ final class Profile {
         'calories_limit_goal': caloriesLimitGoal,
         'created_at': createdAt.millisecondsSinceEpoch,
         'updated_at': updatedAt.millisecondsSinceEpoch,
+        'default_currency': defaultCurrency,
       };
 
   Duration getExpectedWakingDuration() {

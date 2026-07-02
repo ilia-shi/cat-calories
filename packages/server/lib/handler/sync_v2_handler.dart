@@ -136,8 +136,9 @@ class SyncV2Handler extends Controller {
       INSERT OR REPLACE INTO calorie_items (
         id, profile_id, waking_period_id, product_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
+        cost_value, cost_currency, cost_is_manual,
         created_at_day, eaten_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       entityId,
       profileId,
@@ -150,6 +151,9 @@ class SyncV2Handler extends Controller {
       payload['protein_grams'],
       payload['fat_grams'],
       payload['carb_grams'],
+      payload['cost_value'],
+      payload['cost_currency'],
+      payload['cost_is_manual'] ?? 0,
       payload['created_at_day'],
       payload['eaten_at'],
       payload['created_at'],

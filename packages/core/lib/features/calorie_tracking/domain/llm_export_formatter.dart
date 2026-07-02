@@ -45,6 +45,12 @@ final class LlmExportFormatter {
       buffer.writeln(
           'Period: ${_date(eaten.first.eatenAt!)} .. ${_date(eaten.last.eatenAt!)}');
     }
+    final currencies = _currenciesIn(records, products);
+    if (currencies.isNotEmpty) {
+      buffer.writeln(
+          'Costs are snapshotted at eating time in the currency then in use '
+          '(${currencies.join(', ')}); a missing cost is unknown, not zero.');
+    }
     buffer
       ..writeln()
       ..writeln(preamble ?? defaultPreamble);
@@ -70,7 +76,7 @@ final class LlmExportFormatter {
       buffer
         ..writeln()
         ..writeln(
-            '## ${_date(entry.key)} — total ${_total(records)}${_macroSums(records)}');
+            '## ${_date(entry.key)} — total ${_total(records)}${_macroSums(records)}${_costSums(records)}');
       for (final record in records) {
         buffer.writeln(_recordLine(record, productsById));
       }
@@ -108,6 +114,8 @@ final class LlmExportFormatter {
           '(P ${_num(product.proteinsPer100g!)} / F ${_num(product.fatsPer100g!)} / C ${_num(product.carbsPer100g!)})',
         if (product.hasPackageWeight)
           'pack ${_num(product.packageWeightGrams!)}g',
+        if (product.pricePerPackage != null)
+          'pack price ${_money(product.pricePerPackage!)}${product.priceCurrency == null ? '' : ' ${product.priceCurrency}'}',
         if (product.usesCount > 0) 'used ${product.usesCount}×',
       ];
       buffer.writeln(
@@ -120,7 +128,43 @@ final class LlmExportFormatter {
     final title = _title(record, productsById);
     final weight =
         record.weightGrams == null ? '' : ' ${_num(record.weightGrams!)}g';
-    return '- $title$weight — ${_num(record.value)} kcal${_macros(record)}';
+    final cost = record.costValue == null
+        ? ''
+        : ' · ${_money(record.costValue!)}${record.costCurrency == null ? '' : ' ${record.costCurrency}'}';
+    return '- $title$weight — ${_num(record.value)} kcal${_macros(record)}$cost';
+  }
+
+  /// Per-currency day sums; "≥" marks a partial sum (some records lack cost).
+  String _costSums(List<CalorieRecord> records) {
+    final sums = <String, double>{};
+    bool missing = false;
+    for (final record in records) {
+      if (record.costValue == null) {
+        missing = true;
+      } else {
+        final currency = record.costCurrency ?? '?';
+        sums[currency] = (sums[currency] ?? 0) + record.costValue!;
+      }
+    }
+    if (sums.isEmpty) {
+      return '';
+    }
+    final parts = sums.entries
+        .map((entry) => '${_money(entry.value)} ${entry.key}')
+        .join(' + ');
+    return ' · cost ${missing ? '≥ ' : ''}$parts';
+  }
+
+  Set<String> _currenciesIn(
+      List<CalorieRecord> records, List<Product> products) {
+    return <String>{
+      for (final record in records)
+        if (record.costCurrency != null && record.costValue != null)
+          record.costCurrency!,
+      for (final product in products)
+        if (product.priceCurrency != null && product.pricePerPackage != null)
+          product.priceCurrency!,
+    };
   }
 
   String _title(CalorieRecord record, Map<String, Product> productsById) {
@@ -174,6 +218,13 @@ final class LlmExportFormatter {
     final month = dateTime.month.toString().padLeft(2, '0');
     final day = dateTime.day.toString().padLeft(2, '0');
     return '${dateTime.year}-$month-$day';
+  }
+
+  String _money(double value) {
+    final fixed = value.toStringAsFixed(2);
+    return fixed.endsWith('.00')
+        ? fixed.substring(0, fixed.length - 3)
+        : fixed;
   }
 
   String _num(double value) {

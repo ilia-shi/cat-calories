@@ -197,6 +197,70 @@ void main() {
     expect(output, isNot(contains('## Products')));
   });
 
+  group('costs', () {
+    test('record line and day sum include snapshotted cost', () {
+      final output = formatter.format(profile: profile, records: [
+        record(
+          value: 395,
+          description: 'chicken',
+          eatenAt: DateTime(2026, 6, 29, 13),
+        )
+          ..costValue = 1.2
+          ..costCurrency = 'EUR',
+        record(
+          value: 288,
+          description: 'rice',
+          eatenAt: DateTime(2026, 6, 29, 13),
+        )
+          ..costValue = 0.25
+          ..costCurrency = 'EUR',
+      ]);
+
+      expect(output, contains('- chicken — 395 kcal · 1.20 EUR'));
+      expect(output, contains('· cost 1.45 EUR'));
+      expect(output, contains('Costs are snapshotted at eating time'));
+    });
+
+    test('partial day sum is marked with ≥; currencies not mixed', () {
+      final output = formatter.format(profile: profile, records: [
+        record(description: 'priced', eatenAt: DateTime(2026, 6, 29, 9))
+          ..costValue = 2
+          ..costCurrency = 'EUR',
+        record(description: 'travel', eatenAt: DateTime(2026, 6, 29, 12))
+          ..costValue = 9
+          ..costCurrency = 'GEL',
+        record(description: 'unpriced', eatenAt: DateTime(2026, 6, 29, 19)),
+      ]);
+
+      expect(output, contains('· cost ≥ 2 EUR + 9 GEL'));
+    });
+
+    test('no cost data → no cost fragments anywhere', () {
+      final output = formatter.format(profile: profile, records: [
+        record(description: 'apple', eatenAt: DateTime(2026, 6, 29, 9)),
+      ]);
+
+      expect(output, isNot(contains('cost')));
+      expect(output, isNot(contains('EUR')));
+    });
+
+    test('product appendix shows package price', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [],
+        products: [
+          product(id: 'a', title: 'Chicken', caloriesPer100g: 158)
+            ..packageWeightGrams = 500
+            ..pricePerPackage = 3.5
+            ..priceCurrency = 'EUR',
+        ],
+      );
+
+      expect(output,
+          contains('pack 500g · pack price 3.50 EUR'));
+    });
+  });
+
   test('custom preamble replaces the default', () {
     final output = formatter.format(
       profile: profile,

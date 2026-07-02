@@ -62,6 +62,9 @@ class RecordsController extends Controller {
       proteinGrams: (data['protein_grams'] as num?)?.toDouble(),
       fatGrams: (data['fat_grams'] as num?)?.toDouble(),
       carbGrams: (data['carb_grams'] as num?)?.toDouble(),
+      costValue: (data['cost_value'] as num?)?.toDouble(),
+      costCurrency: data['cost_currency'] as String?,
+      costIsManual: data['cost_is_manual'] == true,
     );
 
     await repo.offsetSortOrder();
@@ -100,6 +103,15 @@ class RecordsController extends Controller {
     }
     if (data.containsKey('carb_grams')) {
       item.carbGrams = (data['carb_grams'] as num?)?.toDouble();
+    }
+    if (data.containsKey('cost_value')) {
+      item.costValue = (data['cost_value'] as num?)?.toDouble();
+    }
+    if (data.containsKey('cost_currency')) {
+      item.costCurrency = data['cost_currency'] as String?;
+    }
+    if (data.containsKey('cost_is_manual')) {
+      item.costIsManual = data['cost_is_manual'] == true;
     }
     if (data.containsKey('eaten_at')) {
       final raw = data['eaten_at'] as String?;
@@ -145,5 +157,8 @@ class RecordsController extends Controller {
     'protein_grams': item.proteinGrams,
     'fat_grams': item.fatGrams,
     'carb_grams': item.carbGrams,
+    'cost_value': item.costValue,
+    'cost_currency': item.costCurrency,
+    'cost_is_manual': item.costIsManual,
   };
 }
