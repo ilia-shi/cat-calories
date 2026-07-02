@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
@@ -80,6 +81,52 @@ final class CalorieExporter {
     await file.writeAsString(jsonString);
 
     return filePath;
+  }
+
+  /// Export the LLM-oriented markdown log to a file and return its path.
+  static Future<String> exportLlmText({
+    required List<CalorieRecord> calorieItems,
+    required Profile profile,
+    List<Product>? products,
+    String? preamble,
+  }) async {
+    final markdown = const LlmExportFormatter().format(
+      profile: profile,
+      records: calorieItems,
+      products: products ?? const [],
+      preamble: preamble,
+    );
+
+    final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/cat_calories_llm_log_$timestamp.md';
+
+    await File(filePath).writeAsString(markdown);
+
+    return filePath;
+  }
+
+  /// Export the LLM markdown log and open the share sheet.
+  static Future<ShareResult> exportLlmTextAndShare({
+    required List<CalorieRecord> calorieItems,
+    required Profile profile,
+    List<Product>? products,
+    String? preamble,
+  }) async {
+    final filePath = await exportLlmText(
+      calorieItems: calorieItems,
+      profile: profile,
+      products: products,
+      preamble: preamble,
+    );
+
+    return await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(filePath)],
+        subject: 'Cat Calories — nutrition log for LLM analysis',
+        text: 'My nutrition log, formatted for LLM analysis',
+      ),
+    );
   }
 
   /// Export and share the JSON file using SharePlus 12.0.1

@@ -16,6 +16,7 @@ import 'package:cat_calories/features/products/ui/create_product_screen.dart';
 import 'package:cat_calories/features/sync/syncer.dart';
 import 'package:cat_calories/features/sync/ui/servers_screen.dart';
 import 'package:cat_calories/features/waking_periods/ui/waking_periods_screen.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
@@ -88,6 +89,13 @@ class _HomeToolbar extends StatelessWidget {
           title: Text('Export to JSON'),
         ),
       ),
+      const PopupMenuItem<String>(
+        value: 'export_llm',
+        child: ListTile(
+          leading: Icon(Icons.description_outlined),
+          title: Text('Export for LLM (.md)'),
+        ),
+      ),
       const PopupMenuDivider(),
       const PopupMenuItem<String>(
         value: 'categories',
@@ -120,6 +128,11 @@ class _HomeToolbar extends StatelessWidget {
       BuildContext context, String value, HomeFetched state) {
     if (value == 'export_json') {
       _showExportDialog(context, state);
+      return;
+    }
+
+    if (value == 'export_llm') {
+      _exportLlm(context, state);
       return;
     }
 
@@ -181,6 +194,23 @@ class _HomeToolbar extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _exportLlm(BuildContext context, HomeFetched state) async {
+    try {
+      _showLoadingSnackBar(context, 'Preparing LLM export...');
+      final records = await locator
+          .get<CalorieRecordRepositoryInterface>()
+          .fetchAllByProfile(state.activeProfile);
+      await CalorieExporter.exportLlmTextAndShare(
+        calorieItems: records,
+        profile: state.activeProfile,
+        products: state.products,
+      );
+      _showSuccessSnackBar(context, 'LLM log exported successfully!');
+    } catch (e) {
+      _showErrorSnackBar(context, 'Export failed: $e');
+    }
   }
 
   Future<void> _exportToday(BuildContext context, HomeFetched state) async {
