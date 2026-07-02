@@ -24,10 +24,13 @@ while, decide whether the next is still wanted.
 
 ## 2. Plans are markdown documents, always
 
-Every design/plan produced in a conversation gets written to a markdown file under
-`.stuff/` (e.g., `.stuff/<topic>_plan.md`) — never left only in chat output.
+Every design/plan produced in a conversation gets written to a markdown file — never
+left only in chat output. Drafts iterate in `.stuff/<topic>_plan.md` (gitignored
+working notes); once a plan is agreed on, promote it to `docs/plans/<topic>_plan.md`
+and commit it.
 
 - Update the same file as the design iterates; it is the artifact, chat is not.
+- A promoted plan must not reference `.stuff/` files — they don't exist in the repo.
 - Include: what already exists in the codebase to build on (with file paths),
   data-model sketches, UX flows, the increment roadmap with dependency graph, and an
   explicit **non-goals** list protecting the design's constraints.
