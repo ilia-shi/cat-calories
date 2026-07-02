@@ -3,6 +3,7 @@ import 'package:cat_calories/common/theme/theme_cubit.dart';
 import 'package:cat_calories/common/theme/theme_state.dart';
 import 'package:cat_calories/database/app_database.dart';
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/seeds/calorie_item_seeds.dart';
+import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories/features/profile/data/sqlite/profile_seeds.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/service_registry.dart';
@@ -91,6 +92,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       locator.get<EmbeddedServerService>().screenEnergy.restoreBrightness();
+    }
+    if (state == AppLifecycleState.paused) {
+      // Fire-and-forget: best-effort rewrite of the LLM log in the synced
+      // folder; must not delay or break backgrounding.
+      locator.get<LlmExportService>().autoExportIfEnabled();
     }
   }
 

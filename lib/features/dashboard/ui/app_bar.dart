@@ -7,7 +7,9 @@ import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
+import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/llm_export_settings_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/days_screen.dart';
 import 'package:cat_calories/features/dashboard/ui/widgets/product_search_field.dart';
 import 'package:cat_calories/features/embedded_server/embedded_server_service.dart';
@@ -16,7 +18,6 @@ import 'package:cat_calories/features/products/ui/create_product_screen.dart';
 import 'package:cat_calories/features/sync/syncer.dart';
 import 'package:cat_calories/features/sync/ui/servers_screen.dart';
 import 'package:cat_calories/features/waking_periods/ui/waking_periods_screen.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/oauth/domain/auth_credentials_repository.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
@@ -96,6 +97,13 @@ class _HomeToolbar extends StatelessWidget {
           title: Text('Export for LLM (.md)'),
         ),
       ),
+      const PopupMenuItem<String>(
+        value: 'export_llm_settings',
+        child: ListTile(
+          leading: Icon(Icons.settings_outlined),
+          title: Text('LLM export settings'),
+        ),
+      ),
       const PopupMenuDivider(),
       const PopupMenuItem<String>(
         value: 'categories',
@@ -137,6 +145,7 @@ class _HomeToolbar extends StatelessWidget {
     }
 
     final routes = <String, Widget Function()>{
+      'export_llm_settings': () => const LlmExportSettingsScreen(),
       'create_product': () => CreateProductScreen(state.activeProfile),
       'calories': () => DayCaloriesPage(state.startDate),
       'days': () => DaysScreen(),
@@ -199,15 +208,16 @@ class _HomeToolbar extends StatelessWidget {
   Future<void> _exportLlm(BuildContext context, HomeFetched state) async {
     try {
       _showLoadingSnackBar(context, 'Preparing LLM export...');
-      final records = await locator
-          .get<CalorieRecordRepositoryInterface>()
-          .fetchAllByProfile(state.activeProfile);
-      await CalorieExporter.exportLlmTextAndShare(
-        calorieItems: records,
-        profile: state.activeProfile,
-        products: state.products,
+      final service = locator.get<LlmExportService>();
+      final markdown = await service.buildMarkdown(state.activeProfile);
+      final savedTo = await service.writeToDirectory(markdown);
+      await CalorieExporter.shareLlmMarkdown(markdown);
+      _showSuccessSnackBar(
+        context,
+        savedTo == null
+            ? 'LLM log exported successfully!'
+            : 'LLM log saved to $savedTo and shared',
       );
-      _showSuccessSnackBar(context, 'LLM log exported successfully!');
     } catch (e) {
       _showErrorSnackBar(context, 'Export failed: $e');
     }
