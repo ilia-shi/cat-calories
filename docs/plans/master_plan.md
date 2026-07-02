@@ -147,12 +147,40 @@ final class Meal {
   `ProductPrice` list per product — `amount`, `currency`, free-text `label`
   ("home", "Batumi"), `updatedAt` — rendered as one-tap chips in the product form so
   returning home doesn't mean retyping. No location entity, no global "current city"
-  state to forget to switch.
+  state to forget to switch. **Superseded by the purchase log (increment G)** if that
+  ships: purchase history *is* price history, so don't build both.
 - **No FX conversion in-app**: it needs a rates source and network calls, and the LLM
   normalizes mixed currencies fine. The export just reports each cost in its original
   currency and notes the profile's default.
 - Anti-pattern to avoid: a separate "travel profile" — products are per-profile, so it
   would fork the product catalog and split the history the LLM needs.
+
+### Purchase log (budget vs. consumption)
+
+Cost snapshots measure *consumption* ("what did the food I ate cost"); a purchase log
+measures *spending* (money out at the till). They are complementary, not alternatives —
+and the gap between them is the most interesting derived number: **food waste** (bought
+but never eaten), plus untracked food spending (spices, coffee, spoiled items).
+
+- **`Purchase` entity**: `id`, `profileId`, `occurredAt`, `title` (free text),
+  `totalPrice`, `currency` (prefilled from profile default), optional `productId`
+  link, optional `packageCount`. Deliberately flat — no receipts, no line-item
+  hierarchy, no store entity. One purchase row ≈ one thing bought.
+- **Purchases maintain product prices as a side effect.** Logging a purchase linked to
+  a product offers a one-tap "update product price" (price = totalPrice ÷
+  packageCount). This replaces manual price upkeep entirely — traveling means prices
+  refresh themselves the first time you shop, and past purchases double as labeled
+  price history (which is why the remembered-prices chips above become redundant).
+- **Linking is optional.** Free-text "chicken, 8.50" is fine — the LLM correlates
+  purchases to products/records by name. A `productId` link just makes correlation
+  exact and enables the price refresh.
+- **Export**: a `## Purchases` section (chronological, per-currency period totals) so
+  the LLM can compare spend vs. consumed cost, estimate waste, and suggest cheaper
+  swaps. The preamble must state that the purchase log may be partial — "unknown, not
+  zero" — or budget analysis will mislead.
+- **Laziness contract applies in full**: purchases are a fully optional habit; nothing
+  else depends on them existing. Quick-add from a product card ("bought this — how
+  much?", price prefilled from last purchase) keeps a shopping trip to a few taps.
 
 ## Laziness contract (progressive enrichment)
 
@@ -442,7 +470,7 @@ Three tracks. Each increment leaves the app fully working and useful on its own;
 Follow `docs/architecture.md` layering and the `add-feature` skill for scaffolding.
 
 ```
-A (LLM export v1) ──→ B (price & cost) ─────────────────→ F (polish)
+A (LLM export v1) ──→ B (price & cost) ──→ G (purchase log) ──→ F (polish)
           └─────────→ C (meal grouping) ──→ D (planned/cooking)
                                         └─→ E (meal signals)
 
@@ -478,9 +506,15 @@ server *and* the file transport for free.
   calculation-time win.
 - **E. Meal signals** *(needs C, independent of D)* — `cookingMinutes` chips +
   taste/satiety lazy rating row; signal annotations in the export.
+- **G. Purchase log** *(needs B for the price-refresh side effect; export section
+  needs A only)* — `Purchase` entity + migration + sync adapter + openapi; quick-add
+  UX (from product card and standalone); one-tap product-price refresh from a linked
+  purchase; `## Purchases` export section with per-currency period totals and a
+  partial-data caveat in the preamble. Delivers budget-vs-consumption and waste
+  analysis; supersedes the remembered-prices idea.
 - **F. Polish (each item independent)** — "save meal as product" (needs C);
-  remembered-price chips (needs B); stale-price flagging (needs B); per-week summary
-  in the export (needs A only).
+  stale-price flagging (needs B); per-week summary in the export (needs A only).
+  (Remembered-price chips dropped — superseded by G.)
 
 ### Sync track (Part II)
 
