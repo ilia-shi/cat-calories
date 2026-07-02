@@ -13,6 +13,14 @@ source of truth — web TypeScript types are generated from it.
 
 See `README.md` for the full feature list and project layout.
 
+## Agent skills
+
+Skills live in `skills/<name>/SKILL.md` — this is the single source of truth. The
+tool-specific dirs are symlinks to it, so both assistants share one copy:
+`.claude/skills` → `../skills` and `.opencode/skill` → `../skills`. Edit files under
+`skills/` directly; never edit through the symlinks or copy them, or the two tools
+will drift.
+
 ## Key references
 
 - **Architecture & adding a feature** → [docs/architecture.md](docs/architecture.md).
