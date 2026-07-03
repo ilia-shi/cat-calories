@@ -350,6 +350,70 @@ void main() {
     });
   });
 
+  group('weekly summary', () {
+    test('rolls up per week with days logged, avg and cost', () {
+      final output = formatter.format(profile: profile, records: [
+        // Week of Mon 2026-06-22
+        record(value: 1800, description: 'mon', eatenAt: DateTime(2026, 6, 22, 12))
+          ..costValue = 5
+          ..costCurrency = 'EUR',
+        record(value: 1600, description: 'tue', eatenAt: DateTime(2026, 6, 23, 12))
+          ..costValue = 4
+          ..costCurrency = 'EUR',
+        // Week of Mon 2026-06-29
+        record(value: 2000, description: 'wed', eatenAt: DateTime(2026, 7, 1, 12)),
+      ]);
+
+      expect(output, contains('## Weekly summary'));
+      expect(
+          output,
+          contains(
+              '- 2026-06-22 .. 2026-06-28: 2 days logged · avg 1700 kcal/day · cost 9 EUR'));
+      expect(output,
+          contains('- 2026-06-29 .. 2026-07-05: 1 day logged · avg 2000 kcal/day'));
+    });
+
+    test('absent when nothing was eaten', () {
+      final output = formatter.format(profile: profile, records: [
+        record(description: 'planned only', createdAt: DateTime(2026, 7, 1)),
+      ]);
+      expect(output, isNot(contains('## Weekly summary')));
+    });
+  });
+
+  group('stale prices', () {
+    Product priced({required DateTime updatedAt}) =>
+        product(id: 'a', title: 'Chicken', caloriesPer100g: 158)
+          ..packageWeightGrams = 500
+          ..pricePerPackage = 3.5
+          ..priceCurrency = 'EUR'
+          ..priceUpdatedAt = updatedAt;
+
+    test('flags prices older than 90 days', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [],
+        products: [priced(updatedAt: DateTime(2026, 1, 2))],
+        now: DateTime(2026, 7, 3),
+      );
+
+      expect(output,
+          contains('pack price 3.50 EUR (stale, from 2026-01-02)'));
+    });
+
+    test('fresh prices are not flagged', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [],
+        products: [priced(updatedAt: DateTime(2026, 6, 1))],
+        now: DateTime(2026, 7, 3),
+      );
+
+      expect(output, contains('pack price 3.50 EUR'));
+      expect(output, isNot(contains('stale')));
+    });
+  });
+
   test('custom preamble replaces the default', () {
     final output = formatter.format(
       profile: profile,

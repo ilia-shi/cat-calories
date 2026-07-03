@@ -23,13 +23,19 @@ final class LlmExportFormatter {
       'the products listed at the end; how to make this nutrition healthier, '
       'cheaper, tastier and less time-consuming to cook.';
 
+  /// A product price older than this is flagged in the export so the LLM
+  /// (and the user) treat its cost math with suspicion.
+  static const Duration stalePriceAfter = Duration(days: 90);
+
   String format({
     required Profile profile,
     required List<CalorieRecord> records,
     List<Product> products = const [],
     List<Meal> meals = const [],
     String? preamble,
+    DateTime? now,
   }) {
+    final effectiveNow = now ?? DateTime.now();
     final productsById = <String, Product>{
       for (final product in products)
         if (product.id != null) product.id!: product,
@@ -62,10 +68,48 @@ final class LlmExportFormatter {
       ..writeln(preamble ?? defaultPreamble);
 
     _writeDays(buffer, eaten, productsById, mealsById);
+    _writeWeeklySummary(buffer, eaten);
     _writePlanned(buffer, planned, productsById);
-    _writeProducts(buffer, products);
+    _writeProducts(buffer, products, effectiveNow);
 
     return buffer.toString();
+  }
+
+  /// Per-week rollups (weeks start Monday) so the LLM can reason about
+  /// trends without re-deriving them from the day sections.
+  void _writeWeeklySummary(StringBuffer buffer, List<CalorieRecord> eaten) {
+    if (eaten.isEmpty) {
+      return;
+    }
+
+    final byWeek = <DateTime, List<CalorieRecord>>{};
+    for (final record in eaten) {
+      final at = record.eatenAt!;
+      final day = DateTime(at.year, at.month, at.day);
+      final monday = day.subtract(Duration(days: day.weekday - 1));
+      byWeek.putIfAbsent(monday, () => []).add(record);
+    }
+
+    buffer
+      ..writeln()
+      ..writeln('## Weekly summary');
+    for (final entry in byWeek.entries) {
+      final records = entry.value;
+      final days = <DateTime>{
+        for (final record in records)
+          DateTime(record.eatenAt!.year, record.eatenAt!.month,
+              record.eatenAt!.day),
+      };
+      final total = records.fold<double>(0, (sum, r) => sum + r.value);
+      final parts = <String>[
+        '${days.length} day${days.length == 1 ? '' : 's'} logged',
+        'avg ${_num(total / days.length)} kcal/day',
+        ..._costSumsParts(records),
+      ];
+      final sunday = entry.key.add(const Duration(days: 6));
+      buffer.writeln(
+          '- ${_date(entry.key)} .. ${_date(sunday)}: ${parts.join(' · ')}');
+    }
   }
 
   void _writeDays(StringBuffer buffer, List<CalorieRecord> eaten,
@@ -155,7 +199,8 @@ final class LlmExportFormatter {
     }
   }
 
-  void _writeProducts(StringBuffer buffer, List<Product> products) {
+  void _writeProducts(
+      StringBuffer buffer, List<Product> products, DateTime now) {
     if (products.isEmpty) {
       return;
     }
@@ -165,6 +210,10 @@ final class LlmExportFormatter {
       ..writeln()
       ..writeln('## Products (what this user usually eats, per 100g)');
     for (final product in sorted) {
+      final priceUpdatedAt = product.priceUpdatedAt;
+      final isStale = product.pricePerPackage != null &&
+          priceUpdatedAt != null &&
+          now.difference(priceUpdatedAt) > stalePriceAfter;
       final parts = <String>[
         if (product.caloriesPer100g != null)
           '${_num(product.caloriesPer100g!)} kcal',
@@ -173,7 +222,8 @@ final class LlmExportFormatter {
         if (product.hasPackageWeight)
           'pack ${_num(product.packageWeightGrams!)}g',
         if (product.pricePerPackage != null)
-          'pack price ${_money(product.pricePerPackage!)}${product.priceCurrency == null ? '' : ' ${product.priceCurrency}'}',
+          'pack price ${_money(product.pricePerPackage!)}${product.priceCurrency == null ? '' : ' ${product.priceCurrency}'}'
+              '${isStale ? ' (stale, from ${_date(priceUpdatedAt)})' : ''}',
         if (product.usesCount > 0) 'used ${product.usesCount}×',
       ];
       buffer.writeln(

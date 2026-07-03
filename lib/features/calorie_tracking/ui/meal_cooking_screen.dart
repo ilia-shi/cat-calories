@@ -9,6 +9,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_scre
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/cooked_meal_product.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
@@ -245,6 +246,80 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
     }
   }
 
+  /// Leftovers flow: with the total cooked weight known, the dish becomes an
+  /// ordinary per-100g product — tomorrow's portion is one record by weight.
+  Future<void> _saveAsProduct() async {
+    if (_members.isEmpty) {
+      return;
+    }
+    final ingredientWeight = _members.fold<double>(
+        0, (sum, r) => sum + (r.weightGrams ?? 0));
+    final prefill = meal.totalCookedWeightGrams ??
+        (ingredientWeight > 0 ? ingredientWeight : null);
+    final controller = TextEditingController(
+      text: prefill?.toStringAsFixed(0) ?? '',
+    );
+
+    final weight = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save as product'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Total cooked weight',
+            suffixText: 'g',
+            helperText: 'Weigh the finished dish — water loss makes it '
+                'lighter than the raw ingredients',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext)
+                .pop(double.tryParse(controller.text)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (weight == null || weight <= 0) {
+      return;
+    }
+
+    final now = DateTime.now();
+    meal.totalCookedWeightGrams = weight;
+    meal.updatedAt = now;
+    await _mealRepo.update(meal);
+
+    final product = CookedMealProduct.build(
+      meal: meal,
+      records: _members,
+      cookedWeightGrams: weight,
+      now: now,
+    );
+    if (product == null) {
+      return;
+    }
+    await _productsRepo.insert(product);
+    _markChanged();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Product "${product.title}" created — log leftovers by weight'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _notifyAndPop() {
     if (_changed) {
       BlocProvider.of<HomeBloc>(context)
@@ -295,6 +370,18 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
                       icon: const Icon(Icons.check_circle),
                       label: const Text('Mark Meal as Eaten'),
                     ),
+                  if (_members.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _saveAsProduct,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: AppCard.squircleBorder(radius: 14),
+                      ),
+                      icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                      label: const Text('Save as Product (leftovers)'),
+                    ),
+                  ],
                   const SizedBox(height: 32),
                 ],
               ),
