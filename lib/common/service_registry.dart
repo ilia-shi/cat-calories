@@ -85,6 +85,7 @@ void registerServices() {
     serverRepo: locator.get<SyncServerRepositoryInterface>(),
     credentialsRepo: locator.get<AuthCredentialsRepositoryInterface>(),
     linkRepo: locator.get<ScopedServerLinkRepositoryInterface>(),
+    profileRepo: locator.get<ProfileRepositoryInterface>(),
     registry: locator.get<SyncAdapterRegistry>(),
   ));
 }

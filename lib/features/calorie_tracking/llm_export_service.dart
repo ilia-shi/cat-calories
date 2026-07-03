@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cat_calories/app/profile_resolver.dart';
+import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
@@ -19,7 +20,6 @@ final class LlmExportService {
   /// timestamped copies in the synced folder.
   static const String exportFileName = 'cat_calories_llm_log.md';
 
-  static const String _directoryKey = 'llm_export_directory';
   static const String _autoExportKey = 'llm_export_auto_enabled';
   static const String _preambleKey = 'llm_export_preamble';
 
@@ -29,23 +29,11 @@ final class LlmExportService {
 
   LlmExportService(this._records, this._products, this._meals);
 
-  Future<String?> getDirectory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final path = prefs.getString(_directoryKey);
-    if (path == null || path.trim().isEmpty) {
-      return null;
-    }
-    return path;
-  }
+  /// The export directory is the shared synced root — the same folder file
+  /// sync uses (see SyncedFolder).
+  Future<String?> getDirectory() => SyncedFolder.getPath();
 
-  Future<void> setDirectory(String? path) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (path == null || path.trim().isEmpty) {
-      await prefs.remove(_directoryKey);
-      return;
-    }
-    await prefs.setString(_directoryKey, path.trim());
-  }
+  Future<void> setDirectory(String? path) => SyncedFolder.setPath(path);
 
   Future<bool> isAutoExportEnabled() async {
     final prefs = await SharedPreferences.getInstance();

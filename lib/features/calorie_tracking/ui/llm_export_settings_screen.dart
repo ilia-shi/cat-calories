@@ -1,4 +1,5 @@
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/error_display.dart';
@@ -21,6 +22,7 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
   final _directoryController = TextEditingController();
   final _preambleController = TextEditingController();
   bool _autoExport = false;
+  bool _fileSync = false;
   String? _directoryStatus;
   bool _directoryOk = false;
 
@@ -41,11 +43,13 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
     final directory = await _service.getDirectory();
     final preamble = await _service.getPreamble();
     final autoExport = await _service.isAutoExportEnabled();
+    final fileSync = await SyncedFolder.isFileSyncEnabled();
     if (mounted) {
       setState(() {
         _directoryController.text = directory ?? '';
         _preambleController.text = preamble ?? '';
         _autoExport = autoExport;
+        _fileSync = fileSync;
       });
     }
   }
@@ -72,6 +76,7 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
     await _service.setDirectory(_directoryController.text);
     await _service.setPreamble(_preambleController.text);
     await _service.setAutoExportEnabled(_autoExport);
+    await SyncedFolder.setFileSyncEnabled(_fileSync);
     if (mounted) {
       ErrorDisplay.showSuccess(context, 'LLM export settings saved');
       Navigator.of(context).pop();
@@ -95,6 +100,11 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
             status: _directoryStatus,
             statusOk: _directoryOk,
             onTest: _testDirectory,
+          ),
+          const SizedBox(height: 16),
+          _FolderSyncCard(
+            enabled: _fileSync,
+            onChanged: (value) => setState(() => _fileSync = value),
           ),
           const SizedBox(height: 16),
           _AutoExportCard(
@@ -169,6 +179,44 @@ class _DirectoryCard extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FolderSyncCard extends StatelessWidget {
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _FolderSyncCard({required this.enabled, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _CardTitle(
+                  icon: Icons.sync_alt_rounded,
+                  title: 'Folder sync',
+                ),
+              ),
+              Switch(value: enabled, onChanged: onChanged),
+            ],
+          ),
+          Text(
+            'Sync data between your devices through this folder (share it '
+            'with Syncthing or a cloud drive). Each device appends to its '
+            'own log files under v1/ — no server needed. Does nothing while '
+            'no directory is set.',
+            style: TextStyle(fontSize: 12, color: appColors.textTertiary),
           ),
         ],
       ),

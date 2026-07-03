@@ -5,6 +5,7 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
@@ -625,6 +626,7 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
   int _authedCount = 0;
   bool _isSyncing = false;
   String? _lastSyncedAt;
+  bool _folderSyncEnabled = false;
 
   @override
   void initState() {
@@ -657,16 +659,20 @@ class _SyncIndicatorState extends State<_SyncIndicator> {
     }
     final prefs = await SharedPreferences.getInstance();
     final lastSync = prefs.getString('sync_last_synced_at');
+    final folderSync = await SyncedFolder.isFileSyncEnabled() &&
+        await SyncedFolder.getPath() != null;
     if (mounted) {
       setState(() {
         _servers = servers;
         _authedCount = authed;
         _lastSyncedAt = lastSync;
+        _folderSyncEnabled = folderSync;
       });
     }
   }
 
-  bool get _hasServers => _servers.isNotEmpty && _authedCount > 0;
+  bool get _hasServers =>
+      (_servers.isNotEmpty && _authedCount > 0) || _folderSyncEnabled;
 
   @override
   Widget build(BuildContext context) {
