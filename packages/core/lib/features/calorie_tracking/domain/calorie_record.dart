@@ -106,4 +106,31 @@ final class CalorieRecord {
   bool isEaten() {
     return eatenAt != null;
   }
+
+  /// A fresh planned copy of this record ("cook it again"): no id yet, not
+  /// eaten, detached from any waking period and meal — the caller assigns a
+  /// new meal. Nutrition, weight and cost carry over as the starting point
+  /// to tweak while cooking; cost is no longer a manual override because it
+  /// no longer describes an actual past purchase.
+  CalorieRecord copyForPlanning(DateTime createdAt) {
+    return CalorieRecord(
+      id: null,
+      value: value,
+      description: description,
+      sortOrder: 0,
+      eatenAt: null,
+      createdAt: createdAt,
+      profileId: profileId,
+      wakingPeriodId: null,
+      weightGrams: weightGrams,
+      proteinGrams: proteinGrams,
+      fatGrams: fatGrams,
+      carbGrams: carbGrams,
+      productId: productId,
+      mealId: null,
+      costValue: costValue,
+      costCurrency: costCurrency,
+      costIsManual: false,
+    );
+  }
 }

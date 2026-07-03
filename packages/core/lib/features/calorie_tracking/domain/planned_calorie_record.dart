@@ -49,7 +49,9 @@ final class PlannedCalorieRecord implements PlanItem {
 
   @override
   PlanItem copy(DateTime createdAt) {
-    // TODO: implement copy
-    throw UnimplementedError();
+    return PlannedCalorieRecord(
+      calorieRecord.copyForPlanning(createdAt),
+      createdAt,
+    );
   }
 }

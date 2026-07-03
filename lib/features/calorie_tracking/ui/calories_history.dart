@@ -7,6 +7,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/meal_reposito
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/meal_cooking_screen.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
@@ -194,7 +195,9 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           actions: [
             PopupMenuButton<String>(
               onSelected: (value) {
-                if (value == 'expand_all') {
+                if (value == 'new_meal') {
+                  _createNewMeal();
+                } else if (value == 'expand_all') {
                   setState(() {
                     _expandedDates = Set.from(_sortedDates);
                   });
@@ -205,6 +208,16 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'new_meal',
+                  child: Row(
+                    children: [
+                      Icon(Icons.restaurant, size: 20),
+                      SizedBox(width: 12),
+                      Text('New Meal (plan ahead)'),
+                    ],
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'expand_all',
                   child: Row(
@@ -1153,12 +1166,15 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     _afterMealMutation('Meal "${meal.title}" created');
   }
 
-  Future<String?> _promptMealTitle() {
+  Future<String?> _promptMealTitle({
+    String dialogTitle = 'Group as meal',
+    String confirmLabel = 'Group',
+  }) {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Group as meal'),
+        title: Text(dialogTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -1176,11 +1192,64 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: const Text('Group'),
+            child: Text(confirmLabel),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openCookingScreen(Meal meal) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => MealCookingScreen(meal)),
+    );
+    _loadAllCalories();
+  }
+
+  /// "Cook it again": a new planned meal with planned copies of the source
+  /// meal's records — same ingredients and last-used weights, ready to tweak
+  /// in cooking mode.
+  Future<void> _duplicateMeal(Meal source, List<CalorieRecord> members) async {
+    final now = DateTime.now();
+    final meal = await mealRepository.insert(Meal(
+      id: null,
+      profileId: source.profileId,
+      title: source.title,
+      createdAt: now,
+      cookingMinutes: source.cookingMinutes,
+    ));
+
+    for (final record in members) {
+      final copy = record.copyForPlanning(now);
+      copy.mealId = meal.id;
+      await calorieItemRepository.insert(copy);
+    }
+
+    _afterMealMutation('Planned "${meal.title}" — adjust it while cooking');
+    await _openCookingScreen(meal);
+  }
+
+  /// Plan a meal from scratch: title first, then ingredients in cooking mode.
+  Future<void> _createNewMeal() async {
+    final title = await _promptMealTitle(
+      dialogTitle: 'New planned meal',
+      confirmLabel: 'Plan',
+    );
+    if (title == null || title.trim().isEmpty) {
+      return;
+    }
+
+    final Profile profile = await ProfileResolver().resolve();
+    final meal = await mealRepository.insert(Meal(
+      id: null,
+      profileId: profile.id!,
+      title: title.trim(),
+      createdAt: DateTime.now(),
+    ));
+
+    _afterMealMutation('Meal "${meal.title}" planned');
+    await _openCookingScreen(meal);
   }
 
   void _showMealOptions(Meal meal, List<CalorieRecord> members) {
@@ -1213,6 +1282,28 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   ),
                 ),
                 const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.soup_kitchen,
+                      color: Colors.teal, size: 20),
+                  title: const Text('Cooking Mode'),
+                  subtitle:
+                      const Text('Adjust weights and ingredients while cooking'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _openCookingScreen(meal);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.copy_all,
+                      color: Colors.indigo, size: 20),
+                  title: const Text('Duplicate Meal (cook again)'),
+                  subtitle: const Text(
+                      'New planned meal with the same ingredients and weights'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _duplicateMeal(meal, members);
+                  },
+                ),
                 ListTile(
                   leading: const Icon(Icons.edit, color: Colors.blue, size: 20),
                   title: const Text('Rename / Edit Notes'),
