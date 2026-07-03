@@ -1,7 +1,8 @@
-.PHONY: server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs android-pair android-connect android-run
+.PHONY: build web-build server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs android-pair android-connect android-run
 
 build:
 	flutter build apk --release
+	xdg-open build/app/outputs/flutter-apk/ 2>/dev/null || open build/app/outputs/flutter-apk/ 2>/dev/null || true
 
 web-build:
 	cd web && npm run build
