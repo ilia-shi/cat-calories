@@ -2,6 +2,8 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
@@ -27,9 +29,13 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     with AutomaticKeepAliveClientMixin {
   late CalorieRecordRepositoryInterface calorieItemRepository =
   locator.get<CalorieRecordRepositoryInterface>();
+  late final MealRepositoryInterface mealRepository =
+      locator.get<MealRepositoryInterface>();
 
   bool _isLoading = true;
   bool _isInitialLoad = true;
+  Map<String, Meal> _mealsById = {};
+  final Set<String> _selectedIds = {};
   Map<DateTime, List<CalorieRecord>> _groupedCalories = {};
   Map<DateTime, _DaySummary> _daySummaries = {};
   List<DateTime> _sortedDates = [];
@@ -64,6 +70,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         profile,
         orderBy: 'created_at DESC',
       );
+      final meals = await mealRepository.fetchByProfile(profile);
 
       // Group by date
       final Map<DateTime, List<CalorieRecord>> grouped = {};
@@ -122,6 +129,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
 
       if (mounted) {
         setState(() {
+          _mealsById = {
+            for (final meal in meals)
+              if (meal.id != null) meal.id!: meal,
+          };
           _groupedCalories = grouped;
           _daySummaries = summaries;
           _sortedDates = sortedDates;
@@ -160,7 +171,24 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         }
       },
       child: Scaffold(
-        appBar: AppBar(
+        appBar: _selectedIds.isNotEmpty
+            ? AppBar(
+                title: Text('${_selectedIds.length} selected'),
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Cancel selection',
+                  onPressed: () => setState(() => _selectedIds.clear()),
+                ),
+                actions: [
+                  TextButton.icon(
+                    onPressed: _groupSelectedAsMeal,
+                    icon: const Icon(Icons.restaurant, size: 18),
+                    label: const Text('Group as meal'),
+                  ),
+                ],
+              )
+            : AppBar(
           title: const Text('Calorie History'),
           elevation: 0,
           actions: [
@@ -570,12 +598,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                   height: 1,
                   color: appColors.border,
                 ),
-                ...items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final isLast = index == items.length - 1;
-                  return _buildCalorieItem(item, isLast);
-                }),
+                ..._buildDayItems(items),
               ],
             ),
             crossFadeState: isExpanded
@@ -586,6 +609,38 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         ],
       ),
     );
+  }
+
+  /// A day's rows with meal groups inline: a meal header followed by its
+  /// member records, ungrouped records as plain rows. Order follows first
+  /// appearance in [items], so days without meals render exactly as before.
+  List<Widget> _buildDayItems(List<CalorieRecord> items) {
+    final widgets = <Widget>[];
+    final emittedMealIds = <String>{};
+
+    for (final item in items) {
+      final meal = item.mealId == null ? null : _mealsById[item.mealId];
+      if (meal == null) {
+        widgets.add(_buildCalorieItem(item, item == items.last));
+        continue;
+      }
+      if (emittedMealIds.contains(meal.id)) {
+        continue;
+      }
+      emittedMealIds.add(meal.id!);
+
+      final members = items.where((r) => r.mealId == meal.id).toList();
+      widgets.add(_MealHeaderRow(
+        meal: meal,
+        records: members,
+        onTap: () => _showMealOptions(meal, members),
+      ));
+      for (final member in members) {
+        widgets.add(_buildCalorieItem(member, member == items.last));
+      }
+    }
+
+    return widgets;
   }
 
   Widget _buildDayMacroSummary(_DaySummary summary) {
@@ -625,17 +680,40 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
+  void _toggleSelection(CalorieRecord item) {
+    final id = item.id;
+    if (id == null) {
+      return;
+    }
+    setState(() {
+      if (!_selectedIds.remove(id)) {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
   Widget _buildCalorieItem(CalorieRecord item, bool isLast) {
     final appColors = AppColors.of(context);
     final hasMacros = item.proteinGrams != null ||
         item.fatGrams != null ||
         item.carbGrams != null;
+    final isSelected = item.id != null && _selectedIds.contains(item.id);
 
     return InkWell(
-      onTap: () => _showItemOptions(item),
+      onTap: () {
+        if (_selectedIds.isNotEmpty) {
+          _toggleSelection(item);
+        } else {
+          _showItemOptions(item);
+        }
+      },
+      onLongPress: () => _toggleSelection(item),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+              : null,
           border: isLast
               ? null
               : Border(
@@ -985,6 +1063,28 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
                     });
                   },
                 ),
+                if (item.mealId != null)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.playlist_remove,
+                          color: Colors.orange, size: 20),
+                    ),
+                    title: const Text('Remove from Meal'),
+                    subtitle: Text(
+                      _mealsById[item.mealId]?.title ?? 'Ungrouped meal',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _removeFromMeal(item);
+                    },
+                  ),
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
@@ -1012,6 +1112,255 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         );
       },
     );
+  }
+
+  Future<void> _groupSelectedAsMeal() async {
+    final selected = _groupedCalories.values
+        .expand((list) => list)
+        .where((r) => r.id != null && _selectedIds.contains(r.id))
+        .toList();
+    if (selected.isEmpty) {
+      return;
+    }
+
+    final title = await _promptMealTitle();
+    if (title == null || title.trim().isEmpty) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final allEaten = selected.every((r) => r.isEaten());
+    final meal = await mealRepository.insert(Meal(
+      id: null,
+      profileId: selected.first.profileId,
+      title: title.trim(),
+      createdAt: now,
+      // Grouping after the fact: the meal was eaten when its last record was.
+      eatenAt: allEaten
+          ? selected
+              .map((r) => r.eatenAt!)
+              .reduce((a, b) => a.isAfter(b) ? a : b)
+          : null,
+    ));
+
+    for (final record in selected) {
+      record.mealId = meal.id;
+      record.updatedAt = now;
+      await calorieItemRepository.update(record);
+    }
+
+    setState(() => _selectedIds.clear());
+    _afterMealMutation('Meal "${meal.title}" created');
+  }
+
+  Future<String?> _promptMealTitle() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Group as meal'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Meal name',
+            hintText: 'e.g., Chicken curry',
+          ),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: const Text('Group'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMealOptions(Meal meal, List<CalorieRecord> members) {
+    final appColors = AppColors.of(context);
+    final hasUneaten = members.any((r) => !r.isEaten());
+
+    showModalBottomSheet(
+      context: context,
+      shape: AppCard.squircleBorder(radius: 20, bottom: false),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.restaurant,
+                      color: Theme.of(context).primaryColor),
+                  title: Text(
+                    meal.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${members.length} items'
+                    '${meal.notes?.trim().isNotEmpty == true ? ' · ${meal.notes}' : ''}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: appColors.textSecondary),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                  title: const Text('Rename / Edit Notes'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showMealEditDialog(meal);
+                  },
+                ),
+                if (hasUneaten)
+                  ListTile(
+                    leading: const Icon(Icons.check_circle,
+                        color: SuccessColor, size: 20),
+                    title: const Text('Mark Meal as Eaten'),
+                    subtitle: const Text('Stamps all its records at once'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _markMealEaten(meal, members);
+                    },
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.playlist_remove,
+                      color: Colors.orange, size: 20),
+                  title: const Text('Ungroup Meal'),
+                  subtitle: const Text('Records stay, only the group is removed'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _ungroupMeal(meal, members);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMealEditDialog(Meal meal) {
+    final titleController = TextEditingController(text: meal.title);
+    final notesController = TextEditingController(text: meal.notes ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit Meal'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Meal name'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes (goes into the LLM export)',
+                hintText: 'e.g., less oil than last time',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final title = titleController.text.trim();
+              if (title.isNotEmpty) {
+                meal.title = title;
+              }
+              final notes = notesController.text.trim();
+              meal.notes = notes.isEmpty ? null : notes;
+              meal.updatedAt = DateTime.now();
+              await mealRepository.update(meal);
+              _afterMealMutation('Meal updated');
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _markMealEaten(Meal meal, List<CalorieRecord> members) async {
+    final now = DateTime.now();
+    meal.eatenAt = now;
+    meal.updatedAt = now;
+    await mealRepository.update(meal);
+    for (final record in members) {
+      if (!record.isEaten()) {
+        record.eatenAt = now;
+        record.updatedAt = now;
+        await calorieItemRepository.update(record);
+      }
+    }
+    _afterMealMutation('Meal marked as eaten');
+  }
+
+  Future<void> _ungroupMeal(Meal meal, List<CalorieRecord> members) async {
+    final now = DateTime.now();
+    for (final record in members) {
+      record.mealId = null;
+      record.updatedAt = now;
+      await calorieItemRepository.update(record);
+    }
+    await mealRepository.delete(meal);
+    _afterMealMutation('Meal ungrouped');
+  }
+
+  Future<void> _removeFromMeal(CalorieRecord item) async {
+    final mealId = item.mealId;
+    item.mealId = null;
+    item.updatedAt = DateTime.now();
+    await calorieItemRepository.update(item);
+
+    // Removing the last member leaves an empty group — delete it too.
+    final remaining = _groupedCalories.values
+        .expand((list) => list)
+        .where((r) => r.mealId == mealId && r.id != item.id);
+    final meal = mealId == null ? null : _mealsById[mealId];
+    if (remaining.isEmpty && meal != null) {
+      await mealRepository.delete(meal);
+    }
+    _afterMealMutation('Removed from meal');
+  }
+
+  void _afterMealMutation(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+    BlocProvider.of<HomeBloc>(context)
+        .add(CalorieItemListFetchingInProgressEvent());
+    _loadAllCalories();
   }
 
   void _showProportionalEdit(CalorieRecord item) {
@@ -1131,6 +1480,84 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     return date.year == yesterday.year &&
         date.month == yesterday.month &&
         date.day == yesterday.day;
+  }
+}
+
+/// Header row above a meal's member records in the day list.
+class _MealHeaderRow extends StatelessWidget {
+  final Meal meal;
+  final List<CalorieRecord> records;
+  final VoidCallback onTap;
+
+  const _MealHeaderRow({
+    required this.meal,
+    required this.records,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    final total = records.fold<double>(0, (sum, r) => sum + r.value);
+    final hasUneaten = records.any((r) => !r.isEaten());
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: appColors.surfaceMuted,
+          border: Border(bottom: BorderSide(color: appColors.borderSubtle)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.restaurant,
+                size: 16, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                meal.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: appColors.textPrimary,
+                ),
+              ),
+            ),
+            if (hasUneaten) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: ShapeDecoration(
+                  color: appColors.border,
+                  shape: AppCard.squircleBorder(radius: 6),
+                ),
+                child: Text(
+                  'planned',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              '${records.length} items · ${total.toStringAsFixed(0)} kcal',
+              style: TextStyle(
+                fontSize: 12,
+                color: appColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.more_horiz, size: 16, color: appColors.textDisabled),
+          ],
+        ),
+      ),
+    );
   }
 }
 
