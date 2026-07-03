@@ -7,6 +7,7 @@ import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
 import '../widgets/density_scale_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/rate_meals_row.dart';
 import '../widgets/recent_entries_widget.dart';
 
 final class TrackingTab extends StatefulWidget {
@@ -256,6 +257,10 @@ class _TrackingTabState extends State<TrackingTab> {
                 ),
 
                 const SizedBox(height: 12),
+
+                // Lazy, dismissible; renders nothing when there is nothing
+                // to rate, so the 12px gap below only exists via its card.
+                const RateMealsRow(),
 
                 DensityScaleWidget(
                   entries: entries,

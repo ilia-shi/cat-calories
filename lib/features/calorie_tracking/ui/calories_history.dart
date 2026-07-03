@@ -8,6 +8,7 @@ import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/meal_cooking_screen.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/meal_signal_inputs.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
@@ -1345,52 +1346,82 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   void _showMealEditDialog(Meal meal) {
     final titleController = TextEditingController(text: meal.title);
     final notesController = TextEditingController(text: meal.notes ?? '');
+    int? cookingMinutes = meal.cookingMinutes;
+    int? tasteRating = meal.tasteRating;
+    int? satietyRating = meal.satietyRating;
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Meal'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Meal name'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Edit Meal'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Meal name'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  textCapitalization: TextCapitalization.sentences,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (goes into the LLM export)',
+                    hintText: 'e.g., less oil than last time',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                CookTimeChips(
+                  minutes: cookingMinutes,
+                  onChanged: (value) =>
+                      setDialogState(() => cookingMinutes = value),
+                ),
+                const SizedBox(height: 16),
+                RatingDots(
+                  label: 'Taste',
+                  value: tasteRating,
+                  onChanged: (value) =>
+                      setDialogState(() => tasteRating = value),
+                ),
+                RatingDots(
+                  label: 'Filling',
+                  value: satietyRating,
+                  onChanged: (value) =>
+                      setDialogState(() => satietyRating = value),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notesController,
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notes (goes into the LLM export)',
-                hintText: 'e.g., less oil than last time',
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                final title = titleController.text.trim();
+                if (title.isNotEmpty) {
+                  meal.title = title;
+                }
+                final notes = notesController.text.trim();
+                meal.notes = notes.isEmpty ? null : notes;
+                meal.cookingMinutes = cookingMinutes;
+                meal.tasteRating = tasteRating;
+                meal.satietyRating = satietyRating;
+                meal.updatedAt = DateTime.now();
+                await mealRepository.update(meal);
+                _afterMealMutation('Meal updated');
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              final title = titleController.text.trim();
-              if (title.isNotEmpty) {
-                meal.title = title;
-              }
-              final notes = notesController.text.trim();
-              meal.notes = notes.isEmpty ? null : notes;
-              meal.updatedAt = DateTime.now();
-              await mealRepository.update(meal);
-              _afterMealMutation('Meal updated');
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
