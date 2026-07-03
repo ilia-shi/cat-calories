@@ -134,16 +134,17 @@ class SyncV2Handler extends Controller {
 
     db.execute('''
       INSERT OR REPLACE INTO calorie_items (
-        id, profile_id, waking_period_id, product_id, value, description,
+        id, profile_id, waking_period_id, product_id, meal_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
         cost_value, cost_currency, cost_is_manual,
         created_at_day, eaten_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       entityId,
       profileId,
       payload['waking_period_id'],
       payload['product_id'],
+      payload['meal_id'],
       payload['value'],
       payload['description'] ?? '',
       payload['sort_order'] ?? 0,

@@ -38,6 +38,7 @@ void _migrate(Database db) {
       profile_id       TEXT    NOT NULL,
       waking_period_id TEXT,
       product_id       TEXT,
+      meal_id          TEXT,
       value            REAL    NOT NULL DEFAULT 0,
       description      TEXT    NOT NULL DEFAULT '',
       sort_order       INTEGER NOT NULL DEFAULT 0,
@@ -134,6 +135,7 @@ void _migrate(Database db) {
 
   // CREATE TABLE IF NOT EXISTS doesn't alter pre-existing databases —
   // columns added after first release need explicit, idempotent ALTERs.
+  _addColumnIfMissing(db, 'calorie_items', 'meal_id', 'TEXT');
   _addColumnIfMissing(db, 'calorie_items', 'cost_value', 'REAL');
   _addColumnIfMissing(db, 'calorie_items', 'cost_currency', 'TEXT');
   _addColumnIfMissing(

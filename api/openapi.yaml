@@ -204,6 +204,9 @@ components:
         cost_is_manual:
           type: boolean
           default: false
+        meal_id:
+          type: string
+          nullable: true
 
     Profile:
       type: object
@@ -311,6 +314,9 @@ components:
         cost_is_manual:
           type: boolean
           nullable: true
+        meal_id:
+          type: string
+          nullable: true
 
     UpdateRecordRequest:
       type: object
@@ -353,6 +359,9 @@ components:
           nullable: true
         cost_is_manual:
           type: boolean
+          nullable: true
+        meal_id:
+          type: string
           nullable: true
 
     DeleteResponse:

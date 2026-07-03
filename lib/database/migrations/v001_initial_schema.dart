@@ -53,6 +53,7 @@ class V001InitialSchema extends Migration {
         fat_grams REAL NULL,
         carb_grams REAL NULL,
         product_id TEXT NULL,
+        meal_id TEXT NULL,
         cost_value REAL NULL,
         cost_currency TEXT NULL,
         cost_is_manual INT NOT NULL DEFAULT 0,
@@ -102,10 +103,29 @@ class V001InitialSchema extends Migration {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE meals(
+        id TEXT PRIMARY KEY NOT NULL,
+        profile_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        notes TEXT NULL,
+        created_at INT NOT NULL,
+        updated_at INT NOT NULL,
+        eaten_at INT NULL,
+        cooking_minutes INT NULL,
+        taste_rating INT NULL,
+        satiety_rating INT NULL,
+        total_cooked_weight_grams REAL NULL,
+        FOREIGN KEY(profile_id) REFERENCES profiles(id)
+      )
+    ''');
+
     await db.execute(
         'CREATE INDEX calorie_items_created_at_day_idx ON calorie_items(created_at_day)');
     await db.execute(
         'CREATE INDEX calorie_items_product_id_idx ON calorie_items(product_id)');
+    await db.execute(
+        'CREATE INDEX calorie_items_meal_id_idx ON calorie_items(meal_id)');
     await db.execute(
         'CREATE INDEX products_category_id_idx ON products(category_id)');
     await db.execute(

@@ -2,6 +2,7 @@ import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 
 import './calorie_record.dart';
+import './meal.dart';
 
 /// Formats calorie history as a compact markdown document meant to be pasted
 /// into (or read by) an external LLM for nutrition analysis.
@@ -26,11 +27,16 @@ final class LlmExportFormatter {
     required Profile profile,
     required List<CalorieRecord> records,
     List<Product> products = const [],
+    List<Meal> meals = const [],
     String? preamble,
   }) {
     final productsById = <String, Product>{
       for (final product in products)
         if (product.id != null) product.id!: product,
+    };
+    final mealsById = <String, Meal>{
+      for (final meal in meals)
+        if (meal.id != null) meal.id!: meal,
     };
 
     final eaten = records.where((r) => r.eatenAt != null).toList()
@@ -55,7 +61,7 @@ final class LlmExportFormatter {
       ..writeln()
       ..writeln(preamble ?? defaultPreamble);
 
-    _writeDays(buffer, eaten, productsById);
+    _writeDays(buffer, eaten, productsById, mealsById);
     _writePlanned(buffer, planned, productsById);
     _writeProducts(buffer, products);
 
@@ -63,7 +69,7 @@ final class LlmExportFormatter {
   }
 
   void _writeDays(StringBuffer buffer, List<CalorieRecord> eaten,
-      Map<String, Product> productsById) {
+      Map<String, Product> productsById, Map<String, Meal> mealsById) {
     final byDay = <DateTime, List<CalorieRecord>>{};
     for (final record in eaten) {
       final at = record.eatenAt!;
@@ -77,10 +83,62 @@ final class LlmExportFormatter {
         ..writeln()
         ..writeln(
             '## ${_date(entry.key)} — total ${_total(records)}${_macroSums(records)}${_costSums(records)}');
+      _writeDayRecords(buffer, records, productsById, mealsById);
+    }
+  }
+
+  /// Within a day: meal groups first (in eating order), then an Ungrouped
+  /// section — but only when the day actually has meals; a day without meals
+  /// stays a flat list exactly as before.
+  void _writeDayRecords(StringBuffer buffer, List<CalorieRecord> records,
+      Map<String, Product> productsById, Map<String, Meal> mealsById) {
+    final byMeal = <String, List<CalorieRecord>>{};
+    final ungrouped = <CalorieRecord>[];
+    for (final record in records) {
+      final meal = mealsById[record.mealId];
+      if (meal == null) {
+        ungrouped.add(record);
+      } else {
+        byMeal.putIfAbsent(meal.id!, () => []).add(record);
+      }
+    }
+
+    if (byMeal.isEmpty) {
       for (final record in records) {
         buffer.writeln(_recordLine(record, productsById));
       }
+      return;
     }
+
+    for (final entry in byMeal.entries) {
+      final meal = mealsById[entry.key]!;
+      buffer.writeln(_mealHeader(meal, entry.value));
+      for (final record in entry.value) {
+        buffer.writeln(_recordLine(record, productsById));
+      }
+      final notes = meal.notes?.trim() ?? '';
+      if (notes.isNotEmpty) {
+        buffer.writeln('Notes: $notes');
+      }
+    }
+
+    if (ungrouped.isNotEmpty) {
+      buffer.writeln('### Ungrouped');
+      for (final record in ungrouped) {
+        buffer.writeln(_recordLine(record, productsById));
+      }
+    }
+  }
+
+  String _mealHeader(Meal meal, List<CalorieRecord> records) {
+    final parts = <String>[
+      _total(records),
+      ..._costSumsParts(records),
+      if (meal.cookingMinutes != null) 'cook ${meal.cookingMinutes} min',
+      if (meal.tasteRating != null) 'taste ${meal.tasteRating}/5',
+      if (meal.satietyRating != null) 'satiety ${meal.satietyRating}/5',
+    ];
+    return '### Meal: ${meal.title} — ${parts.join(' · ')}';
   }
 
   void _writePlanned(StringBuffer buffer, List<CalorieRecord> planned,
@@ -134,8 +192,9 @@ final class LlmExportFormatter {
     return '- $title$weight — ${_num(record.value)} kcal${_macros(record)}$cost';
   }
 
-  /// Per-currency day sums; "≥" marks a partial sum (some records lack cost).
-  String _costSums(List<CalorieRecord> records) {
+  /// Per-currency sums; "≥" marks a partial sum (some records lack cost).
+  /// Returns [] when no record has a cost, one 'cost …' fragment otherwise.
+  List<String> _costSumsParts(List<CalorieRecord> records) {
     final sums = <String, double>{};
     bool missing = false;
     for (final record in records) {
@@ -147,12 +206,17 @@ final class LlmExportFormatter {
       }
     }
     if (sums.isEmpty) {
-      return '';
+      return const [];
     }
     final parts = sums.entries
         .map((entry) => '${_money(entry.value)} ${entry.key}')
         .join(' + ');
-    return ' · cost ${missing ? '≥ ' : ''}$parts';
+    return ['cost ${missing ? '≥ ' : ''}$parts'];
+  }
+
+  String _costSums(List<CalorieRecord> records) {
+    final parts = _costSumsParts(records);
+    return parts.isEmpty ? '' : ' · ${parts.single}';
   }
 
   Set<String> _currenciesIn(

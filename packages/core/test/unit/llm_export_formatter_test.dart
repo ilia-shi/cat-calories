@@ -1,5 +1,6 @@
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:test/test.dart';
@@ -258,6 +259,94 @@ void main() {
 
       expect(output,
           contains('pack 500g · pack price 3.50 EUR'));
+    });
+  });
+
+  group('meals', () {
+    Meal curry({int? taste, int? cook}) => Meal(
+          id: 'meal-1',
+          profileId: 'p1',
+          title: 'Chicken curry',
+          notes: 'less oil, still good',
+          createdAt: DateTime(2026, 6, 29, 12),
+          eatenAt: DateTime(2026, 6, 29, 13),
+          tasteRating: taste,
+          cookingMinutes: cook,
+        );
+
+    test('day partitions into meal section and Ungrouped', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [
+          record(
+            value: 395,
+            description: 'chicken thigh',
+            eatenAt: DateTime(2026, 6, 29, 13),
+          )..mealId = 'meal-1',
+          record(
+            value: 288,
+            description: 'rice',
+            eatenAt: DateTime(2026, 6, 29, 13),
+          )..mealId = 'meal-1',
+          record(
+            value: 107,
+            description: 'banana',
+            eatenAt: DateTime(2026, 6, 29, 16),
+          ),
+        ],
+        meals: [curry(taste: 4, cook: 30)],
+      );
+
+      expect(output,
+          contains('### Meal: Chicken curry — 683 kcal · cook 30 min · taste 4/5'));
+      expect(output, contains('Notes: less oil, still good'));
+      expect(output, contains('### Ungrouped'));
+      expect(output.indexOf('banana'), greaterThan(output.indexOf('### Ungrouped')));
+    });
+
+    test('day without meals stays a flat list', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [
+          record(description: 'apple', eatenAt: DateTime(2026, 6, 29, 9)),
+        ],
+        meals: [curry()],
+      );
+
+      expect(output, isNot(contains('### Ungrouped')));
+      expect(output, isNot(contains('### Meal:')));
+    });
+
+    test('meal header includes cost sum of its records', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [
+          record(
+            value: 395,
+            description: 'chicken',
+            eatenAt: DateTime(2026, 6, 29, 13),
+          )
+            ..mealId = 'meal-1'
+            ..costValue = 1.2
+            ..costCurrency = 'EUR',
+        ],
+        meals: [curry()],
+      );
+
+      expect(output, contains('### Meal: Chicken curry — 395 kcal · cost 1.20 EUR'));
+    });
+
+    test('record with unknown mealId is treated as ungrouped', () {
+      final output = formatter.format(
+        profile: profile,
+        records: [
+          record(description: 'orphan', eatenAt: DateTime(2026, 6, 29, 9))
+            ..mealId = 'deleted-meal',
+        ],
+      );
+
+      expect(output, contains('- orphan — 100 kcal'));
+      expect(output, isNot(contains('### Meal:')));
     });
   });
 

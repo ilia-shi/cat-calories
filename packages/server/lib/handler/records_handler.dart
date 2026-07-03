@@ -83,6 +83,7 @@ class RecordsHandler extends Controller {
       costValue: (data['cost_value'] as num?)?.toDouble(),
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
+      mealId: data['meal_id'] as String?,
     );
 
     await records.insert(record);
@@ -144,6 +145,9 @@ class RecordsHandler extends Controller {
     }
     if (data.containsKey('cost_is_manual')) {
       existing.costIsManual = data['cost_is_manual'] == true;
+    }
+    if (data.containsKey('meal_id')) {
+      existing.mealId = data['meal_id'] as String?;
     }
     existing.updatedAt = DateTime.now();
 
@@ -232,5 +236,6 @@ class RecordsHandler extends Controller {
         'cost_value': r.costValue,
         'cost_currency': r.costCurrency,
         'cost_is_manual': r.costIsManual,
+        'meal_id': r.mealId,
       };
 }

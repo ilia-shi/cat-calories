@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,8 +25,9 @@ final class LlmExportService {
 
   final CalorieRecordRepositoryInterface _records;
   final ProductRepositoryInterface _products;
+  final MealRepositoryInterface _meals;
 
-  LlmExportService(this._records, this._products);
+  LlmExportService(this._records, this._products, this._meals);
 
   Future<String?> getDirectory() async {
     final prefs = await SharedPreferences.getInstance();
@@ -95,12 +97,14 @@ final class LlmExportService {
   Future<String> buildMarkdown(Profile profile) async {
     final records = await _records.fetchAllByProfile(profile);
     final products = await _products.fetchByProfile(profile);
+    final meals = await _meals.fetchByProfile(profile);
     final preamble = await getPreamble();
 
     return const LlmExportFormatter().format(
       profile: profile,
       records: records,
       products: products,
+      meals: meals,
       preamble: preamble,
     );
   }

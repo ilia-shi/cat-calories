@@ -14,6 +14,9 @@ final class CalorieRecord {
   double? carbGrams;
   String? productId;
 
+  /// Optional meal grouping — null means the record is ungrouped (always ok).
+  String? mealId;
+
   /// Cost snapshotted at logging time from the product's then-current price —
   /// the product price may change later without corrupting history.
   double? costValue;
@@ -38,6 +41,7 @@ final class CalorieRecord {
     this.fatGrams = null,
     this.carbGrams = null,
     this.productId = null,
+    this.mealId = null,
     this.costValue = null,
     this.costCurrency = null,
     this.costIsManual = false,
@@ -64,6 +68,7 @@ final class CalorieRecord {
         fatGrams: json['fat_grams'] ?? null,
         carbGrams: json['carb_grams'] ?? null,
         productId: json['product_id'] ?? null,
+        mealId: json['meal_id']?.toString(),
         costValue: json['cost_value'] ?? null,
         costCurrency: json['cost_currency'] ?? null,
         // sqlite stores booleans as 0/1
@@ -92,6 +97,7 @@ final class CalorieRecord {
         'fat_grams': fatGrams,
         'carb_grams': carbGrams,
         'product_id': productId,
+        'meal_id': mealId,
         'cost_value': costValue,
         'cost_currency': costCurrency,
         'cost_is_manual': costIsManual ? 1 : 0,

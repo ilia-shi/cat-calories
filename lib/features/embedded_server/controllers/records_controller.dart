@@ -65,6 +65,7 @@ class RecordsController extends Controller {
       costValue: (data['cost_value'] as num?)?.toDouble(),
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
+      mealId: data['meal_id'] as String?,
     );
 
     await repo.offsetSortOrder();
@@ -113,6 +114,9 @@ class RecordsController extends Controller {
     if (data.containsKey('cost_is_manual')) {
       item.costIsManual = data['cost_is_manual'] == true;
     }
+    if (data.containsKey('meal_id')) {
+      item.mealId = data['meal_id'] as String?;
+    }
     if (data.containsKey('eaten_at')) {
       final raw = data['eaten_at'] as String?;
       item.eatenAt = raw != null ? DateTime.parse(raw) : null;
@@ -160,5 +164,6 @@ class RecordsController extends Controller {
     'cost_value': item.costValue,
     'cost_currency': item.costCurrency,
     'cost_is_manual': item.costIsManual,
+    'meal_id': item.mealId,
   };
 }

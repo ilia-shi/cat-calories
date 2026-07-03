@@ -129,16 +129,17 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
     final json = item.toJson();
     _db.execute('''
       INSERT INTO calorie_items (
-        id, profile_id, waking_period_id, product_id, value, description,
+        id, profile_id, waking_period_id, product_id, meal_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
         cost_value, cost_currency, cost_is_manual,
         created_at_day, eaten_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       json['id'],
       json['profile_id'],
       json['waking_period_id'],
       json['product_id'],
+      json['meal_id'],
       json['value'],
       json['description'] ?? '',
       json['sort_order'],
@@ -170,7 +171,8 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         value = ?, description = ?, sort_order = ?,
         weight_grams = ?, protein_grams = ?, fat_grams = ?, carb_grams = ?,
         cost_value = ?, cost_currency = ?, cost_is_manual = ?,
-        eaten_at = ?, updated_at = ?, product_id = ?, waking_period_id = ?
+        eaten_at = ?, updated_at = ?, product_id = ?, meal_id = ?,
+        waking_period_id = ?
       WHERE id = ?
     ''', [
       json['value'],
@@ -186,6 +188,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['eaten_at'],
       json['updated_at'],
       json['product_id'],
+      json['meal_id'],
       json['waking_period_id'],
       json['id'],
     ]);
@@ -220,6 +223,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       'profile_id': row['profile_id'],
       'waking_period_id': row['waking_period_id'],
       'product_id': row['product_id'],
+      'meal_id': row['meal_id'],
       'value': row['value'],
       'description': row['description'],
       'sort_order': row['sort_order'],

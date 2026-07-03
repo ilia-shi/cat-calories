@@ -2,8 +2,12 @@ import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/database/app_database.dart';
 import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/features/calorie_tracking/data/calorie_record_sync_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/meal_sync_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_record_repository.dart';
+import 'package:cat_calories/features/calorie_tracking/data/sqlite/meal_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
+import 'package:cat_calories_core/features/calorie_tracking/sync/meal_sync_adapter.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/sync/calorie_record_sync_adapter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/products/data/sqlite/product_repository.dart';
@@ -30,6 +34,8 @@ void registerServices() {
   locator.registerLazySingleton<DatabaseClient>(() => AppDatabase.instance);
   locator.registerLazySingleton<CalorieRecordRepositoryInterface>(
       () => CalorieRecordRepository(locator.get<DatabaseClient>()));
+  locator.registerLazySingleton<MealRepositoryInterface>(
+      () => MealRepository(locator.get<DatabaseClient>()));
   locator.registerLazySingleton<ProfileRepositoryInterface>(
     () => ProfileRepository(locator.get<DatabaseClient>()),
   );
@@ -56,6 +62,7 @@ void registerServices() {
     () => LlmExportService(
       locator.get<CalorieRecordRepositoryInterface>(),
       locator.get<ProductRepositoryInterface>(),
+      locator.get<MealRepositoryInterface>(),
     ),
   );
   locator.registerLazySingleton<EmbeddedServerService>(() => EmbeddedServerService());
@@ -65,6 +72,10 @@ void registerServices() {
     registry.register(
       CalorieRecordSyncAdapter(),
       CalorieRecordSyncRepository(locator.get<CalorieRecordRepositoryInterface>()),
+    );
+    registry.register(
+      MealSyncAdapter(),
+      MealSyncRepository(locator.get<MealRepositoryInterface>()),
     );
     // Register more entity types here:
     // registry.register(ProductSyncAdapter(), ProductSyncRepository(...));

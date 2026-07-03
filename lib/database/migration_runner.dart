@@ -13,9 +13,10 @@ import 'package:cat_calories/database/migrations/v010_add_sync_servers.dart';
 import 'package:cat_calories/database/migrations/v011_add_auth_credentials.dart';
 import 'package:cat_calories/database/migrations/v012_add_server_urls.dart';
 import 'package:cat_calories/database/migrations/v013_add_price_and_cost.dart';
+import 'package:cat_calories/database/migrations/v014_add_meals.dart';
 
 class MigrationRunner {
-  static const currentVersion = 13;
+  static const currentVersion = 14;
 
   static final List<Migration> _migrations = [
     V002AddNutritionColumns(),
@@ -30,6 +31,7 @@ class MigrationRunner {
     V011AddAuthCredentials(),
     V012AddServerUrls(),
     V013AddPriceAndCost(),
+    V014AddMeals(),
   ];
 
   Future<void> onCreate(Database db, int version) async {
