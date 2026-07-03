@@ -5,6 +5,7 @@ import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/error_display.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 /// Settings for the LLM markdown export: export directory (e.g. a
@@ -54,6 +55,19 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
     }
   }
 
+  Future<void> _pickDirectory() async {
+    final path = await FilePicker.getDirectoryPath(
+      dialogTitle: 'Select export directory',
+    );
+    if (path == null || !mounted) {
+      return;
+    }
+    setState(() => _directoryController.text = path);
+    // Scoped storage can hand out folders we cannot actually write to —
+    // probe immediately so the verdict is visible before saving.
+    await _testDirectory();
+  }
+
   Future<void> _testDirectory() async {
     final path = _directoryController.text.trim();
     if (path.isEmpty) {
@@ -100,6 +114,7 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
             status: _directoryStatus,
             statusOk: _directoryOk,
             onTest: _testDirectory,
+            onPick: _pickDirectory,
           ),
           const SizedBox(height: 16),
           _FolderSyncCard(
@@ -124,12 +139,14 @@ class _DirectoryCard extends StatelessWidget {
   final String? status;
   final bool statusOk;
   final VoidCallback onTest;
+  final VoidCallback onPick;
 
   const _DirectoryCard({
     required this.controller,
     required this.status,
     required this.statusOk,
     required this.onTest,
+    required this.onPick,
   });
 
   @override
@@ -160,6 +177,15 @@ class _DirectoryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
+              OutlinedButton.icon(
+                onPressed: onPick,
+                style: OutlinedButton.styleFrom(
+                  shape: AppCard.squircleBorder(radius: 10),
+                ),
+                icon: const Icon(Icons.folder_open, size: 18),
+                label: const Text('Select directory'),
+              ),
+              const SizedBox(width: 12),
               OutlinedButton(
                 onPressed: onTest,
                 style: OutlinedButton.styleFrom(
@@ -167,19 +193,18 @@ class _DirectoryCard extends StatelessWidget {
                 ),
                 child: const Text('Test write'),
               ),
-              const SizedBox(width: 12),
-              if (status != null)
-                Expanded(
-                  child: Text(
-                    status!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: statusOk ? SuccessColor : DangerColor,
-                    ),
-                  ),
-                ),
             ],
           ),
+          if (status != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              status!,
+              style: TextStyle(
+                fontSize: 12,
+                color: statusOk ? SuccessColor : DangerColor,
+              ),
+            ),
+          ],
         ],
       ),
     );
