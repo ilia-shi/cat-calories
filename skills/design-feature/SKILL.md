@@ -1,66 +1,108 @@
 ---
 name: design-feature
-description: Design-thinking discipline for planning any new feature or UX functionality in Cat Calories. Use BEFORE writing implementation code, whenever asked to design, plan, propose, or think through a feature, data-model change, or UX flow. Covers splitting big features into independently shippable increments, writing plans as markdown docs in .stuff/, keeping user input optional (nullable-first fields, no mandatory forms), and making every user-entered value editable later.
+description: Design-thinking discipline for planning any new feature or UX functionality in Cat Calories. Use BEFORE writing implementation code, whenever asked to design, plan, propose, or think through a feature, data-model change, or UX flow. Covers splitting big features into independently shippable increments, writing plans as markdown docs in .stuff/, keeping user input optional (nullable-first fields, no mandatory forms), and making every user-entered value editable later. Do NOT use for pure implementation of an already-agreed plan, or for bug fixes with no new data/UX.
 ---
 
 # Designing a feature or UX flow
 
-Four rules, learned from planning meals/pricing/sync. Apply all of them to every
-design conversation before any code is written.
+**STOP. Do not write any implementation code during this skill.** The only output is a
+plan document. If you find yourself editing files under `lib/`, `packages/`, or `web/`,
+you have left this skill — go back.
 
-## 1. Split into self-contained increments
+Four rules, learned from planning meals/pricing/sync. You must apply all four. This
+skill is done in two steps: **(A)** fill in the worksheet below with written answers,
+then **(B)** turn the worksheet into a plan document. Do not skip the worksheet — a
+plan produced without answering every question is incomplete.
 
-Never plan a big feature as one deliverable. Break it into increments where **each
-one leaves the app fully working and useful on its own** — ship one, use it for a
-while, decide whether the next is still wanted.
+---
 
-- Draw the dependency graph explicitly (ASCII is fine). Watch for phases that
-  secretly bundle two independent dependency chains — split them into parallel
-  tracks that can be built in either order.
-- Order by value ÷ risk: increments with **no schema changes** and immediate user
-  value ship first (e.g., an export over existing data before any new entity).
-- A later increment may only *enrich* an earlier one, never be required to make it
-  useful.
+## Step A — Answer the worksheet (write every answer explicitly)
 
-## 2. Plans are markdown documents, always
+Copy these questions and answer each one in prose. An unanswered or "N/A" question is a
+red flag: re-read the matching rule before you accept it.
 
-Every design/plan produced in a conversation gets written to a markdown file — never
-left only in chat output. Drafts iterate in `.stuff/<topic>_plan.md` (gitignored
-working notes); once a plan is agreed on, promote it to `docs/plans/<topic>_plan.md`
-and commit it.
+### A1. Increments (Rule 1 — split into self-contained pieces)
 
-- Update the same file as the design iterates; it is the artifact, chat is not.
-- A promoted plan must not reference `.stuff/` files — they don't exist in the repo.
-- Include: what already exists in the codebase to build on (with file paths),
-  data-model sketches, UX flows, the increment roadmap with dependency graph, and an
-  explicit **non-goals** list protecting the design's constraints.
-- When plans merge or supersede each other, write the union as a new doc and leave
-  originals in place for the user to delete.
+- **List the increments, smallest first.** Give each a one-line name.
+- **For EACH increment, answer:** "If we ship only this one and stop, is the app still
+  fully working and useful?" It must be **yes** for every increment. If any answer is
+  no, that increment is too big or mis-ordered — re-split.
+- **Draw the dependency graph** (ASCII arrows, `A → B` means B needs A).
+- **Does any increment secretly bundle two independent chains?** If a single increment
+  depends on two unrelated predecessors, split it into parallel tracks.
+- **What ships first, and why is it lowest risk?** The first increment should have **no
+  schema change** if possible and deliver value over data that already exists (e.g. an
+  export before any new entity).
 
-## 3. Don't make the user fill fields (nullable-first)
+> Good answer example: "Increments: (1) show cost on existing records — read-only,
+> no schema change; (2) editable price on product; (3) cost snapshot on record.
+> Graph: 2 → 3, 1 is independent. Ship (1) first: no migration, immediate value."
 
-The floor never rises: the simplest existing flow (e.g., a bare free-text calorie
-record) must keep working unchanged. Everything new is an optional enrichment layer.
+### A2. Optional input (Rule 3 — nullable-first, never make the user fill fields)
 
-- New columns are **nullable wherever possible**; every feature degrades silently
-  when its data is absent (omit from rollups, hide the section — never block).
-- No nagging: no badges, counters, or "complete your data" prompts. At most one
-  dismissible, low-key surface for optional input.
-- Enter-once, reuse-everywhere: attach data at the highest level that serves the
-  goal (price on the product, not on every record; rating on the meal, not per
-  ingredient).
-- Prefill everything prefillable (locale → currency, last-used values → new entry);
-  the user should never type codes or repeat themselves.
+- **List every new field/column.** For each: **is it nullable? (yes/no)** If **no**,
+  write the specific reason it must be mandatory — "it felt required" is not a reason.
+  Default is nullable.
+- **Confirm the floor still works:** does the simplest existing flow (e.g. a bare
+  free-text calorie record with nothing else filled in) keep working *unchanged*?
+- **For each new field, what happens when it's absent?** Must degrade silently — omit
+  from rollups, hide the section. Never block, badge, or nag.
+- **What gets prefilled, and from where?** (locale → currency, last-used → new entry.)
+  The user should never type a code or repeat a value they've already given.
+- **At what level does each piece of data attach?** Enter-once, reuse-everywhere:
+  price on the product (not per record), rating on the meal (not per ingredient).
 
-## 4. Every value stays editable
+> Good answer example: "New fields: product.priceMinor (nullable — user may not know
+> the price), record.costMinor (nullable snapshot). Absent price → cost section hidden,
+> no badge. Currency prefilled from device locale. Floor: a plain calorie record with
+> no product still saves fine."
 
-Users make mistakes and learn better numbers later; no field is write-once.
+### A3. Editability (Rule 4 — every value stays editable)
 
-- Any user-entered or auto-filled value (timestamps, weights, prices, ratings,
-  titles, grouping) must be changeable after the fact through normal UI, not by
-  deleting and re-creating.
-- When a value is **snapshotted/denormalized** at event time (e.g., cost frozen on a
-  record), editing must still work: allow direct edit of the snapshot and/or a
-  "recompute from current source" action — and state in the plan which one.
-- Auto-set values (like `eatenAt` stamped on completion) need an obvious undo/clear
-  path (`setUncompleted`-style), not just a setter.
+- **List every user-entered OR auto-set value** the feature introduces (timestamps,
+  weights, prices, ratings, titles, grouping, completion stamps).
+- **For EACH: through which normal UI screen can the user change it later?** Deleting
+  and re-creating does not count. If you can't name a screen, the design is missing one.
+- **Any snapshotted/denormalized value?** (e.g. cost frozen on a record at event time.)
+  For each, state explicitly which you provide: **direct edit of the snapshot**, a
+  **"recompute from current source" action**, or both.
+- **Any auto-set value?** (e.g. `eatenAt` stamped on completion.) Name its obvious
+  undo/clear path (`setUncompleted`-style), not just its setter.
+
+> Good answer example: "Editable: price (product edit sheet), record cost (record edit
+> sheet — direct edit of snapshot, plus 'reset to current product price'). Auto-set:
+> eatenAt on complete → cleared via setUncompleted."
+
+---
+
+## Step B — Write the plan document (Rule 2 — plans are always markdown files)
+
+Never leave the design only in chat. Write it to a file and keep editing that file as
+the design iterates — the file is the artifact, chat is not.
+
+- **Draft** in `.stuff/<topic>_plan.md` (gitignored working notes).
+- **Once agreed**, promote it to `docs/plans/<topic>_plan.md` and commit. A promoted
+  plan must **not** reference `.stuff/` paths — they don't exist in the repo.
+- When plans merge or supersede each other, write the union as a **new** doc and leave
+  the originals for the user to delete.
+
+The document must contain these sections, in order:
+
+1. **What already exists to build on** — concrete file paths in the current codebase.
+2. **Data-model sketch** — new/changed tables and fields, each marked nullable or not
+   (carry over your A2 answers).
+3. **UX flows** — the screens and how data is entered/edited (carry over A3).
+4. **Increment roadmap** — the ordered list + the ASCII dependency graph from A1.
+5. **Non-goals** — an explicit list of what this design deliberately does NOT do, to
+   protect its constraints from scope creep.
+
+---
+
+## Final check before you present the plan
+
+Answer yes to all four or go back:
+
+- [ ] Every increment leaves the app fully working on its own (A1).
+- [ ] Every new field is nullable, or has a written reason it can't be (A2).
+- [ ] Every value has a named edit path; snapshots state edit-vs-recompute (A3).
+- [ ] The plan is a markdown file with all five sections, not just chat output (B).
