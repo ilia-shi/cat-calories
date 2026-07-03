@@ -793,18 +793,6 @@ class _ProductListItem extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          Icons.restaurant,
-          color: Colors.orange[700],
-        ),
-      ),
       title: Text(
         product.title,
         maxLines: 2,
