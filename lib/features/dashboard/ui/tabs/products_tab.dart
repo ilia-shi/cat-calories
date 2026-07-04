@@ -7,7 +7,9 @@ import 'package:cat_calories_core/features/waking_periods/domain/waking_period.d
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories/features/products/ui/add_edit_product_screen.dart';
 import 'package:cat_calories/features/products/ui/categories_screen.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/error_state_widget.dart';
+import 'package:cat_calories/common/widgets/floating_toolbar.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/products/ui/product_weight_input_sheet.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +39,10 @@ class ProductsTab extends StatefulWidget {
 }
 
 class _ProductsTabState extends State<ProductsTab> {
+  static const double _categoryBarHeight = 44;
+
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   ProductSortOrder _sortOrder = ProductSortOrder.recentlyUsed;
   ProductDisplayMode _displayMode = ProductDisplayMode.list;
@@ -55,6 +60,7 @@ class _ProductsTabState extends State<ProductsTab> {
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -466,17 +472,30 @@ class _ProductsTabState extends State<ProductsTab> {
             state.productCategories,
           );
 
-          return Column(
-            children: [
-              _buildSearchBar(context),
-              _buildCategoryFilter(context, state),
-              _buildToolbar(context, state, filteredProducts.length),
-              Expanded(
-                child: filteredProducts.isEmpty
-                    ? _buildEmptyState(context)
-                    : _buildProductsList(context, state, filteredProducts),
-              ),
-            ],
+          return FloatingToolbarHost(
+            topInset: FloatingToolbar.topMargin +
+                FloatingToolbar.expandedHeight +
+                _categoryBarHeight +
+                FloatingToolbar.bottomGap,
+            toolbars: (context, collapseProgress) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingToolbar(
+                  collapseProgress: collapseProgress,
+                  children: _toolbarChildren(context, filteredProducts.length),
+                ),
+                // Pinned below the action bar but NOT a floating toolbar: plain,
+                // no border, no collapse. Opaque so the list doesn't show
+                // through the transparent chips as it scrolls under.
+                Container(
+                  height: _categoryBarHeight,
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: _buildCategoryFilter(context, state),
+                ),
+              ],
+            ),
+            builder: (context, topInset) =>
+                _buildBody(context, state, filteredProducts, topInset),
           );
         }
 
@@ -485,116 +504,106 @@ class _ProductsTabState extends State<ProductsTab> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Search products...',
-          prefixIcon: const Icon(Icons.search, size: 22),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-            icon: const Icon(Icons.clear, size: 20),
-            onPressed: () {
-              _searchController.clear();
-            },
-          )
-              : null,
-          filled: true,
-          fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+  Widget _buildCategoryFilter(BuildContext context, HomeFetched state) {
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      children: [
+        _CategoryChip(
+          label: 'All',
+          isSelected: _selectedCategoryId == null,
+          onTap: () => _setSelectedCategory(null),
+        ),
+        ...state.productCategories.map((category) {
+          return _CategoryChip(
+            label: category.name,
+            isSelected: _selectedCategoryId == category.id,
+            onTap: () => _setSelectedCategory(category.id),
+            colorHex: category.colorHex,
+          );
+        }),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: ActionChip(
+            avatar: const Icon(Icons.settings, size: 18),
+            label: const Text('Manage'),
+            onPressed: () => _navigateToCategories(context),
+            backgroundColor: Colors.transparent,
+            shape: AppCard.squircleBorder(radius: 12, side: BorderSide.none),
+            side: BorderSide.none,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
           ),
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _toolbarChildren(BuildContext context, int productCount) {
+    return [
+      Text(
+        '$productCount products',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[600],
         ),
       ),
-    );
+      const Spacer(),
+      ToolbarActionButton(
+        icon: Icons.sort,
+        tooltip: 'Sort',
+        onPressed: () => _showSortDialog(context),
+      ),
+      ToolbarActionButton(
+        icon: _displayMode == ProductDisplayMode.list
+            ? Icons.grid_view
+            : Icons.list,
+        tooltip: 'Toggle view',
+        onPressed: () {
+          _setDisplayMode(
+            _displayMode == ProductDisplayMode.list
+                ? ProductDisplayMode.grid
+                : ProductDisplayMode.list,
+          );
+        },
+      ),
+      ToolbarActionButton(
+        icon: Icons.add,
+        tooltip: 'Add product',
+        onPressed: () => _navigateToAddProduct(context),
+      ),
+    ];
   }
 
-  Widget _buildCategoryFilter(BuildContext context, HomeFetched state) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          _CategoryChip(
-            label: 'All',
-            isSelected: _selectedCategoryId == null,
-            onTap: () => _setSelectedCategory(null),
-            isDarkMode: isDarkMode,
-          ),
-          ...state.productCategories.map((category) {
-            return _CategoryChip(
-              label: category.name,
-              isSelected: _selectedCategoryId == category.id,
-              onTap: () => _setSelectedCategory(category.id),
-              isDarkMode: isDarkMode,
-              colorHex: category.colorHex,
-            );
-          }),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: ActionChip(
-              avatar: const Icon(Icons.settings, size: 18),
-              label: const Text('Manage'),
-              onPressed: () => _navigateToCategories(context),
-            ),
-          ),
+  /// Scrolls under the pinned toolbar + category bar: [topInset] clears both,
+  /// then the products (or the empty state) follow.
+  Widget _buildBody(
+    BuildContext context,
+    HomeFetched state,
+    List<Product> products,
+    double topInset,
+  ) {
+    return CustomScrollView(
+      // Own controller (not the NestedScrollView's primary one) so the parent
+      // doesn't translate the whole body — that would drag the pinned toolbar
+      // overlay with it. AlwaysScrollable so a short (filtered) list still
+      // claims the vertical drag instead of letting the parent scroll it.
+      controller: _scrollController,
+      primary: false,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(child: SizedBox(height: topInset)),
+        if (products.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _buildEmptyState(context),
+          )
+        else ...[
+          _buildProductsSliver(context, state, products),
+          // Clears the floating bottom nav.
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(
-      BuildContext context, HomeFetched state, int productCount) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Row(
-        children: [
-          Text(
-            '$productCount products',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.sort, size: 22),
-            onPressed: () => _showSortDialog(context),
-            tooltip: 'Sort',
-          ),
-          IconButton(
-            icon: Icon(
-              _displayMode == ProductDisplayMode.list
-                  ? Icons.grid_view
-                  : Icons.list,
-              size: 22,
-            ),
-            onPressed: () {
-              _setDisplayMode(
-                _displayMode == ProductDisplayMode.list
-                    ? ProductDisplayMode.grid
-                    : ProductDisplayMode.list,
-              );
-            },
-            tooltip: 'Toggle view',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add, size: 22),
-            onPressed: () => _navigateToAddProduct(context),
-            tooltip: 'Add product',
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -642,7 +651,7 @@ class _ProductsTabState extends State<ProductsTab> {
     );
   }
 
-  Widget _buildProductsList(
+  Widget _buildProductsSliver(
       BuildContext context,
       HomeFetched state,
       List<Product> products,
@@ -652,28 +661,60 @@ class _ProductsTabState extends State<ProductsTab> {
     final hasWakingPeriod = wakingPeriod != null;
 
     if (_displayMode == ProductDisplayMode.grid) {
-      return GridView.builder(
+      return SliverPadding(
         padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.95,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+        sliver: SliverGrid.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.95,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product = products[index];
+            final category = state.getCategoryById(product.categoryId);
+            return _ProductGridItem(
+              product: product,
+              category: category,
+              onTap: hasWakingPeriod
+                  ? () => _showProductSheet(
+                        context,
+                        product,
+                        wakingPeriod,
+                        state.periodCalorieItems,
+                      )
+                  : null,
+              onLongPress: () => _showProductOptionsSheet(
+                context,
+                product,
+                wakingPeriod,
+                state.periodCalorieItems,
+              ),
+              onEdit: () => _navigateToEditProduct(context, product),
+            );
+          },
         ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      sliver: SliverList.builder(
         itemCount: products.length,
         itemBuilder: (context, index) {
           final product = products[index];
           final category = state.getCategoryById(product.categoryId);
-          return _ProductGridItem(
+          return _ProductListItem(
             product: product,
             category: category,
             onTap: hasWakingPeriod
                 ? () => _showProductSheet(
-              context,
-              product,
-              wakingPeriod,
-              state.periodCalorieItems,
-            )
+                      context,
+                      product,
+                      wakingPeriod,
+                      state.periodCalorieItems,
+                    )
                 : null,
             onLongPress: () => _showProductOptionsSheet(
               context,
@@ -684,35 +725,7 @@ class _ProductsTabState extends State<ProductsTab> {
             onEdit: () => _navigateToEditProduct(context, product),
           );
         },
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        final category = state.getCategoryById(product.categoryId);
-        return _ProductListItem(
-          product: product,
-          category: category,
-          onTap: hasWakingPeriod
-              ? () => _showProductSheet(
-            context,
-            product,
-            wakingPeriod,
-            state.periodCalorieItems,
-          )
-              : null,
-          onLongPress: () => _showProductOptionsSheet(
-            context,
-            product,
-            wakingPeriod,
-            state.periodCalorieItems,
-          ),
-          onEdit: () => _navigateToEditProduct(context, product),
-        );
-      },
+      ),
     );
   }
 }
@@ -721,14 +734,12 @@ class _CategoryChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  final bool isDarkMode;
   final String? colorHex;
 
   const _CategoryChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
-    required this.isDarkMode,
     this.colorHex,
   });
 
@@ -746,10 +757,7 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _parseColor();
-    final chipColor = isSelected
-        ? (color ?? Theme.of(context).primaryColor)
-        : (isDarkMode ? Colors.grey[800] : Colors.grey[200]);
+    final color = _parseColor() ?? Theme.of(context).primaryColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -763,10 +771,14 @@ class _CategoryChip extends StatelessWidget {
         ),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        backgroundColor: chipColor,
-        selectedColor: color ?? Theme.of(context).primaryColor,
+        backgroundColor: Colors.transparent,
+        selectedColor: color,
         checkmarkColor: Colors.white,
         showCheckmark: false,
+        shape: AppCard.squircleBorder(radius: 12, side: BorderSide.none),
+        side: BorderSide.none,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/floating_toolbar.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
@@ -74,96 +76,127 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         }
       },
       child: Scaffold(
-        appBar:
-            _controller.hasSelection ? _buildSelectionAppBar() : _buildAppBar(),
-        body: _controller.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _controller.sortedDates.isEmpty
-                ? const HistoryEmptyState()
-                : _buildContent(),
+        body: FloatingToolbarHost(
+          toolbars: (context, collapseProgress) => FloatingToolbar(
+            collapseProgress: collapseProgress,
+            children: _controller.hasSelection
+                ? _selectionToolbar(context)
+                : _mainToolbar(context),
+          ),
+          builder: (context, topInset) {
+            if (_controller.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (_controller.sortedDates.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.only(top: topInset),
+                child: const HistoryEmptyState(),
+              );
+            }
+            return _buildContent(topInset);
+          },
+        ),
       ),
     );
   }
 
-  AppBar _buildSelectionAppBar() {
-    return AppBar(
-      title: Text('${_controller.selectionCount} selected'),
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.close),
+  List<Widget> _selectionToolbar(BuildContext context) {
+    return [
+      ToolbarActionButton(
+        icon: Icons.close,
         tooltip: 'Cancel selection',
         onPressed: _controller.clearSelection,
       ),
-      actions: [
-        TextButton.icon(
-          onPressed: _groupSelectedAsMeal,
-          icon: const Icon(Icons.restaurant, size: 18),
-          label: const Text('Group as meal'),
+      const SizedBox(width: 4),
+      Text(
+        '${_controller.selectionCount} selected',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: AppColors.of(context).textPrimary,
         ),
-      ],
-    );
+      ),
+      const Spacer(),
+      TextButton.icon(
+        onPressed: _groupSelectedAsMeal,
+        style: TextButton.styleFrom(
+          minimumSize: Size.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: const Icon(Icons.restaurant, size: 18),
+        label: const Text('Group as meal'),
+      ),
+    ];
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text('Calorie History'),
-      elevation: 0,
-      actions: [
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'new_meal') {
-              _createNewMeal();
-            } else if (value == 'expand_all') {
-              _controller.expandAll();
-            } else if (value == 'collapse_all') {
-              _controller.collapseAll();
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'new_meal',
-              child: Row(
-                children: [
-                  Icon(Icons.restaurant, size: 20),
-                  SizedBox(width: 12),
-                  Text('New Meal (plan ahead)'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'expand_all',
-              child: Row(
-                children: [
-                  Icon(Icons.unfold_more, size: 20),
-                  SizedBox(width: 12),
-                  Text('Expand All'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'collapse_all',
-              child: Row(
-                children: [
-                  Icon(Icons.unfold_less, size: 20),
-                  SizedBox(width: 12),
-                  Text('Collapse All'),
-                ],
-              ),
-            ),
-          ],
+  List<Widget> _mainToolbar(BuildContext context) {
+    return [
+      Text(
+        'Calorie History',
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: AppColors.of(context).textPrimary,
         ),
-      ],
-    );
+      ),
+      const Spacer(),
+      PopupMenuButton<String>(
+        padding: EdgeInsets.zero,
+        iconSize: 22,
+        onSelected: (value) {
+          if (value == 'new_meal') {
+            _createNewMeal();
+          } else if (value == 'expand_all') {
+            _controller.expandAll();
+          } else if (value == 'collapse_all') {
+            _controller.collapseAll();
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'new_meal',
+            child: Row(
+              children: [
+                Icon(Icons.restaurant, size: 20),
+                SizedBox(width: 12),
+                Text('New Meal (plan ahead)'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'expand_all',
+            child: Row(
+              children: [
+                Icon(Icons.unfold_more, size: 20),
+                SizedBox(width: 12),
+                Text('Expand All'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'collapse_all',
+            child: Row(
+              children: [
+                Icon(Icons.unfold_less, size: 20),
+                SizedBox(width: 12),
+                Text('Collapse All'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ];
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(double topInset) {
     final sortedDates = _controller.sortedDates;
     return RefreshIndicator(
       onRefresh: _controller.load,
       child: ListView.builder(
         controller: _scrollController,
         primary: false,
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: EdgeInsets.only(top: topInset, bottom: 24),
         itemCount: sortedDates.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
