@@ -34,6 +34,12 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   late final MealRepositoryInterface mealRepository =
       locator.get<MealRepositoryInterface>();
 
+  /// Own controller with primary:false — without it the list attaches to the
+  /// home screen's NestedScrollView PrimaryScrollController, and coordinated
+  /// drags slide the content up behind the translucent pinned header while
+  /// the user is selecting rows.
+  final ScrollController _scrollController = ScrollController();
+
   bool _isLoading = true;
   bool _isInitialLoad = true;
   Map<String, Meal> _mealsById = {};
@@ -57,6 +63,12 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   void initState() {
     super.initState();
     _loadAllCalories(showLoading: true);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAllCalories({bool showLoading = false}) async {
@@ -297,6 +309,8 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     return RefreshIndicator(
       onRefresh: _loadAllCalories,
       child: ListView.builder(
+        controller: _scrollController,
+        primary: false,
         padding: const EdgeInsets.only(bottom: 24),
         itemCount: _sortedDates.length + 1,
         itemBuilder: (context, index) {
@@ -1182,7 +1196,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
             labelText: 'Meal name',
-            hintText: 'e.g., Chicken curry',
+            hintText: 'e.g., Breakfast',
           ),
           onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
         ),
