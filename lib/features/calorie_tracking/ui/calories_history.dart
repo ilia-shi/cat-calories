@@ -3,21 +3,22 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
-import 'package:cat_calories_core/features/profile/domain/profile.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/meal_cooking_screen.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/meal_signal_inputs.dart';
-import 'package:cat_calories/app/profile_resolver.dart';
-import 'package:cat_calories/common/theme/colors.dart';
-import 'package:cat_calories/common/widgets/app_card.dart';
-import 'package:cat_calories/common/widgets/macro_chips.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/state/calories_history_controller.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/calorie_record_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/date_group_card.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/delete_entry_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_empty_state.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_summary_card.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/item_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_edit_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_header_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
-import 'package:cat_calories/common/locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 class AllCaloriesHistoryScreen extends StatefulWidget {
   const AllCaloriesHistoryScreen({Key? key}) : super(key: key);
@@ -29,32 +30,8 @@ class AllCaloriesHistoryScreen extends StatefulWidget {
 
 class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     with AutomaticKeepAliveClientMixin {
-  late CalorieRecordRepositoryInterface calorieItemRepository =
-  locator.get<CalorieRecordRepositoryInterface>();
-  late final MealRepositoryInterface mealRepository =
-      locator.get<MealRepositoryInterface>();
-
-  /// Own controller with primary:false — without it the list attaches to the
-  /// home screen's NestedScrollView PrimaryScrollController, and coordinated
-  /// drags slide the content up behind the translucent pinned header while
-  /// the user is selecting rows.
+  final CaloriesHistoryController _controller = CaloriesHistoryController();
   final ScrollController _scrollController = ScrollController();
-
-  bool _isLoading = true;
-  bool _isInitialLoad = true;
-  Map<String, Meal> _mealsById = {};
-  final Set<String> _selectedIds = {};
-  Map<DateTime, List<CalorieRecord>> _groupedCalories = {};
-  Map<DateTime, _DaySummary> _daySummaries = {};
-  List<DateTime> _sortedDates = [];
-  Set<DateTime> _expandedDates = {};
-  double _totalAllTime = 0;
-  int _totalItems = 0;
-
-  // Total macros for all time
-  double _totalProtein = 0;
-  double _totalFat = 0;
-  double _totalCarbs = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -62,117 +39,29 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   @override
   void initState() {
     super.initState();
-    _loadAllCalories(showLoading: true);
+    _controller.addListener(_onControllerChanged);
+    _controller.load(showLoading: true);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadAllCalories({bool showLoading = false}) async {
-    if (showLoading) {
-      setState(() {
-        _isLoading = true;
-      });
+  void _onControllerChanged() {
+    if (!mounted) {
+      return;
     }
-
-    try {
-      final Profile profile = await ProfileResolver().resolve();
-      final allCalories = await calorieItemRepository.fetchAllByProfile(
-        profile,
-        orderBy: 'created_at DESC',
+    final error = _controller.takeError();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
       );
-      final meals = await mealRepository.fetchByProfile(profile);
-
-      // Group by date
-      final Map<DateTime, List<CalorieRecord>> grouped = {};
-      final Map<DateTime, _DaySummary> summaries = {};
-      double total = 0;
-      int itemCount = 0;
-      double totalProtein = 0;
-      double totalFat = 0;
-      double totalCarbs = 0;
-
-      for (final calorie in allCalories) {
-        final dateKey = DateTime(
-          calorie.createdAt.year,
-          calorie.createdAt.month,
-          calorie.createdAt.day,
-        );
-
-        if (!grouped.containsKey(dateKey)) {
-          grouped[dateKey] = [];
-          summaries[dateKey] = _DaySummary();
-        }
-        grouped[dateKey]!.add(calorie);
-        summaries[dateKey]!.itemCount++;
-        itemCount++;
-
-        if (calorie.isEaten()) {
-          total += calorie.value;
-          summaries[dateKey]!.totalEaten += calorie.value;
-          if (calorie.value > 0) {
-            summaries[dateKey]!.positiveSum += calorie.value;
-          } else {
-            summaries[dateKey]!.negativeSum += calorie.value;
-          }
-
-          // Accumulate macros
-          if (calorie.proteinGrams != null) {
-            summaries[dateKey]!.totalProtein += calorie.proteinGrams!;
-            totalProtein += calorie.proteinGrams!;
-            summaries[dateKey]!.hasProteinData = true;
-          }
-          if (calorie.fatGrams != null) {
-            summaries[dateKey]!.totalFat += calorie.fatGrams!;
-            totalFat += calorie.fatGrams!;
-            summaries[dateKey]!.hasFatData = true;
-          }
-          if (calorie.carbGrams != null) {
-            summaries[dateKey]!.totalCarbs += calorie.carbGrams!;
-            totalCarbs += calorie.carbGrams!;
-            summaries[dateKey]!.hasCarbData = true;
-          }
-        }
-      }
-
-      // Sort dates descending
-      final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
-
-      if (mounted) {
-        setState(() {
-          _mealsById = {
-            for (final meal in meals)
-              if (meal.id != null) meal.id!: meal,
-          };
-          _groupedCalories = grouped;
-          _daySummaries = summaries;
-          _sortedDates = sortedDates;
-          _totalAllTime = total;
-          _totalItems = itemCount;
-          _totalProtein = totalProtein;
-          _totalFat = totalFat;
-          _totalCarbs = totalCarbs;
-          _isLoading = false;
-          // Expand the first date by default only on initial load
-          if (_isInitialLoad && sortedDates.isNotEmpty) {
-            _expandedDates.add(sortedDates.first);
-            _isInitialLoad = false;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading calories: $e')),
-        );
-      }
     }
+    setState(() {});
   }
 
   @override
@@ -181,461 +70,126 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     return BlocListener<HomeBloc, AbstractHomeState>(
       listener: (context, state) {
         if (state is HomeFetched) {
-          _loadAllCalories();
+          _controller.load();
         }
       },
       child: Scaffold(
-        appBar: _selectedIds.isNotEmpty
-            ? AppBar(
-                title: Text('${_selectedIds.length} selected'),
-                elevation: 0,
-                leading: IconButton(
-                  icon: const Icon(Icons.close),
-                  tooltip: 'Cancel selection',
-                  onPressed: () => setState(() => _selectedIds.clear()),
-                ),
-                actions: [
-                  TextButton.icon(
-                    onPressed: _groupSelectedAsMeal,
-                    icon: const Icon(Icons.restaurant, size: 18),
-                    label: const Text('Group as meal'),
-                  ),
-                ],
-              )
-            : AppBar(
-          title: const Text('Calorie History'),
-          elevation: 0,
-          actions: [
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'new_meal') {
-                  _createNewMeal();
-                } else if (value == 'expand_all') {
-                  setState(() {
-                    _expandedDates = Set.from(_sortedDates);
-                  });
-                } else if (value == 'collapse_all') {
-                  setState(() {
-                    _expandedDates.clear();
-                  });
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'new_meal',
-                  child: Row(
-                    children: [
-                      Icon(Icons.restaurant, size: 20),
-                      SizedBox(width: 12),
-                      Text('New Meal (plan ahead)'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'expand_all',
-                  child: Row(
-                    children: [
-                      Icon(Icons.unfold_more, size: 20),
-                      SizedBox(width: 12),
-                      Text('Expand All'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'collapse_all',
-                  child: Row(
-                    children: [
-                      Icon(Icons.unfold_less, size: 20),
-                      SizedBox(width: 12),
-                      Text('Collapse All'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        body: _isLoading
+        appBar:
+            _controller.hasSelection ? _buildSelectionAppBar() : _buildAppBar(),
+        body: _controller.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : _sortedDates.isEmpty
-            ? _buildEmptyState()
-            : _buildContent(),
+            : _controller.sortedDates.isEmpty
+                ? const HistoryEmptyState()
+                : _buildContent(),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    final appColors = AppColors.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: appColors.surfaceSubtle,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.restaurant_menu,
-              size: 64,
-              color: appColors.textDisabled,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No calories recorded yet',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: appColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Start tracking your calories\nto see your history here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: appColors.textTertiary,
-            ),
-          ),
-        ],
+  AppBar _buildSelectionAppBar() {
+    return AppBar(
+      title: Text('${_controller.selectionCount} selected'),
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        tooltip: 'Cancel selection',
+        onPressed: _controller.clearSelection,
       ),
-    );
-  }
-
-  Widget _buildContent() {
-    return RefreshIndicator(
-      onRefresh: _loadAllCalories,
-      child: ListView.builder(
-        controller: _scrollController,
-        primary: false,
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: _sortedDates.length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _buildSummaryCard();
-          }
-          final date = _sortedDates[index - 1];
-          return _buildDateGroup(date);
-        },
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    final totalDays = _sortedDates.length;
-    final avgPerDay = totalDays > 0 ? _totalAllTime / totalDays : 0.0;
-    final hasMacroData = _totalProtein > 0 || _totalFat > 0 || _totalCarbs > 0;
-
-    return AppCard(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      gradient: LinearGradient(
-        colors: [
-          Theme.of(context).primaryColor.withValues(alpha: 0.8),
-          Theme.of(context).primaryColor,
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      shadowColor: Theme.of(context).primaryColor,
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryItem(
-                icon: Icons.calendar_month,
-                value: totalDays.toString(),
-                label: 'Days Tracked',
-              ),
-              Container(
-                height: 50,
-                width: 1,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
-              _buildSummaryItem(
-                icon: Icons.local_fire_department,
-                value: '${_totalAllTime.toStringAsFixed(0)}',
-                label: 'Total kcal',
-              ),
-              Container(
-                height: 50,
-                width: 1,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
-              _buildSummaryItem(
-                icon: Icons.analytics_outlined,
-                value: '${avgPerDay.toStringAsFixed(0)}',
-                label: 'Avg/Day',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Macro totals row
-          if (hasMacroData) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: ShapeDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                shape: AppCard.squircleBorder(radius: 12),
-              ),
-              child: Center(
-                child: MacroBadgesRow(
-                  protein: _totalProtein,
-                  fat: _totalFat,
-                  carbs: _totalCarbs,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: ShapeDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: AppCard.squircleBorder(radius: 20),
-            ),
-            child: Text(
-              '$_totalItems entries total',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryItem({
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
+      actions: [
+        TextButton.icon(
+          onPressed: _groupSelectedAsMeal,
+          icon: const Icon(Icons.restaurant, size: 18),
+          label: const Text('Group as meal'),
         ),
       ],
     );
   }
 
-  Widget _buildDateGroup(DateTime date) {
-    final appColors = AppColors.of(context);
-    final items = _groupedCalories[date] ?? [];
-    final summary = _daySummaries[date]!;
-    final isExpanded = _expandedDates.contains(date);
-    final isToday = _isToday(date);
-    final isYesterday = _isYesterday(date);
-
-    String dateLabel;
-    if (isToday) {
-      dateLabel = 'Today';
-    } else if (isYesterday) {
-      dateLabel = 'Yesterday';
-    } else {
-      dateLabel = DateFormat('EEEE, MMM d, y').format(date);
-    }
-
-    final headerShape = AppCard.squircleBorder(bottom: !isExpanded);
-
-    return AppCard(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: EdgeInsets.zero,
-      emphasized: isToday,
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () {
-              setState(() {
-                if (isExpanded) {
-                  _expandedDates.remove(date);
-                } else {
-                  _expandedDates.add(date);
-                }
-              });
-            },
-            customBorder: headerShape,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: ShapeDecoration(
-                color: isToday
-                    ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
-                    : null,
-                shape: headerShape,
-              ),
-              child: Column(
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: const Text('Calorie History'),
+      elevation: 0,
+      actions: [
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'new_meal') {
+              _createNewMeal();
+            } else if (value == 'expand_all') {
+              _controller.expandAll();
+            } else if (value == 'collapse_all') {
+              _controller.collapseAll();
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'new_meal',
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: isToday
-                              ? LinearGradient(
-                            colors: [
-                              Theme.of(context).primaryColor,
-                              Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                              : null,
-                          color: isToday ? null : appColors.surfaceSubtle,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              DateFormat('d').format(date),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: isToday ? Colors.white : appColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              DateFormat('MMM').format(date).toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: isToday
-                                    ? Colors.white.withValues(alpha: 0.9)
-                                    : appColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              dateLabel,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight:
-                                isToday ? FontWeight.bold : FontWeight.w600,
-                                color: appColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                _buildStatChip(
-                                  '${summary.itemCount}',
-                                  'items',
-                                  Colors.grey,
-                                ),
-                                const SizedBox(width: 8),
-                                if (summary.positiveSum > 0)
-                                  _buildStatChip(
-                                    '+${summary.positiveSum.toStringAsFixed(0)}',
-                                    '',
-                                    DangerColor,
-                                  ),
-                                if (summary.negativeSum < 0) ...[
-                                  const SizedBox(width: 4),
-                                  _buildStatChip(
-                                    summary.negativeSum.toStringAsFixed(0),
-                                    '',
-                                    SuccessColor,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Total Calories
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            summary.totalEaten.toStringAsFixed(0),
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: summary.totalEaten > 2000
-                                  ? DangerColor
-                                  : summary.totalEaten > 1500
-                                  ? Colors.orange
-                                  : SuccessColor,
-                            ),
-                          ),
-                          Text(
-                            'kcal',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: appColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                      AnimatedRotation(
-                        turns: isExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.keyboard_arrow_down,
-                          color: appColors.textDisabled,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Macro summary row for the day
-                  if (summary.hasMacroData) ...[
-                    const SizedBox(height: 10),
-                    _buildDayMacroSummary(summary),
-                  ],
+                  Icon(Icons.restaurant, size: 20),
+                  SizedBox(width: 12),
+                  Text('New Meal (plan ahead)'),
                 ],
               ),
             ),
-          ),
-          // Expanded Items
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Column(
-              children: [
-                Container(
-                  height: 1,
-                  color: appColors.border,
-                ),
-                ..._buildDayItems(items),
-              ],
+            const PopupMenuItem(
+              value: 'expand_all',
+              child: Row(
+                children: [
+                  Icon(Icons.unfold_more, size: 20),
+                  SizedBox(width: 12),
+                  Text('Expand All'),
+                ],
+              ),
             ),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
-          ),
-        ],
+            const PopupMenuItem(
+              value: 'collapse_all',
+              child: Row(
+                children: [
+                  Icon(Icons.unfold_less, size: 20),
+                  SizedBox(width: 12),
+                  Text('Collapse All'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    final sortedDates = _controller.sortedDates;
+    return RefreshIndicator(
+      onRefresh: _controller.load,
+      child: ListView.builder(
+        controller: _scrollController,
+        primary: false,
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: sortedDates.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return HistorySummaryCard(
+              totalDays: sortedDates.length,
+              totalItems: _controller.totalItems,
+              totalCalories: _controller.totalAllTime,
+              totalProtein: _controller.totalProtein,
+              totalFat: _controller.totalFat,
+              totalCarbs: _controller.totalCarbs,
+            );
+          }
+          return _buildDateGroup(sortedDates[index - 1]);
+        },
       ),
+    );
+  }
+
+  Widget _buildDateGroup(DateTime date) {
+    final items = _controller.groupedCalories[date] ?? [];
+    return DateGroupCard(
+      date: date,
+      summary: _controller.daySummaries[date]!,
+      isExpanded: _controller.isExpanded(date),
+      onToggle: () => _controller.toggleExpanded(date),
+      dayItems: _buildDayItems(items),
     );
   }
 
@@ -647,9 +201,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     final emittedMealIds = <String>{};
 
     for (final item in items) {
-      final meal = item.mealId == null ? null : _mealsById[item.mealId];
+      final meal =
+          item.mealId == null ? null : _controller.mealsById[item.mealId];
       if (meal == null) {
-        widgets.add(_buildCalorieItem(item, item == items.last));
+        widgets.add(_buildCalorieRow(item, item == items.last));
         continue;
       }
       if (emittedMealIds.contains(meal.id)) {
@@ -658,560 +213,74 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       emittedMealIds.add(meal.id!);
 
       final members = items.where((r) => r.mealId == meal.id).toList();
-      widgets.add(_MealHeaderRow(
+      widgets.add(MealHeaderRow(
         meal: meal,
         records: members,
         onTap: () => _showMealOptions(meal, members),
       ));
       for (final member in members) {
-        widgets.add(_buildCalorieItem(member, member == items.last));
+        widgets.add(_buildCalorieRow(member, member == items.last));
       }
     }
 
     return widgets;
   }
 
-  Widget _buildDayMacroSummary(_DaySummary summary) {
-    final appColors = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: MacroBadgesRow(
-          protein: summary.hasProteinData ? summary.totalProtein : null,
-          fat: summary.hasFatData ? summary.totalFat : null,
-          carbs: summary.hasCarbData ? summary.totalCarbs : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatChip(String value, String label, Color color) {
-    final appColors = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: appColors.tintedSurface(color),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '$value${label.isNotEmpty ? ' $label' : ''}',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: appColors.tintedText(color),
-        ),
-      ),
-    );
-  }
-
-  void _toggleSelection(CalorieRecord item) {
-    final id = item.id;
-    if (id == null) {
-      return;
-    }
-    setState(() {
-      if (!_selectedIds.remove(id)) {
-        _selectedIds.add(id);
-      }
-    });
-  }
-
-  Widget _buildCalorieItem(CalorieRecord item, bool isLast) {
-    final appColors = AppColors.of(context);
-    final hasMacros = item.proteinGrams != null ||
-        item.fatGrams != null ||
-        item.carbGrams != null;
-    final isSelected = item.id != null && _selectedIds.contains(item.id);
-
-    return InkWell(
+  Widget _buildCalorieRow(CalorieRecord item, bool isLast) {
+    return CalorieRecordRow(
+      item: item,
+      isLast: isLast,
+      isSelected: _controller.isSelected(item.id),
       onTap: () {
-        if (_selectedIds.isNotEmpty) {
-          _toggleSelection(item);
+        if (_controller.hasSelection) {
+          _controller.toggleSelection(item);
         } else {
           _showItemOptions(item);
         }
       },
-      onLongPress: () => _toggleSelection(item),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
-              : null,
-          border: isLast
-              ? null
-              : Border(
-            bottom: BorderSide(
-              color: appColors.borderSubtle,
-            ),
-          ),
-        ),
-        child: Opacity(
-          opacity: item.isEaten() ? 1.0 : 0.5,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // Time
-                  Container(
-                    width: 56,
-                    alignment: Alignment.center,
-                    child: Column(
-                      children: [
-                        Text(
-                          DateFormat('HH:mm').format(item.createdAt),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: appColors.textSecondary,
-                          ),
-                        ),
-                        if (item.isEaten())
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: SuccessColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Eaten',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: SuccessColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: appColors.border,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'Planned',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: appColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Color indicator
-                  Container(
-                    width: 4,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: item.value > 0 ? DangerLiteColor : SuccessColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Description
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item.description != null &&
-                            item.description!.isNotEmpty)
-                          Text(
-                            item.description!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        else
-                          Text(
-                            'No description',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: appColors.textDisabled,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Calories value
-                  Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: (item.value > 0 ? DangerColor : SuccessColor)
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${item.value >= 0 ? '+' : ''}${item.value.toStringAsFixed(0)} kcal',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: item.value > 0 ? DangerColor : SuccessColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              // Macro indicators for item
-              if (hasMacros && item.isEaten()) ...[
-                const SizedBox(height: 8),
-                _buildItemMacros(item),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildItemMacros(CalorieRecord item) {
-    final appColors = AppColors.of(context);
-    return Container(
-      margin: const EdgeInsets.only(left: 80),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: appColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: appColors.border),
-      ),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          MacroBadgesRow(
-            protein: item.proteinGrams,
-            fat: item.fatGrams,
-            carbs: item.carbGrams,
-          ),
-          if (item.weightGrams != null)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  height: 12,
-                  width: 1,
-                  color: appColors.border,
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.scale,
-                  size: 12,
-                  color: appColors.textTertiary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${item.weightGrams!.round()}g',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
+      onLongPress: () => _controller.toggleSelection(item),
     );
   }
 
   void _showItemOptions(CalorieRecord item) {
-    final appColors = AppColors.of(context);
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: appColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                // Item preview
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: appColors.surfaceSubtle,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.local_fire_department,
-                            color: item.value > 0 ? DangerColor : SuccessColor,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${item.value >= 0 ? '+' : ''}${item.value.toStringAsFixed(0)} kcal',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                    item.value > 0 ? DangerColor : SuccessColor,
-                                  ),
-                                ),
-                                if (item.description != null)
-                                  Text(
-                                    item.description!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: appColors.textSecondary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            DateFormat('MMM d, HH:mm').format(item.createdAt),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: appColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Show macros in bottom sheet preview
-                      if (item.proteinGrams != null ||
-                          item.fatGrams != null ||
-                          item.carbGrams != null) ...[
-                        const SizedBox(height: 8),
-                        _buildItemMacros(item),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (item.weightGrams != null && item.weightGrams! > 0)
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.scale, color: Colors.teal, size: 20),
-                    ),
-                    title: const Text('Adjust Weight'),
-                    subtitle: const Text('Scale all values proportionally'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showProportionalEdit(item);
-                    },
-                  ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: appColors.tintedSurface(Colors.blue),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                  ),
-                  title: const Text('Edit Entry'),
-                  subtitle: const Text('Modify calories or description'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditCalorieItemScreen(item),
-                      ),
-                    ).then((_) => _loadAllCalories());
-                  },
-                ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (item.isEaten() ? Colors.orange : SuccessColor)
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      item.isEaten() ? Icons.cancel : Icons.check_circle,
-                      color: item.isEaten() ? Colors.orange : SuccessColor,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    item.isEaten() ? 'Mark as Not Eaten' : 'Mark as Eaten',
-                  ),
-                  subtitle: Text(
-                    item.isEaten()
-                        ? 'Remove from today\'s total'
-                        : 'Add to today\'s total',
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    BlocProvider.of<HomeBloc>(context).add(
-                      CalorieItemEatingEvent(item),
-                    );
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      _loadAllCalories();
-                    });
-                  },
-                ),
-                if (item.mealId != null)
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.playlist_remove,
-                          color: Colors.orange, size: 20),
-                    ),
-                    title: const Text('Remove from Meal'),
-                    subtitle: Text(
-                      _mealsById[item.mealId]?.title ?? 'Ungrouped meal',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _removeFromMeal(item);
-                    },
-                  ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: DangerColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child:
-                    const Icon(Icons.delete, color: DangerColor, size: 20),
-                  ),
-                  title: const Text(
-                    'Delete Entry',
-                    style: TextStyle(color: DangerColor),
-                  ),
-                  subtitle: const Text('Permanently remove this entry'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmDelete(item);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
+    ItemOptionsSheet.show(
+      context,
+      item: item,
+      mealTitle: item.mealId == null
+          ? null
+          : _controller.mealsById[item.mealId]?.title,
+      onAdjustWeight: () => _showProportionalEdit(item),
+      onEdit: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditCalorieItemScreen(item),
           ),
-        );
+        ).then((_) => _controller.load());
       },
+      onToggleEaten: () {
+        BlocProvider.of<HomeBloc>(context).add(
+          CalorieItemEatingEvent(item),
+        );
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _controller.load();
+        });
+      },
+      onRemoveFromMeal: () => _removeFromMeal(item),
+      onDelete: () => _confirmDelete(item),
     );
   }
 
   Future<void> _groupSelectedAsMeal() async {
-    final selected = _groupedCalories.values
-        .expand((list) => list)
-        .where((r) => r.id != null && _selectedIds.contains(r.id))
-        .toList();
-    if (selected.isEmpty) {
-      return;
-    }
-
-    final title = await _promptMealTitle();
+    final title = await promptMealTitle(context);
     if (title == null || title.trim().isEmpty) {
       return;
     }
-
-    final now = DateTime.now();
-    final allEaten = selected.every((r) => r.isEaten());
-    final meal = await mealRepository.insert(Meal(
-      id: null,
-      profileId: selected.first.profileId,
-      title: title.trim(),
-      createdAt: now,
-      // Grouping after the fact: the meal was eaten when its last record was.
-      eatenAt: allEaten
-          ? selected
-              .map((r) => r.eatenAt!)
-              .reduce((a, b) => a.isAfter(b) ? a : b)
-          : null,
-    ));
-
-    for (final record in selected) {
-      record.mealId = meal.id;
-      record.updatedAt = now;
-      await calorieItemRepository.update(record);
+    final meal = await _controller.groupSelectedAsMeal(title.trim());
+    if (meal == null) {
+      return;
     }
-
-    setState(() => _selectedIds.clear());
     _afterMealMutation('Meal "${meal.title}" created');
-  }
-
-  Future<String?> _promptMealTitle({
-    String dialogTitle = 'Group as meal',
-    String confirmLabel = 'Group',
-  }) {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(dialogTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Meal name',
-            hintText: 'e.g., Breakfast',
-          ),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _openCookingScreen(Meal meal) async {
@@ -1219,270 +288,78 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       context,
       MaterialPageRoute(builder: (_) => MealCookingScreen(meal)),
     );
-    _loadAllCalories();
+    _controller.load();
   }
 
-  /// "Cook it again": a new planned meal with planned copies of the source
-  /// meal's records — same ingredients and last-used weights, ready to tweak
-  /// in cooking mode.
   Future<void> _duplicateMeal(Meal source, List<CalorieRecord> members) async {
-    final now = DateTime.now();
-    final meal = await mealRepository.insert(Meal(
-      id: null,
-      profileId: source.profileId,
-      title: source.title,
-      createdAt: now,
-      cookingMinutes: source.cookingMinutes,
-    ));
-
-    for (final record in members) {
-      final copy = record.copyForPlanning(now);
-      copy.mealId = meal.id;
-      await calorieItemRepository.insert(copy);
-    }
-
+    final meal = await _controller.duplicateMeal(source, members);
     _afterMealMutation('Planned "${meal.title}" — adjust it while cooking');
     await _openCookingScreen(meal);
   }
 
-  /// Plan a meal from scratch: title first, then ingredients in cooking mode.
   Future<void> _createNewMeal() async {
-    final title = await _promptMealTitle(
+    final title = await promptMealTitle(
+      context,
       dialogTitle: 'New planned meal',
       confirmLabel: 'Plan',
     );
     if (title == null || title.trim().isEmpty) {
       return;
     }
-
-    final Profile profile = await ProfileResolver().resolve();
-    final meal = await mealRepository.insert(Meal(
-      id: null,
-      profileId: profile.id!,
-      title: title.trim(),
-      createdAt: DateTime.now(),
-    ));
-
+    final meal = await _controller.createNewMeal(title.trim());
     _afterMealMutation('Meal "${meal.title}" planned');
     await _openCookingScreen(meal);
   }
 
   void _showMealOptions(Meal meal, List<CalorieRecord> members) {
-    final appColors = AppColors.of(context);
-    final hasUneaten = members.any((r) => !r.isEaten());
-
-    showModalBottomSheet(
-      context: context,
-      shape: AppCard.squircleBorder(radius: 20, bottom: false),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: Icon(Icons.restaurant,
-                      color: Theme.of(context).primaryColor),
-                  title: Text(
-                    meal.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    '${members.length} items'
-                    '${meal.notes?.trim().isNotEmpty == true ? ' · ${meal.notes}' : ''}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: appColors.textSecondary),
-                  ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.soup_kitchen,
-                      color: Colors.teal, size: 20),
-                  title: const Text('Cooking Mode'),
-                  subtitle:
-                      const Text('Adjust weights and ingredients while cooking'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _openCookingScreen(meal);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.copy_all,
-                      color: Colors.indigo, size: 20),
-                  title: const Text('Duplicate Meal (cook again)'),
-                  subtitle: const Text(
-                      'New planned meal with the same ingredients and weights'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _duplicateMeal(meal, members);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                  title: const Text('Rename / Edit Notes'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _showMealEditDialog(meal);
-                  },
-                ),
-                if (hasUneaten)
-                  ListTile(
-                    leading: const Icon(Icons.check_circle,
-                        color: SuccessColor, size: 20),
-                    title: const Text('Mark Meal as Eaten'),
-                    subtitle: const Text('Stamps all its records at once'),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _markMealEaten(meal, members);
-                    },
-                  ),
-                ListTile(
-                  leading: const Icon(Icons.playlist_remove,
-                      color: Colors.orange, size: 20),
-                  title: const Text('Ungroup Meal'),
-                  subtitle: const Text('Records stay, only the group is removed'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _ungroupMeal(meal, members);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
+    MealOptionsSheet.show(
+      context,
+      meal: meal,
+      members: members,
+      onCookingMode: () => _openCookingScreen(meal),
+      onDuplicate: () => _duplicateMeal(meal, members),
+      onEdit: () => _showMealEditDialog(meal),
+      onMarkEaten: () => _markMealEaten(meal, members),
+      onUngroup: () => _ungroupMeal(meal, members),
     );
   }
 
   void _showMealEditDialog(Meal meal) {
-    final titleController = TextEditingController(text: meal.title);
-    final notesController = TextEditingController(text: meal.notes ?? '');
-    int? cookingMinutes = meal.cookingMinutes;
-    int? tasteRating = meal.tasteRating;
-    int? satietyRating = meal.satietyRating;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Edit Meal'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: titleController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Meal name'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: notesController,
-                  textCapitalization: TextCapitalization.sentences,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (goes into the LLM export)',
-                    hintText: 'e.g., less oil than last time',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                CookTimeChips(
-                  minutes: cookingMinutes,
-                  onChanged: (value) =>
-                      setDialogState(() => cookingMinutes = value),
-                ),
-                const SizedBox(height: 16),
-                RatingDots(
-                  label: 'Taste',
-                  value: tasteRating,
-                  onChanged: (value) =>
-                      setDialogState(() => tasteRating = value),
-                ),
-                RatingDots(
-                  label: 'Filling',
-                  value: satietyRating,
-                  onChanged: (value) =>
-                      setDialogState(() => satietyRating = value),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                final title = titleController.text.trim();
-                if (title.isNotEmpty) {
-                  meal.title = title;
-                }
-                final notes = notesController.text.trim();
-                meal.notes = notes.isEmpty ? null : notes;
-                meal.cookingMinutes = cookingMinutes;
-                meal.tasteRating = tasteRating;
-                meal.satietyRating = satietyRating;
-                meal.updatedAt = DateTime.now();
-                await mealRepository.update(meal);
-                _afterMealMutation('Meal updated');
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
+    MealEditDialog.show(
+      context,
+      meal: meal,
+      onSave: (result) async {
+        if (result.title != null) {
+          meal.title = result.title!;
+        }
+        meal.notes = result.notes;
+        meal.cookingMinutes = result.cookingMinutes;
+        meal.tasteRating = result.tasteRating;
+        meal.satietyRating = result.satietyRating;
+        meal.updatedAt = DateTime.now();
+        await _controller.saveMeal(meal);
+        _afterMealMutation('Meal updated');
+      },
     );
   }
 
   Future<void> _markMealEaten(Meal meal, List<CalorieRecord> members) async {
-    final now = DateTime.now();
-    meal.eatenAt = now;
-    meal.updatedAt = now;
-    await mealRepository.update(meal);
-    for (final record in members) {
-      if (!record.isEaten()) {
-        record.eatenAt = now;
-        record.updatedAt = now;
-        await calorieItemRepository.update(record);
-      }
-    }
+    await _controller.markMealEaten(meal, members);
     _afterMealMutation('Meal marked as eaten');
   }
 
   Future<void> _ungroupMeal(Meal meal, List<CalorieRecord> members) async {
-    final now = DateTime.now();
-    for (final record in members) {
-      record.mealId = null;
-      record.updatedAt = now;
-      await calorieItemRepository.update(record);
-    }
-    await mealRepository.delete(meal);
+    await _controller.ungroupMeal(meal, members);
     _afterMealMutation('Meal ungrouped');
   }
 
   Future<void> _removeFromMeal(CalorieRecord item) async {
-    final mealId = item.mealId;
-    item.mealId = null;
-    item.updatedAt = DateTime.now();
-    await calorieItemRepository.update(item);
-
-    // Removing the last member leaves an empty group — delete it too.
-    final remaining = _groupedCalories.values
-        .expand((list) => list)
-        .where((r) => r.mealId == mealId && r.id != item.id);
-    final meal = mealId == null ? null : _mealsById[mealId];
-    if (remaining.isEmpty && meal != null) {
-      await mealRepository.delete(meal);
-    }
+    await _controller.removeFromMeal(item);
     _afterMealMutation('Removed from meal');
   }
 
+  /// Shared post-mutation UI: toast the outcome and nudge the rest of the app
+  /// to refresh. The controller has already reloaded its own state.
   void _afterMealMutation(String message) {
     if (!mounted) {
       return;
@@ -1496,7 +373,6 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
     BlocProvider.of<HomeBloc>(context)
         .add(CalorieItemListFetchingInProgressEvent());
-    _loadAllCalories();
   }
 
   void _showProportionalEdit(CalorieRecord item) {
@@ -1529,189 +405,38 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Updated to ${result.weightGrams.toStringAsFixed(0)}g \u2022 ${result.calories.toStringAsFixed(0)} kcal'),
+                'Updated to ${result.weightGrams.toStringAsFixed(0)}g • ${result.calories.toStringAsFixed(0)} kcal'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
         );
-        _loadAllCalories();
+        _controller.load();
       }),
     );
   }
 
   void _confirmDelete(CalorieRecord item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: DangerColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+    DeleteEntryDialog.show(
+      context,
+      item: item,
+      onConfirm: () {
+        BlocProvider.of<HomeBloc>(context).add(
+          RemovingCalorieItemEvent(item, [], () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Entry deleted successfully'),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Icon(Icons.delete_outline, color: DangerColor),
-            ),
-            const SizedBox(width: 12),
-            const Text('Delete Entry'),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to delete this ${item.value.toStringAsFixed(0)} kcal entry?\n\nThis action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              BlocProvider.of<HomeBloc>(context).add(
-                RemovingCalorieItemEvent(item, [], () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Entry deleted successfully'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
-                  _loadAllCalories();
-                }),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: DangerColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
+            );
+            _controller.load();
+          }),
+        );
+      },
     );
   }
-
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
-  }
-
-  bool _isYesterday(DateTime date) {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    return date.year == yesterday.year &&
-        date.month == yesterday.month &&
-        date.day == yesterday.day;
-  }
-}
-
-/// Header row above a meal's member records in the day list.
-class _MealHeaderRow extends StatelessWidget {
-  final Meal meal;
-  final List<CalorieRecord> records;
-  final VoidCallback onTap;
-
-  const _MealHeaderRow({
-    required this.meal,
-    required this.records,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-    final total = records.fold<double>(0, (sum, r) => sum + r.value);
-    final hasUneaten = records.any((r) => !r.isEaten());
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: appColors.surfaceMuted,
-          border: Border(bottom: BorderSide(color: appColors.borderSubtle)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.restaurant,
-                size: 16, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                meal.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: appColors.textPrimary,
-                ),
-              ),
-            ),
-            if (hasUneaten) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: ShapeDecoration(
-                  color: appColors.border,
-                  shape: AppCard.squircleBorder(radius: 6),
-                ),
-                child: Text(
-                  'planned',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              '${records.length} items · ${total.toStringAsFixed(0)} kcal',
-              style: TextStyle(
-                fontSize: 12,
-                color: appColors.textSecondary,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.more_horiz, size: 16, color: appColors.textDisabled),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DaySummary {
-  double totalEaten = 0;
-  double positiveSum = 0;
-  double negativeSum = 0;
-  int itemCount = 0;
-
-  // Macro totals
-  double totalProtein = 0;
-  double totalFat = 0;
-  double totalCarbs = 0;
-
-  // Track if we have data for each macro
-  bool hasProteinData = false;
-  bool hasFatData = false;
-  bool hasCarbData = false;
-
-  bool get hasMacroData => hasProteinData || hasFatData || hasCarbData;
 }
