@@ -3,7 +3,7 @@ import 'package:cat_calories/database/database_client.dart';
 import 'package:cat_calories/database/migration_runner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class AppDatabase implements DatabaseClient {
   AppDatabase._();
@@ -25,6 +25,12 @@ class AppDatabase implements DatabaseClient {
 
   Future<Database> _initDb() async {
     print('[BOOT] AppDatabase._initDb - start');
+    // sqflite ships no native desktop plugin; the FFI backend must supply the
+    // global databaseFactory before any openDatabase call on desktop.
+    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
     Directory documentsDir = await getApplicationDocumentsDirectory();
     String path = join(documentsDir.path, 'app.db');
     print('[BOOT] AppDatabase._initDb - path: $path');
