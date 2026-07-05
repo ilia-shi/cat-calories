@@ -348,6 +348,8 @@ class _CalorieInputBottomSheetV2State extends State<CalorieInputBottomSheetV2> {
           signed: true,
         ),
         autofocus: false,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submitSimpleCalories(),
         textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 20,
