@@ -121,6 +121,9 @@ class _HomeScreenState extends State<HomeScreen>
   _HomeScreenState();
 
   bool _handleScroll(UserScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
     switch (notification.direction) {
       case ScrollDirection.reverse:
         _navCollapseController.forward();
