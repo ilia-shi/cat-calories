@@ -216,13 +216,15 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Widget _buildDateGroup(DateTime date) {
+    final isExpanded = _controller.isExpanded(date);
     final items = _controller.groupedCalories[date] ?? [];
     return DateGroupCard(
       date: date,
       summary: _controller.daySummaries[date]!,
-      isExpanded: _controller.isExpanded(date),
+      isExpanded: isExpanded,
       onToggle: () => _controller.toggleExpanded(date),
-      dayItems: _buildDayItems(items),
+      // Collapsed days build none of their rows.
+      dayItems: isExpanded ? _buildDayItems(items) : const [],
     );
   }
 
@@ -232,6 +234,16 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   List<Widget> _buildDayItems(List<CalorieRecord> items) {
     final widgets = <Widget>[];
     final emittedMealIds = <String>{};
+
+    // Group members by meal in a single pass, instead of an O(n) `.where` scan
+    // per meal (which made the whole day O(n²) on every rebuild).
+    final membersByMeal = <String, List<CalorieRecord>>{};
+    for (final item in items) {
+      final mealId = item.mealId;
+      if (mealId != null) {
+        (membersByMeal[mealId] ??= <CalorieRecord>[]).add(item);
+      }
+    }
 
     for (final item in items) {
       final meal =
@@ -245,7 +257,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       }
       emittedMealIds.add(meal.id!);
 
-      final members = items.where((r) => r.mealId == meal.id).toList();
+      final members = membersByMeal[meal.id!] ?? const <CalorieRecord>[];
       widgets.add(MealHeaderRow(
         meal: meal,
         records: members,

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 class CustomTheme {
-  // Frosted-glass surfaces (app bar, drawer): the blur strength applied to the
-  // content behind the surface, and the opacity of the surface colour tint
-  // painted on top of that blur.
-  static const double surfaceBlurSigma = 4;
+  // Frosted-glass surfaces (app bar, bottom nav, floating toolbars): the blur
+  // strength applied to the content behind the surface, and the opacity of the
+  // surface colour tint painted on top of that blur.
+  //
+  // BackdropFilter is the app's dominant scroll/animation jank source on weak
+  // GPUs — flip [surfaceBlurEnabled] off to trade the frosted look for a flat
+  // translucent surface. Kept modest (was 4) since blur cost scales with sigma.
+  static const bool surfaceBlurEnabled = true;
+  static const double surfaceBlurSigma = 3;
   static const double surfaceOpacity = 0.7;
 
   // Primary colors

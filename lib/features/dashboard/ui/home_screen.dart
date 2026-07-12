@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calories_history.dart';
@@ -21,8 +19,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   static const _navItems = <HomeBottomNavItem>[
     HomeBottomNavItem(
       icon: Icons.restaurant_outlined,
@@ -47,9 +44,16 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   TextEditingController _calorieItemController = TextEditingController();
-  Timer? _timer;
 
   late final TabController _tabController;
+
+  /// Built once — recreating these every build (which the old 5s timer forced)
+  /// churned all four tabs.
+  late final List<Widget> _tabViews;
+
+  /// Merged rebuild trigger handed to the bottom nav so only its dynamic parts
+  /// repaint per frame.
+  late final Listenable _navListenable;
 
   /// Drives how collapsed the bottom nav is: 0 = expanded (labels shown),
   /// 1 = collapsed (labels hidden, icons shrunk).
@@ -89,13 +93,22 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _indicatorPosition = AlwaysStoppedAnimation(_currentIndex.toDouble());
 
+    _navListenable = Listenable.merge([
+      _navCollapseController,
+      _indicatorController,
+      _tabController.animation!,
+    ]);
+
+    _tabViews = [
+      TrackingTab(),
+      const ProductsTab(),
+      AllCaloriesHistoryScreen(),
+      MainInfoView(),
+    ];
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BlocProvider.of<HomeBloc>(context)
           .add(CalorieItemListFetchingInProgressEvent());
-    });
-
-    _timer = Timer.periodic(Duration(seconds: 5), (Timer t) {
-      setState(() {});
     });
 
     _calorieItemController.addListener(() {
@@ -110,10 +123,6 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController.dispose();
     _navCollapseController.dispose();
     _indicatorController.dispose();
-
-    if (_timer != null) {
-      _timer!.cancel();
-    }
 
     super.dispose();
   }
@@ -158,48 +167,44 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final tabViews = [
-      TrackingTab(),
-      const ProductsTab(),
-      AllCaloriesHistoryScreen(),
-      MainInfoView(),
-    ];
-
     return Scaffold(
       drawerScrimColor: Colors.transparent,
       drawer: const HomeAppDrawer(),
       extendBody: true,
-      body: NotificationListener<UserScrollNotification>(
-        onNotification: _handleScroll,
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: HomeHeaderDelegate(
-                topPadding: MediaQuery.of(context).padding.top,
+      // Isolate the body (which holds three frosted blurs) as its own layer so
+      // the sliding drawer — itself a moving blur — samples a cached raster
+      // instead of forcing those blurs to re-run every drawer-animation frame.
+      body: RepaintBoundary(
+        child: NotificationListener<UserScrollNotification>(
+          onNotification: _handleScroll,
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: HomeHeaderDelegate(
+                  topPadding: MediaQuery.of(context).padding.top,
+                ),
               ),
+            ],
+            body: TabBarView(
+              controller: _tabController,
+              // Tabs switch via the bottom nav only; no horizontal swipe, so it
+              // can't fight inner horizontal scrollables (product chips, sliders)
+              // or build the neighbour tab mid-drag.
+              physics: const NeverScrollableScrollPhysics(),
+              children: _tabViews,
             ),
-          ],
-          body: TabBarView(
-            controller: _tabController,
-            children: tabViews,
           ),
         ),
       ),
-      bottomNavigationBar: AnimatedBuilder(
-        animation: Listenable.merge([
-          _navCollapseController,
-          _indicatorController,
-          _tabController.animation!,
-        ]),
-        builder: (context, _) => HomeBottomNav(
-          position: _tabController.indexIsChanging
-              ? _indicatorPosition.value
-              : _tabController.animation!.value,
-          collapse: _navCollapseController.value,
-          onTap: _onNavTap,
-          items: _navItems,
-        ),
+      bottomNavigationBar: HomeBottomNav(
+        animation: _navListenable,
+        position: () => _tabController.indexIsChanging
+            ? _indicatorPosition.value
+            : _tabController.animation!.value,
+        collapse: () => _navCollapseController.value,
+        onTap: _onNavTap,
+        items: _navItems,
       ),
       floatingActionButton: const HomeFloatingActionButton(),
     );

@@ -18,9 +18,25 @@ class MainInfoView extends StatefulWidget {
   _MainInfoViewState createState() => _MainInfoViewState();
 }
 
-class _MainInfoViewState extends State<MainInfoView> {
+class _MainInfoViewState extends State<MainInfoView>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  // Own controller (not the PrimaryScrollController): with the tab kept alive,
+  // a shared primary controller would carry two positions at once and the
+  // desktop Scrollbar asserts on that.
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return BlocBuilder<HomeBloc, AbstractHomeState>(builder: (context, state) {
       if (state is HomeFetchingInProgress) {
         return const Center(
@@ -30,6 +46,8 @@ class _MainInfoViewState extends State<MainInfoView> {
 
       if (state is HomeFetched) {
         return ListView(
+          controller: _scrollController,
+          primary: false,
           padding: const EdgeInsetsDirectional.all(5),
           children: [
             SizedBox(
@@ -66,7 +84,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                       caloriesValue: 0.0,
                                       profileId: state.activeProfile.id!,
                                       caloriesLimitGoal:
-                                      state.activeProfile.caloriesLimitGoal,
+                                          state.activeProfile.caloriesLimitGoal,
                                       expectedWakingTimeSeconds: state
                                           .activeProfile
                                           .getExpectedWakingDuration()
@@ -94,9 +112,9 @@ class _MainInfoViewState extends State<MainInfoView> {
                   }
 
                   final int currentTimestamp =
-                  (state.nowDateTime.millisecondsSinceEpoch / 1000)
-                      .round()
-                      .toInt();
+                      (state.nowDateTime.millisecondsSinceEpoch / 1000)
+                          .round()
+                          .toInt();
                   final int secondsToEndDay =
                       state.currentWakingPeriod!.getToTimestamp() -
                           currentTimestamp;
@@ -108,7 +126,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                   final double allowedSeconds = allowedCalories /
                       state.currentWakingPeriod!.getCaloriesPerSecond();
                   final Duration allowedDuration =
-                  Duration(seconds: allowedSeconds.round().toInt());
+                      Duration(seconds: allowedSeconds.round().toInt());
 
                   final double periodCaloriesEatenPercentage =
                       state.getPeriodCaloriesEatenSum() /
@@ -148,7 +166,7 @@ class _MainInfoViewState extends State<MainInfoView> {
 
                         if (overLimit > 0) {
                           final Duration overLimitDuration =
-                          Duration(seconds: overLimit);
+                              Duration(seconds: overLimit);
                           final String overLimitDurationString =
                               '${overLimitDuration.inHours.toString().padLeft(2, '0')}:${(overLimitDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
@@ -165,7 +183,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                         }
 
                         final Duration overLimitDuration =
-                        Duration(seconds: overLimit * -1);
+                            Duration(seconds: overLimit * -1);
                         final String overLimitDurationString =
                             '${overLimitDuration.inHours.toString().padLeft(2, '0')}:${(overLimitDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
@@ -198,13 +216,13 @@ class _MainInfoViewState extends State<MainInfoView> {
                               foregroundPainter: ProgressPainter(
                                   defaultCircleColor: Colors.grey.shade200,
                                   percentageCompletedCircleColor:
-                                  periodCaloriesEatenPercentage >= 100
-                                      ? DangerColor
-                                      : DangerLiteColor,
+                                      periodCaloriesEatenPercentage >= 100
+                                          ? DangerColor
+                                          : DangerLiteColor,
                                   completedPercentage:
-                                  periodCaloriesEatenPercentage >= 100
-                                      ? 100
-                                      : periodCaloriesEatenPercentage,
+                                      periodCaloriesEatenPercentage >= 100
+                                          ? 100
+                                          : periodCaloriesEatenPercentage,
                                   circleWidth: 3.0),
                             ),
                           ),
@@ -215,26 +233,27 @@ class _MainInfoViewState extends State<MainInfoView> {
                                   alignment: Alignment.centerLeft,
                                   child: Padding(
                                     padding:
-                                    const EdgeInsets.fromLTRB(0, 0, 0, 10),
+                                        const EdgeInsets.fromLTRB(0, 0, 0, 10),
                                     child: Text(
                                       'Goal: ${state.currentWakingPeriod!.caloriesLimitGoal} kcal/${state.currentWakingPeriod!.getExpectedWakingDuration().inHours}h (${state.currentWakingPeriod!.getCaloriesPerHour().toStringAsFixed(2)} kcal/h)',
                                       style: TextStyle(
-                                          color: Colors.black.withValues(alpha: 0.6)),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.6)),
                                     ),
                                   ),
                                 ),
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child:
-                                  Builder(builder: (BuildContext context) {
+                                      Builder(builder: (BuildContext context) {
                                     if (allowedCalories > 0) {
                                       final String stringAllowedDuration =
                                           '${allowedDuration.inHours.toString().padLeft(2, '0')}:${(allowedDuration.inMinutes.remainder(60)).toString().padLeft(2, '0')}';
 
                                       return Text(
                                         'Can eat ${allowedCalories.toStringAsFixed(2)} kcal, $stringAllowedDuration',
-                                        style:
-                                        const TextStyle(color: SuccessColor),
+                                        style: const TextStyle(
+                                            color: SuccessColor),
                                         textAlign: TextAlign.left,
                                       );
                                     }
@@ -244,7 +263,8 @@ class _MainInfoViewState extends State<MainInfoView> {
 
                                     return Text(
                                       'Can eat ${allowedCalories.toStringAsFixed(2)} kcal (in $stringAllowedDuration)',
-                                      style: const TextStyle(color: DangerColor),
+                                      style:
+                                          const TextStyle(color: DangerColor),
                                       textAlign: TextAlign.left,
                                     );
                                   }),
@@ -269,7 +289,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                 'End period',
                                 style: TextStyle(
                                   color:
-                                  Theme.of(context).colorScheme.secondary,
+                                      Theme.of(context).colorScheme.secondary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -278,8 +298,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                   context: context,
                                   builder: (BuildContext context) {
                                     return AlertDialog(
-                                      title:
-                                      const Text('End waking period'),
+                                      title: const Text('End waking period'),
                                       content: Text(
                                           '${state.getPeriodCaloriesEatenSum()} kcal for current period. Continue?'),
                                       actions: [
@@ -294,9 +313,9 @@ class _MainInfoViewState extends State<MainInfoView> {
                                           onPressed: () {
                                             BlocProvider.of<HomeBloc>(context)
                                                 .add(WakingPeriodEndingEvent(
-                                                state.currentWakingPeriod!,
-                                                state
-                                                    .getPeriodCaloriesEatenSum()));
+                                                    state.currentWakingPeriod!,
+                                                    state
+                                                        .getPeriodCaloriesEatenSum()));
                                             Navigator.pop(context);
                                           },
                                         ),
@@ -323,7 +342,7 @@ class _MainInfoViewState extends State<MainInfoView> {
                                 'Edit',
                                 style: TextStyle(
                                   color:
-                                  Theme.of(context).colorScheme.secondary,
+                                      Theme.of(context).colorScheme.secondary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -344,46 +363,45 @@ class _MainInfoViewState extends State<MainInfoView> {
             DebugLabel(
               'MainInfoView · Today card',
               child: Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                    child: Text(
-                      'Today: ${DateFormat('MMM, d').format(state.nowDateTime)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                      child: Text(
+                        'Today: ${DateFormat('MMM, d').format(state.nowDateTime)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                    child: Text(
-                        'Today ${state.getPeriodCaloriesEatenSum().toStringAsFixed(2)} from ${state.activeProfile.caloriesLimitGoal.toStringAsFixed(2)} kcal'),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                    child: Text(
-                      'AVG: ${state.get30DaysUntilToday().getAvg().toStringAsFixed(2)} kcal of ${state.get30DaysUntilToday().days.length} days',
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: Text(
+                          'Today ${state.getPeriodCaloriesEatenSum().toStringAsFixed(2)} from ${state.activeProfile.caloriesLimitGoal.toStringAsFixed(2)} kcal'),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                    child: Text(
-                      'AVG: ${state.get2DaysUntilToday().getAvg().toStringAsFixed(2)} kcal of ${state.get2DaysUntilToday().days.length} days',
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: Text(
+                        'AVG: ${state.get30DaysUntilToday().getAvg().toStringAsFixed(2)} kcal of ${state.get30DaysUntilToday().days.length} days',
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: Text(
+                        'AVG: ${state.get2DaysUntilToday().getAvg().toStringAsFixed(2)} kcal of ${state.get2DaysUntilToday().days.length} days',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
             // === DAILY HISTORY ===
             Column(
-              children:
-              state.get30DaysUntilToday().days.map((DayResult day) {
+              children: state.get30DaysUntilToday().days.map((DayResult day) {
                 return SizedBox(
                   width: double.infinity,
                   child: Card(

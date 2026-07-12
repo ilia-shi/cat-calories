@@ -17,13 +17,22 @@ final class TrackingTab extends StatefulWidget {
   State<TrackingTab> createState() => _TrackingTabState();
 }
 
-class _TrackingTabState extends State<TrackingTab> {
+class _TrackingTabState extends State<TrackingTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late DateTime _baseTime;
   double _hoursOffset = 0;
   late RollingCalorieTracker _tracker;
   List<CalorieEntry> _entries = [];
   Timer? _refreshTimer;
   late int _lastKnownDay;
+
+  // Own controller (not the PrimaryScrollController): with the tab kept alive,
+  // a shared primary controller would carry two positions at once and the
+  // desktop Scrollbar asserts on that.
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -63,6 +72,7 @@ class _TrackingTabState extends State<TrackingTab> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -199,6 +209,7 @@ class _TrackingTabState extends State<TrackingTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return BlocBuilder<HomeBloc, AbstractHomeState>(
       builder: (context, state) {
         if (state is HomeFetchingInProgress) {
@@ -248,6 +259,8 @@ class _TrackingTabState extends State<TrackingTab> {
                 .add(CalorieItemListFetchingInProgressEvent());
           },
           child: SingleChildScrollView(
+            controller: _scrollController,
+            primary: false,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             child: Column(

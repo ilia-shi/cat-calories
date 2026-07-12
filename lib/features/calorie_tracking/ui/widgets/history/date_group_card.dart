@@ -57,18 +57,20 @@ class DateGroupCard extends StatelessWidget {
               ),
             ),
           ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Column(
-              children: [
-                Container(height: 1, color: appColors.border),
-                ...dayItems,
-              ],
-            ),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+          // Conditional child (not a cross-fade of both) so a collapsed day
+          // builds none of its rows; AnimatedSize keeps the expand smooth.
+          AnimatedSize(
             duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: isExpanded
+                ? Column(
+                    children: [
+                      Container(height: 1, color: appColors.border),
+                      ...dayItems,
+                    ],
+                  )
+                : const SizedBox(width: double.infinity),
           ),
         ],
       ),
@@ -160,6 +162,9 @@ class _DateGroupHeader extends StatelessWidget {
 }
 
 class _DateBadge extends StatelessWidget {
+  static final _dayFormat = DateFormat('d');
+  static final _monthFormat = DateFormat('MMM');
+
   final DateTime date;
   final bool isToday;
 
@@ -189,7 +194,7 @@ class _DateBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            DateFormat('d').format(date),
+            _dayFormat.format(date),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -197,7 +202,7 @@ class _DateBadge extends StatelessWidget {
             ),
           ),
           Text(
-            DateFormat('MMM').format(date).toUpperCase(),
+            _monthFormat.format(date).toUpperCase(),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
@@ -301,6 +306,8 @@ class _StatChip extends StatelessWidget {
   }
 }
 
+final _fullDateFormat = DateFormat('EEEE, MMM d, y');
+
 String _dateLabel(DateTime date) {
   if (_isToday(date)) {
     return 'Today';
@@ -308,7 +315,7 @@ String _dateLabel(DateTime date) {
   if (_isYesterday(date)) {
     return 'Yesterday';
   }
-  return DateFormat('EEEE, MMM d, y').format(date);
+  return _fullDateFormat.format(date);
 }
 
 bool _isToday(DateTime date) {

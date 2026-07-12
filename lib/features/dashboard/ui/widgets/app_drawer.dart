@@ -1,9 +1,8 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/theme/theme.dart';
+import 'package:cat_calories/common/widgets/frosted_surface.dart';
 import 'package:cat_calories/common/theme/theme_cubit.dart';
 import 'package:cat_calories/common/theme/theme_state.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -28,40 +27,32 @@ class HomeAppDrawer extends StatelessWidget {
 
     return Drawer(
       backgroundColor: Colors.transparent,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: CustomTheme.surfaceBlurSigma,
-            sigmaY: CustomTheme.surfaceBlurSigma,
-          ),
-          child: ColoredBox(
-            color: background.withValues(alpha: CustomTheme.surfaceOpacity),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: const [
-                      _DrawerHeader(),
-                      _ProfilesList(),
-                      _CreateProfileTile(),
-                      Divider(),
-                      _CalorieHistoryTile(),
-                      Divider(),
-                      _WebServerTile(),
-                      Divider(),
-                      _ThemeSwitcherTile(),
-                      Divider(),
-                      _ProfileSettingsTile(),
-                      Divider(),
-                      _ServerSettingsTile(),
-                    ],
-                  ),
-                ),
-                const _VersionFooter(),
-              ],
+      child: FrostedSurface(
+        tint: background.withValues(alpha: CustomTheme.surfaceOpacity),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: const [
+                  _DrawerHeader(),
+                  _ProfilesList(),
+                  _CreateProfileTile(),
+                  Divider(),
+                  _CalorieHistoryTile(),
+                  Divider(),
+                  _WebServerTile(),
+                  Divider(),
+                  _ThemeSwitcherTile(),
+                  Divider(),
+                  _ProfileSettingsTile(),
+                  Divider(),
+                  _ServerSettingsTile(),
+                ],
+              ),
             ),
-          ),
+            const _VersionFooter(),
+          ],
         ),
       ),
     );

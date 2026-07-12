@@ -1,8 +1,9 @@
-import 'dart:ui' show ImageFilter, lerpDouble;
+import 'dart:ui' show lerpDouble;
 
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/frosted_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -67,28 +68,18 @@ class FloatingToolbar extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipPath(
-          clipper: ShapeBorderClipper(shape: clipShape),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: CustomTheme.surfaceBlurSigma,
-              sigmaY: CustomTheme.surfaceBlurSigma,
-            ),
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: background.withValues(alpha: CustomTheme.surfaceOpacity),
-                shape: barShape,
-              ),
-              child: Material(
-                type: MaterialType.transparency,
-                child: SizedBox(
-                  height: lerpDouble(expandedHeight, collapsedHeight, t),
-                  child: Padding(
-                    padding: padding ??
-                        EdgeInsets.symmetric(horizontal: lerpDouble(12, 8, t)!),
-                    child: Row(children: children),
-                  ),
-                ),
+        child: FrostedSurface(
+          clipShape: clipShape,
+          tintShape: barShape,
+          tint: background.withValues(alpha: CustomTheme.surfaceOpacity),
+          child: Material(
+            type: MaterialType.transparency,
+            child: SizedBox(
+              height: lerpDouble(expandedHeight, collapsedHeight, t),
+              child: Padding(
+                padding: padding ??
+                    EdgeInsets.symmetric(horizontal: lerpDouble(12, 8, t)!),
+                child: Row(children: children),
               ),
             ),
           ),

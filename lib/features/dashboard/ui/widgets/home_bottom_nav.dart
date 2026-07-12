@@ -1,7 +1,8 @@
-import 'dart:ui' show ImageFilter, lerpDouble;
+import 'dart:ui' show lerpDouble;
 
 import 'package:cat_calories/common/theme/theme.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/frosted_surface.dart';
 import 'package:flutter/material.dart';
 
 /// A single destination shown in [HomeBottomNav].
@@ -23,16 +24,24 @@ class HomeBottomNavItem {
 /// position — so it tracks both taps and swipes. [collapse] (0 = expanded,
 /// 1 = collapsed) fades the labels and shrinks the icons as the user scrolls.
 class HomeBottomNav extends StatelessWidget {
-  /// Live, continuous tab position (e.g. 0.0 .. items.length - 1).
-  final double position;
+  /// Rebuild trigger for the dynamic parts (pill position, icon sizes, bar
+  /// height). Only the subtree under the inner [AnimatedBuilder] rebuilds when
+  /// this ticks — the frosted shell (blur, clip, shadow) is built once.
+  final Listenable animation;
+
+  /// Live, continuous tab position (e.g. 0.0 .. items.length - 1). A getter,
+  /// not a value, so it is sampled per frame inside the animation builder.
+  final ValueGetter<double> position;
   final ValueChanged<int> onTap;
 
-  /// 0 = labels fully visible, 1 = labels hidden and icons shrunk.
-  final double collapse;
+  /// 0 = labels fully visible, 1 = labels hidden and icons shrunk. Sampled per
+  /// frame, like [position].
+  final ValueGetter<double> collapse;
   final List<HomeBottomNavItem> items;
 
   const HomeBottomNav({
     Key? key,
+    required this.animation,
     required this.position,
     required this.onTap,
     required this.collapse,
@@ -51,8 +60,6 @@ class HomeBottomNav extends StatelessWidget {
         theme.colorScheme.surface;
     final selectedColor = theme.colorScheme.primary;
     final unselectedColor = isDark ? Colors.white60 : Colors.black54;
-
-    final t = collapse.clamp(0.0, 1.0);
 
     final clipShape = AppCard.squircleBorder(radius: _barRadius);
     final barShape = AppCard.squircleBorder(
@@ -80,22 +87,20 @@ class HomeBottomNav extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipPath(
-            clipper: ShapeBorderClipper(shape: clipShape),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: CustomTheme.surfaceBlurSigma,
-                sigmaY: CustomTheme.surfaceBlurSigma,
-              ),
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color:
-                      background.withValues(alpha: CustomTheme.surfaceOpacity),
-                  shape: barShape,
-                ),
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: SizedBox(
+          child: FrostedSurface(
+            clipShape: clipShape,
+            tintShape: barShape,
+            tint: background.withValues(alpha: CustomTheme.surfaceOpacity),
+            child: Material(
+              type: MaterialType.transparency,
+              // Only this subtree rebuilds per animation frame; the frosted
+              // shell above it is built once.
+              child: AnimatedBuilder(
+                animation: animation,
+                builder: (context, _) {
+                  final t = collapse().clamp(0.0, 1.0);
+                  final pos = position();
+                  return SizedBox(
                     height: lerpDouble(62, 50, t),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -104,7 +109,7 @@ class HomeBottomNav extends StatelessWidget {
                         // horizontal gap equals the vertical inset below.
                         final pillWidth = slotWidth - _pillInset * 2;
                         final clampedPos =
-                            position.clamp(0.0, (items.length - 1).toDouble());
+                            pos.clamp(0.0, (items.length - 1).toDouble());
 
                         return Stack(
                           alignment: Alignment.center,
@@ -118,10 +123,9 @@ class HomeBottomNav extends StatelessWidget {
                               width: pillWidth,
                               child: DecoratedBox(
                                 decoration: ShapeDecoration(
-                                  color:
-                                      selectedColor.withValues(alpha: 0.16),
-                                  shape:
-                                      AppCard.squircleBorder(radius: _pillRadius),
+                                  color: selectedColor.withValues(alpha: 0.16),
+                                  shape: AppCard.squircleBorder(
+                                      radius: _pillRadius),
                                 ),
                               ),
                             ),
@@ -133,8 +137,8 @@ class HomeBottomNav extends StatelessWidget {
                                       item: items[i],
                                       // 1 when fully on this item, 0 when a full
                                       // step away — lerps as the pill slides.
-                                      selection: (1 - (position - i).abs())
-                                          .clamp(0.0, 1.0),
+                                      selection:
+                                          (1 - (pos - i).abs()).clamp(0.0, 1.0),
                                       collapse: t,
                                       selectedColor: selectedColor,
                                       unselectedColor: unselectedColor,
@@ -147,8 +151,8 @@ class HomeBottomNav extends StatelessWidget {
                         );
                       },
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -213,8 +217,9 @@ class _HomeBottomNavTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         color: color,
-                        fontWeight:
-                            selection >= 0.5 ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: selection >= 0.5
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ),

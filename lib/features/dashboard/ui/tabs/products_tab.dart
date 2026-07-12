@@ -38,7 +38,11 @@ class ProductsTab extends StatefulWidget {
   State<ProductsTab> createState() => _ProductsTabState();
 }
 
-class _ProductsTabState extends State<ProductsTab> {
+class _ProductsTabState extends State<ProductsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   static const double _categoryBarHeight = 44;
 
   final TextEditingController _searchController = TextEditingController();
@@ -128,9 +132,9 @@ class _ProductsTabState extends State<ProductsTab> {
   }
 
   List<Product> _filterAndSortProducts(
-      List<Product> products,
-      List<ProductCategory> categories,
-      ) {
+    List<Product> products,
+    List<ProductCategory> categories,
+  ) {
     // Filter by search query
     var filtered = products.where((product) {
       if (_searchQuery.isEmpty) {
@@ -171,7 +175,7 @@ class _ProductsTabState extends State<ProductsTab> {
         break;
       case ProductSortOrder.alphabetical:
         filtered.sort(
-                (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
         break;
     }
 
@@ -179,11 +183,11 @@ class _ProductsTabState extends State<ProductsTab> {
   }
 
   void _showProductSheet(
-      BuildContext context,
-      Product product,
-      WakingPeriod wakingPeriod,
-      List<CalorieRecord> calorieItems,
-      ) {
+    BuildContext context,
+    Product product,
+    WakingPeriod wakingPeriod,
+    List<CalorieRecord> calorieItems,
+  ) {
     if (!product.hasNutrition) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -203,24 +207,24 @@ class _ProductsTabState extends State<ProductsTab> {
         onSubmit: (result) {
           Navigator.of(context).pop();
           context.read<HomeBloc>().add(
-            EatProductEvent(
-              product,
-              result.weightGrams,
-              wakingPeriod,
-              calorieItems,
+                EatProductEvent(
+                  product,
+                  result.weightGrams,
+                  wakingPeriod,
+                  calorieItems,
                   (calorieItem) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${result.weightGrams.toStringAsFixed(0)}g of ${product.title} • '
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${result.weightGrams.toStringAsFixed(0)}g of ${product.title} • '
                           '${result.calories.toStringAsFixed(0)} kcal added',
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-            ),
-          );
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                ),
+              );
         },
       ),
     );
@@ -252,11 +256,11 @@ class _ProductsTabState extends State<ProductsTab> {
 
   /// Show bottom sheet with product options (Edit, Eat, Remove)
   void _showProductOptionsSheet(
-      BuildContext context,
-      Product product,
-      WakingPeriod? wakingPeriod,
-      List<CalorieRecord> calorieItems,
-      ) {
+    BuildContext context,
+    Product product,
+    WakingPeriod? wakingPeriod,
+    List<CalorieRecord> calorieItems,
+  ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final hasWakingPeriod = wakingPeriod != null;
 
@@ -320,20 +324,20 @@ class _ProductsTabState extends State<ProductsTab> {
                 ),
                 subtitle: !hasWakingPeriod
                     ? const Text(
-                  'No active waking period',
-                  style: TextStyle(fontSize: 12),
-                )
+                        'No active waking period',
+                        style: TextStyle(fontSize: 12),
+                      )
                     : null,
                 onTap: hasWakingPeriod
                     ? () {
-                  Navigator.of(bottomSheetContext).pop();
-                  _showProductSheet(
-                    context,
-                    product,
-                    wakingPeriod,
-                    calorieItems,
-                  );
-                }
+                        Navigator.of(bottomSheetContext).pop();
+                        _showProductSheet(
+                          context,
+                          product,
+                          wakingPeriod,
+                          calorieItems,
+                        );
+                      }
                     : null,
               ),
               // Remove option
@@ -358,9 +362,9 @@ class _ProductsTabState extends State<ProductsTab> {
 
   /// Show confirmation dialog before deleting a product
   Future<void> _showDeleteConfirmationDialog(
-      BuildContext context,
-      Product product,
-      ) async {
+    BuildContext context,
+    Product product,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -439,6 +443,7 @@ class _ProductsTabState extends State<ProductsTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -455,13 +460,13 @@ class _ProductsTabState extends State<ProductsTab> {
             technicalDetails: state.technicalDetails,
             onRetry: state.canRetry
                 ? () => context.read<HomeBloc>().add(
-              HomeErrorDismissedEvent(retry: true),
-            )
+                      HomeErrorDismissedEvent(retry: true),
+                    )
                 : null,
             onDismiss: state.previousState != null
                 ? () => context.read<HomeBloc>().add(
-              HomeErrorDismissedEvent(retry: false),
-            )
+                      HomeErrorDismissedEvent(retry: false),
+                    )
                 : null,
           );
         }
@@ -619,9 +624,7 @@ class _ProductsTabState extends State<ProductsTab> {
           ),
           const SizedBox(height: 16),
           Text(
-            _searchQuery.isNotEmpty
-                ? 'No products found'
-                : 'No products yet',
+            _searchQuery.isNotEmpty ? 'No products found' : 'No products yet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -652,10 +655,10 @@ class _ProductsTabState extends State<ProductsTab> {
   }
 
   Widget _buildProductsSliver(
-      BuildContext context,
-      HomeFetched state,
-      List<Product> products,
-      ) {
+    BuildContext context,
+    HomeFetched state,
+    List<Product> products,
+  ) {
     // Check if there's an active waking period
     final wakingPeriod = state.currentWakingPeriod;
     final hasWakingPeriod = wakingPeriod != null;
@@ -838,8 +841,7 @@ class _ProductListItem extends StatelessWidget {
         children: [
           if (product.usesCount > 0)
             Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),

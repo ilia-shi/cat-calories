@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
@@ -7,6 +6,7 @@ import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories/common/theme/theme.dart';
+import 'package:cat_calories/common/widgets/frosted_surface.dart';
 import 'package:cat_calories/features/calorie_tracking/calorie_exporter.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
@@ -52,25 +52,15 @@ class HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
 
     return SizedBox(
       height: maxExtent,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: CustomTheme.surfaceBlurSigma,
-            sigmaY: CustomTheme.surfaceBlurSigma,
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: background.withValues(alpha: CustomTheme.surfaceOpacity),
-            ),
-            child: Material(
-              type: MaterialType.transparency,
-              child: Padding(
-                padding: EdgeInsets.only(top: topPadding),
-                child: const SizedBox(
-                  height: _toolbarHeight,
-                  child: _HomeToolbar(),
-                ),
-              ),
+      child: FrostedSurface(
+        tint: background.withValues(alpha: CustomTheme.surfaceOpacity),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(
+            padding: EdgeInsets.only(top: topPadding),
+            child: const SizedBox(
+              height: _toolbarHeight,
+              child: _HomeToolbar(),
             ),
           ),
         ),

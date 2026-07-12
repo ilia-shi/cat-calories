@@ -45,8 +45,8 @@ class CalorieRecordRow extends StatelessWidget {
                   ),
                 ),
         ),
-        child: Opacity(
-          opacity: item.isEaten() ? 1.0 : 0.5,
+        child: _DimmedIfPlanned(
+          isEaten: item.isEaten(),
           child: Column(
             children: [
               Row(
@@ -94,8 +94,8 @@ class CalorieRecordRow extends StatelessWidget {
                   const SizedBox(width: 8),
                   // Calories value
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: (item.value > 0 ? DangerColor : SuccessColor)
                           .withValues(alpha: 0.1),
@@ -124,7 +124,26 @@ class CalorieRecordRow extends StatelessWidget {
   }
 }
 
+/// Dims planned (not-yet-eaten) rows. [Opacity] forces a `saveLayer`, so it is
+/// skipped entirely for eaten rows (the common case) — only planned rows pay.
+class _DimmedIfPlanned extends StatelessWidget {
+  final bool isEaten;
+  final Widget child;
+
+  const _DimmedIfPlanned({required this.isEaten, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (isEaten) {
+      return child;
+    }
+    return Opacity(opacity: 0.5, child: child);
+  }
+}
+
 class _TimeColumn extends StatelessWidget {
+  static final _timeFormat = DateFormat('HH:mm');
+
   final CalorieRecord item;
 
   const _TimeColumn({required this.item});
@@ -138,7 +157,7 @@ class _TimeColumn extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            DateFormat('HH:mm').format(item.createdAt),
+            _timeFormat.format(item.createdAt),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
