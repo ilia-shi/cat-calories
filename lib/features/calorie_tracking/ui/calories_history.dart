@@ -8,13 +8,13 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/meal_cooking_screen.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/meal_edit_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/state/calories_history_controller.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/date_group_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/delete_entry_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_empty_state.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_summary_card.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_edit_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_group_block.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_picker_sheet.dart';
@@ -408,29 +408,27 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       members: members,
       onCookingMode: () => _openCookingScreen(meal),
       onDuplicate: () => _duplicateMeal(meal, members),
-      onEdit: () => _showMealEditDialog(meal),
+      onEdit: () => _openMealEditScreen(meal),
       onMarkEaten: () => _markMealEaten(meal, members),
       onUngroup: () => _ungroupMeal(meal, members),
     );
   }
 
-  void _showMealEditDialog(Meal meal) {
-    MealEditDialog.show(
-      context,
-      meal: meal,
-      onSave: (result) async {
-        if (result.title != null) {
-          meal.title = result.title!;
-        }
-        meal.notes = result.notes;
-        meal.cookingMinutes = result.cookingMinutes;
-        meal.tasteRating = result.tasteRating;
-        meal.satietyRating = result.satietyRating;
-        meal.updatedAt = DateTime.now();
-        await _controller.saveMeal(meal);
-        _afterMealMutation('Meal updated');
-      },
-    );
+  Future<void> _openMealEditScreen(Meal meal) async {
+    final result = await MealEditScreen.push(context, meal);
+    if (result == null) {
+      return;
+    }
+    if (result.title != null) {
+      meal.title = result.title!;
+    }
+    meal.notes = result.notes;
+    meal.cookingMinutes = result.cookingMinutes;
+    meal.tasteRating = result.tasteRating;
+    meal.satietyRating = result.satietyRating;
+    meal.updatedAt = DateTime.now();
+    await _controller.saveMeal(meal);
+    _afterMealMutation('Meal updated');
   }
 
   Future<void> _markMealEaten(Meal meal, List<CalorieRecord> members) async {
