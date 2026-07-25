@@ -18,9 +18,14 @@ class ItemOptionsSheet extends StatefulWidget {
   /// Title of the meal this record belongs to, when [item.mealId] is set.
   final String? mealTitle;
 
+  /// Whether any meal is available to move this record into. False hides the
+  /// move tile, so the sheet never offers a picker with nothing to pick.
+  final bool canMoveToMeal;
+
   final VoidCallback onAdjustWeight;
   final VoidCallback onEdit;
   final VoidCallback onToggleEaten;
+  final VoidCallback onMoveToMeal;
   final VoidCallback onRemoveFromMeal;
   final VoidCallback onDelete;
   final ValueChanged<ColorLabel?> onColorLabelChanged;
@@ -29,9 +34,11 @@ class ItemOptionsSheet extends StatefulWidget {
     Key? key,
     required this.item,
     required this.mealTitle,
+    required this.canMoveToMeal,
     required this.onAdjustWeight,
     required this.onEdit,
     required this.onToggleEaten,
+    required this.onMoveToMeal,
     required this.onRemoveFromMeal,
     required this.onDelete,
     required this.onColorLabelChanged,
@@ -41,9 +48,11 @@ class ItemOptionsSheet extends StatefulWidget {
     BuildContext context, {
     required CalorieRecord item,
     required String? mealTitle,
+    required bool canMoveToMeal,
     required VoidCallback onAdjustWeight,
     required VoidCallback onEdit,
     required VoidCallback onToggleEaten,
+    required VoidCallback onMoveToMeal,
     required VoidCallback onRemoveFromMeal,
     required VoidCallback onDelete,
     required ValueChanged<ColorLabel?> onColorLabelChanged,
@@ -57,9 +66,11 @@ class ItemOptionsSheet extends StatefulWidget {
       builder: (_) => ItemOptionsSheet(
         item: item,
         mealTitle: mealTitle,
+        canMoveToMeal: canMoveToMeal,
         onAdjustWeight: onAdjustWeight,
         onEdit: onEdit,
         onToggleEaten: onToggleEaten,
+        onMoveToMeal: onMoveToMeal,
         onRemoveFromMeal: onRemoveFromMeal,
         onDelete: onDelete,
         onColorLabelChanged: onColorLabelChanged,
@@ -155,6 +166,21 @@ class _ItemOptionsSheetState extends State<ItemOptionsSheet> {
                     widget.onToggleEaten();
                   },
                 ),
+                if (widget.canMoveToMeal)
+                  _OptionTile(
+                    icon: Icons.playlist_add,
+                    color: Colors.indigo,
+                    title: item.mealId == null
+                        ? 'Add to Meal'
+                        : 'Move to Another Meal',
+                    subtitle: item.mealId == null
+                        ? 'Group with an existing meal'
+                        : 'Currently: ${widget.mealTitle ?? 'Ungrouped meal'}',
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onMoveToMeal();
+                    },
+                  ),
                 if (item.mealId != null)
                   _OptionTile(
                     icon: Icons.playlist_remove,

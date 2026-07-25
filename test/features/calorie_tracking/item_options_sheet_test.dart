@@ -33,9 +33,11 @@ void main() {
           body: ItemOptionsSheet(
             item: item,
             mealTitle: null,
+            canMoveToMeal: false,
             onAdjustWeight: () {},
             onEdit: () {},
             onToggleEaten: () {},
+            onMoveToMeal: () {},
             onRemoveFromMeal: () {},
             onDelete: () {},
             onColorLabelChanged: changes.add,

@@ -31,6 +31,7 @@ class CaloriesHistoryController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isInitialLoad = true;
   Map<String, Meal> _mealsById = {};
+  Map<String, List<CalorieRecord>> _membersByMeal = {};
   Map<DateTime, List<CalorieRecord>> _groupedCalories = {};
   Map<DateTime, DaySummary> _daySummaries = {};
   List<DateTime> _sortedDates = [];
@@ -45,6 +46,11 @@ class CaloriesHistoryController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   Map<String, Meal> get mealsById => _mealsById;
+
+  /// Every meal's records, keyed by meal id. Built with the day grouping so
+  /// callers get a meal's stats without rescanning the whole history.
+  Map<String, List<CalorieRecord>> get membersByMeal => _membersByMeal;
+
   Map<DateTime, List<CalorieRecord>> get groupedCalories => _groupedCalories;
   Map<DateTime, DaySummary> get daySummaries => _daySummaries;
   List<DateTime> get sortedDates => _sortedDates;
@@ -92,6 +98,7 @@ class CaloriesHistoryController extends ChangeNotifier {
   void _regroup(List<CalorieRecord> records, List<Meal> meals) {
     final grouped = <DateTime, List<CalorieRecord>>{};
     final summaries = <DateTime, DaySummary>{};
+    final membersByMeal = <String, List<CalorieRecord>>{};
     double total = 0;
     int itemCount = 0;
     double totalProtein = 0;
@@ -113,6 +120,11 @@ class CaloriesHistoryController extends ChangeNotifier {
       grouped[dateKey]!.add(calorie);
       summary.itemCount++;
       itemCount++;
+
+      final mealId = calorie.mealId;
+      if (mealId != null) {
+        (membersByMeal[mealId] ??= <CalorieRecord>[]).add(calorie);
+      }
 
       if (calorie.isEaten()) {
         total += calorie.value;
@@ -147,6 +159,7 @@ class CaloriesHistoryController extends ChangeNotifier {
       for (final meal in meals)
         if (meal.id != null) meal.id!: meal,
     };
+    _membersByMeal = membersByMeal;
     _groupedCalories = grouped;
     _daySummaries = summaries;
     _sortedDates = sortedDates;
@@ -311,16 +324,76 @@ class CaloriesHistoryController extends ChangeNotifier {
     item.mealId = null;
     item.updatedAt = DateTime.now();
     await _recordRepository.update(item);
-
-    // Removing the last member leaves an empty group — delete it too.
-    final remaining = _groupedCalories.values
-        .expand((list) => list)
-        .where((r) => r.mealId == mealId && r.id != item.id);
-    final meal = mealId == null ? null : _mealsById[mealId];
-    if (remaining.isEmpty && meal != null) {
-      await _mealRepository.delete(meal);
-    }
+    await _deleteMealIfEmptied(mealId, item);
     await load();
+  }
+
+  /// Moves [item] into an existing [target] meal. Returns the source meal when
+  /// [item] was its last member — it is deleted, and the caller names it in the
+  /// confirmation so the removal is not silent.
+  Future<Meal?> moveToMeal(CalorieRecord item, Meal target) async {
+    final targetId = target.id;
+    final sourceMealId = item.mealId;
+    if (targetId == null || targetId == sourceMealId) {
+      return null;
+    }
+    item.mealId = targetId;
+    item.updatedAt = DateTime.now();
+    await _recordRepository.update(item);
+    final emptied = await _deleteMealIfEmptied(sourceMealId, item);
+    await load();
+    return emptied;
+  }
+
+  /// Meals a record on [date] can join without its group splitting across two
+  /// day cards: meals that already have a member that day, plus meals with no
+  /// members at all (planned ahead, never filled). Same-day meals come first,
+  /// newest first within each half. [excludeMealId] drops the record's own
+  /// meal from the offer.
+  List<Meal> mealCandidatesFor(DateTime date, {String? excludeMealId}) {
+    final dateKey = DateTime(date.year, date.month, date.day);
+    bool isOnDate(CalorieRecord record) {
+      final createdAt = record.createdAt;
+      return DateTime(createdAt.year, createdAt.month, createdAt.day) ==
+          dateKey;
+    }
+
+    final sameDay = <Meal>[];
+    final empty = <Meal>[];
+    for (final meal in _mealsById.values) {
+      if (meal.id == excludeMealId) {
+        continue;
+      }
+      final members = _membersByMeal[meal.id!] ?? const <CalorieRecord>[];
+      if (members.isEmpty) {
+        empty.add(meal);
+      } else if (members.any(isOnDate)) {
+        sameDay.add(meal);
+      }
+    }
+
+    int byNewest(Meal a, Meal b) => b.createdAt.compareTo(a.createdAt);
+    sameDay.sort(byNewest);
+    empty.sort(byNewest);
+    return [...sameDay, ...empty];
+  }
+
+  /// Deletes the meal [item] just left when it was the last member: an empty
+  /// group renders nowhere, so it would linger with no way to reach or remove
+  /// it. Returns the deleted meal, or null when nothing was deleted.
+  Future<Meal?> _deleteMealIfEmptied(String? mealId, CalorieRecord item) async {
+    final meal = mealId == null ? null : _mealsById[mealId];
+    if (meal == null) {
+      return null;
+    }
+    // The members map predates the move, so exclude the moved record by id.
+    final others = (_membersByMeal[mealId] ?? const <CalorieRecord>[])
+        .where((r) => r.id != item.id);
+    if (others.isNotEmpty) {
+      return null;
+    }
+    await _mealRepository.delete(meal);
+    return meal;
   }
 
   Future<void> setColorLabel(CalorieRecord item, ColorLabel? color) async {

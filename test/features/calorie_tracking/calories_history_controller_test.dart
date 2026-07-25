@@ -352,6 +352,187 @@ void main() {
     });
   });
 
+  group('mealCandidatesFor', () {
+    Meal meal(String id, {DateTime? createdAt}) => Meal(
+          id: id,
+          profileId: profile.id!,
+          title: 'Meal $id',
+          createdAt: createdAt ?? dayAmorning,
+        );
+
+    test('offers meals with a member that day, and empty ones', () async {
+      final controller = controllerWith(
+        [
+          record(id: 'a1', createdAt: dayAmorning, value: 100, mealId: 'same'),
+          record(id: 'b1', createdAt: dayB, value: 100, mealId: 'other'),
+          record(id: 'a2', createdAt: dayAnoon, value: 100),
+        ],
+        meals: [meal('same'), meal('other'), meal('empty')],
+      );
+      await controller.load();
+
+      final ids = controller
+          .mealCandidatesFor(dayAnoon)
+          .map((m) => m.id)
+          .toList();
+
+      expect(ids, containsAll(['same', 'empty']));
+      expect(ids, isNot(contains('other')),
+          reason: 'its only member is on another day — the block would split');
+    });
+
+    test('sorts same-day meals before empty ones, newest first', () async {
+      final controller = controllerWith(
+        [
+          record(id: 'a1', createdAt: dayAmorning, value: 100, mealId: 'old'),
+          record(id: 'a2', createdAt: dayAnoon, value: 100, mealId: 'new'),
+        ],
+        meals: [
+          meal('old', createdAt: dayAmorning),
+          meal('new', createdAt: dayAnoon),
+          meal('empty', createdAt: dayAnoon),
+        ],
+      );
+      await controller.load();
+
+      expect(
+        controller.mealCandidatesFor(dayAnoon).map((m) => m.id),
+        ['new', 'old', 'empty'],
+      );
+    });
+
+    test('excludes the record own meal', () async {
+      final controller = controllerWith(
+        [record(id: 'a1', createdAt: dayAmorning, value: 100, mealId: 'mine')],
+        meals: [meal('mine')],
+      );
+      await controller.load();
+
+      expect(
+        controller.mealCandidatesFor(dayAmorning, excludeMealId: 'mine'),
+        isEmpty,
+      );
+    });
+  });
+
+  group('moveToMeal', () {
+    Meal meal(String id) => Meal(
+          id: id,
+          profileId: profile.id!,
+          title: 'Meal $id',
+          createdAt: dayAmorning,
+        );
+
+    test('assigns the target meal and persists the record', () async {
+      final item = record(id: 'a1', createdAt: dayAmorning, value: 100);
+      final repo = _FakeRecordRepo([
+        item,
+        record(id: 'a2', createdAt: dayAnoon, value: 200, mealId: 'target'),
+      ]);
+      final controller = CaloriesHistoryController(
+        recordRepository: repo,
+        mealRepository: _FakeMealRepo([meal('target')]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      final emptied = await controller.moveToMeal(
+        item,
+        controller.mealsById['target']!,
+      );
+
+      expect(item.mealId, 'target');
+      expect(repo.updated, [item]);
+      expect(emptied, isNull);
+    });
+
+    test('deletes the source meal when the record was its last member',
+        () async {
+      final item = record(
+        id: 'a1',
+        createdAt: dayAmorning,
+        value: 100,
+        mealId: 'source',
+      );
+      final mealRepo = _FakeMealRepo([meal('source'), meal('target')]);
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([
+          item,
+          record(id: 'a2', createdAt: dayAnoon, value: 200, mealId: 'target'),
+        ]),
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      final emptied = await controller.moveToMeal(
+        item,
+        controller.mealsById['target']!,
+      );
+
+      expect(emptied?.id, 'source');
+      expect(mealRepo.deleted.map((m) => m.id), ['source']);
+    });
+
+    test('keeps a source meal that still has members', () async {
+      final item = record(
+        id: 'a1',
+        createdAt: dayAmorning,
+        value: 100,
+        mealId: 'source',
+      );
+      final mealRepo = _FakeMealRepo([meal('source'), meal('target')]);
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([
+          item,
+          record(id: 'a2', createdAt: dayAnoon, value: 50, mealId: 'source'),
+        ]),
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      final emptied = await controller.moveToMeal(
+        item,
+        controller.mealsById['target']!,
+      );
+
+      expect(emptied, isNull);
+      expect(mealRepo.deleted, isEmpty);
+    });
+
+    test('does nothing when the record is already in the target', () async {
+      final item = record(
+        id: 'a1',
+        createdAt: dayAmorning,
+        value: 100,
+        mealId: 'target',
+      );
+      final repo = _FakeRecordRepo([item]);
+      final controller = CaloriesHistoryController(
+        recordRepository: repo,
+        mealRepository: _FakeMealRepo([meal('target')]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.moveToMeal(item, controller.mealsById['target']!);
+
+      expect(repo.updated, isEmpty);
+    });
+
+    test('bumps updatedAt so the move syncs', () async {
+      final item = record(id: 'a1', createdAt: dayAmorning, value: 100);
+      final before = item.updatedAt;
+      final controller = controllerWith([item], meals: [meal('target')]);
+      await controller.load();
+
+      await controller.moveToMeal(item, controller.mealsById['target']!);
+
+      expect(item.updatedAt.isAfter(before), isTrue);
+    });
+  });
+
   group('setColorLabel', () {
     test('persists the chosen color and clearing it again', () async {
       final item = record(id: 'a1', createdAt: dayAmorning, value: 500);

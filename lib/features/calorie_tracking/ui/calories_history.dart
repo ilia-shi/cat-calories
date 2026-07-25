@@ -17,6 +17,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/item_o
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_edit_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_group_block.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_picker_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:flutter/material.dart';
@@ -307,6 +308,8 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       mealTitle: item.mealId == null
           ? null
           : _controller.mealsById[item.mealId]?.title,
+      canMoveToMeal: _moveTargetsFor(item).isNotEmpty,
+      onMoveToMeal: () => _moveToMeal(item),
       onAdjustWeight: () => _showProportionalEdit(item),
       onEdit: () {
         Navigator.push(
@@ -327,6 +330,31 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       onRemoveFromMeal: () => _removeFromMeal(item),
       onDelete: () => _confirmDelete(item),
       onColorLabelChanged: (color) => _controller.setColorLabel(item, color),
+    );
+  }
+
+  List<Meal> _moveTargetsFor(CalorieRecord item) {
+    return _controller.mealCandidatesFor(
+      item.createdAt,
+      excludeMealId: item.mealId,
+    );
+  }
+
+  Future<void> _moveToMeal(CalorieRecord item) async {
+    final target = await MealPickerSheet.show(
+      context,
+      item: item,
+      meals: _moveTargetsFor(item),
+      membersByMeal: _controller.membersByMeal,
+    );
+    if (target == null) {
+      return;
+    }
+    final emptied = await _controller.moveToMeal(item, target);
+    _afterMealMutation(
+      emptied == null
+          ? 'Moved to "${target.title}"'
+          : 'Moved to "${target.title}" — empty meal "${emptied.title}" removed',
     );
   }
 
