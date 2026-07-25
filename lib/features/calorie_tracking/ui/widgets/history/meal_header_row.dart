@@ -4,7 +4,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:flutter/material.dart';
 
-/// Header row above a meal's member records in the day list.
+/// Header row above a meal's member records, inside a [MealGroupBlock].
 class MealHeaderRow extends StatelessWidget {
   final Meal meal;
   final List<CalorieRecord> records;
@@ -20,6 +20,7 @@ class MealHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final accent = Theme.of(context).primaryColor;
     final total = records.fold<double>(0, (sum, r) => sum + r.value);
     final hasUneaten = records.any((r) => !r.isEaten());
 
@@ -28,13 +29,16 @@ class MealHeaderRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: appColors.surfaceMuted,
-          border: Border(bottom: BorderSide(color: appColors.borderSubtle)),
+          color: accent.withValues(alpha: appColors.isDark ? 0.20 : 0.13),
+          border: Border(
+            bottom: BorderSide(
+              color: accent.withValues(alpha: appColors.isDark ? 0.4 : 0.25),
+            ),
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.restaurant,
-                size: 16, color: Theme.of(context).primaryColor),
+            Icon(Icons.restaurant, size: 16, color: accent),
             const SizedBox(width: 8),
             Expanded(
               child: Text(

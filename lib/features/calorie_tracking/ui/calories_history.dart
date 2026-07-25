@@ -15,7 +15,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/histor
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_summary_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/item_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_edit_dialog.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_header_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_group_block.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
@@ -228,13 +228,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
   }
 
-  /// A day's rows with meal groups inline: a meal header followed by its
-  /// member records, ungrouped records as plain rows. Order follows first
-  /// appearance in [items], so days without meals render exactly as before.
+  /// A day's rows with meal groups inline: each meal becomes one enclosed
+  /// block, ungrouped records stay plain rows. Order follows first appearance
+  /// in [items], so days without meals render exactly as before.
   List<Widget> _buildDayItems(List<CalorieRecord> items) {
-    final widgets = <Widget>[];
-    final emittedMealIds = <String>{};
-
     // Group members by meal in a single pass, instead of an O(n) `.where` scan
     // per meal (which made the whole day O(n²) on every rebuild).
     final membersByMeal = <String, List<CalorieRecord>>{};
@@ -245,30 +242,46 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       }
     }
 
+    final entries = <_DayEntry>[];
+    final emittedMealIds = <String>{};
     for (final item in items) {
       final meal =
           item.mealId == null ? null : _controller.mealsById[item.mealId];
       if (meal == null) {
-        widgets.add(_buildCalorieRow(item, item == items.last));
+        entries.add(_DayEntry.record(item));
         continue;
       }
-      if (emittedMealIds.contains(meal.id)) {
+      if (!emittedMealIds.add(meal.id!)) {
         continue;
       }
-      emittedMealIds.add(meal.id!);
-
-      final members = membersByMeal[meal.id!] ?? const <CalorieRecord>[];
-      widgets.add(MealHeaderRow(
-        meal: meal,
-        records: members,
-        onTap: () => _showMealOptions(meal, members),
+      entries.add(_DayEntry.meal(
+        meal,
+        membersByMeal[meal.id!] ?? const <CalorieRecord>[],
       ));
-      for (final member in members) {
-        widgets.add(_buildCalorieRow(member, member == items.last));
-      }
     }
 
-    return widgets;
+    return [
+      for (int i = 0; i < entries.length; i++)
+        _buildDayEntry(entries[i], isLast: i == entries.length - 1),
+    ];
+  }
+
+  Widget _buildDayEntry(_DayEntry entry, {required bool isLast}) {
+    final meal = entry.meal;
+    final records = entry.records;
+    if (meal == null) {
+      return _buildCalorieRow(records.first, isLast);
+    }
+    return MealGroupBlock(
+      meal: meal,
+      records: records,
+      onHeaderTap: () => _showMealOptions(meal, records),
+      // Rows carry no divider of their own: the block draws the separators
+      // between members and its outline closes the group at the bottom.
+      rows: [
+        for (final member in records) _buildCalorieRow(member, true),
+      ],
+    );
   }
 
   Widget _buildCalorieRow(CalorieRecord item, bool isLast) {
@@ -485,4 +498,17 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       },
     );
   }
+}
+
+/// One top-level entry in a day's list: either a meal (rendered as a group
+/// block over its [records]) or a single ungrouped record.
+class _DayEntry {
+  final Meal? meal;
+  final List<CalorieRecord> records;
+
+  _DayEntry.meal(Meal this.meal, this.records);
+
+  _DayEntry.record(CalorieRecord record)
+      : meal = null,
+        records = [record];
 }

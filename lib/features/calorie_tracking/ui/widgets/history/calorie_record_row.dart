@@ -36,7 +36,7 @@ class CalorieRecordRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.25)
               : null,
           border: isLast
               ? null
