@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
 import 'package:uuid/uuid.dart';
@@ -84,6 +85,7 @@ class RecordsHandler extends Controller {
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
       mealId: data['meal_id'] as String?,
+      colorLabel: ColorLabel.tryParse(data['color_label']),
     );
 
     await records.insert(record);
@@ -148,6 +150,9 @@ class RecordsHandler extends Controller {
     }
     if (data.containsKey('meal_id')) {
       existing.mealId = data['meal_id'] as String?;
+    }
+    if (data.containsKey('color_label')) {
+      existing.colorLabel = ColorLabel.tryParse(data['color_label']);
     }
     existing.updatedAt = DateTime.now();
 
@@ -237,5 +242,6 @@ class RecordsHandler extends Controller {
         'cost_currency': r.costCurrency,
         'cost_is_manual': r.costIsManual,
         'meal_id': r.mealId,
+        'color_label': r.colorLabel?.hex,
       };
 }

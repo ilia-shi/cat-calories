@@ -1,4 +1,5 @@
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/color_label_dot.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:flutter/material.dart';
@@ -63,34 +64,8 @@ class CalorieRecordRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Description
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item.description != null &&
-                            item.description!.isNotEmpty)
-                          Text(
-                            item.description!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        else
-                          Text(
-                            'No description',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: appColors.textDisabled,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  // Color label + description
+                  Expanded(child: _DescriptionCell(item: item)),
                   const SizedBox(width: 8),
                   // Calories value
                   Container(
@@ -120,6 +95,53 @@ class CalorieRecordRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DescriptionCell extends StatelessWidget {
+  final CalorieRecord item;
+
+  const _DescriptionCell({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    final colorLabel = item.colorLabel;
+    final description = item.description;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (colorLabel != null) ...[
+          // Nudged down so the dot sits on the first line when text wraps.
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: ColorLabelDot(color: colorLabel),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Expanded(
+          child: description != null && description.isNotEmpty
+              ? Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : Text(
+                  'No description',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: appColors.textDisabled,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/state/calories_history_controller.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -348,6 +349,38 @@ void main() {
       await controller.load();
 
       expect(await controller.groupSelectedAsMeal('X'), isNull);
+    });
+  });
+
+  group('setColorLabel', () {
+    test('persists the chosen color and clearing it again', () async {
+      final item = record(id: 'a1', createdAt: dayAmorning, value: 500);
+      final repo = _FakeRecordRepo([item]);
+      final controller = CaloriesHistoryController(
+        recordRepository: repo,
+        mealRepository: _FakeMealRepo([]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.setColorLabel(item, ColorLabelPreset.cyan.color);
+      expect(item.colorLabel, ColorLabelPreset.cyan.color);
+      expect(repo.updated, [item]);
+
+      await controller.setColorLabel(item, null);
+      expect(item.colorLabel, isNull);
+      expect(repo.updated, [item, item]);
+    });
+
+    test('bumps updatedAt so the change syncs', () async {
+      final item = record(id: 'a1', createdAt: dayAmorning, value: 500);
+      final before = item.updatedAt;
+      final controller = controllerWith([item]);
+      await controller.load();
+
+      await controller.setColorLabel(item, ColorLabelPreset.brown.color);
+
+      expect(item.updatedAt.isAfter(before), isTrue);
     });
   });
 }

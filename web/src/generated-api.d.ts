@@ -84,6 +84,7 @@ export interface components {
             /** @default false */
             cost_is_manual: boolean;
             meal_id?: string | null;
+            color_label?: string | null;
         };
         Profile: {
             name: string;
@@ -129,6 +130,7 @@ export interface components {
             cost_currency?: string | null;
             cost_is_manual?: boolean | null;
             meal_id?: string | null;
+            color_label?: string | null;
         };
         UpdateRecordRequest: {
             /** Format: double */
@@ -151,6 +153,7 @@ export interface components {
             cost_currency?: string | null;
             cost_is_manual?: boolean | null;
             meal_id?: string | null;
+            color_label?: string | null;
         };
         DeleteResponse: {
             deleted: boolean;

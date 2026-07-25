@@ -1,12 +1,18 @@
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/color_label_dot.dart';
+import 'package:cat_calories/common/widgets/color_label_picker.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/calorie_record_row.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Bottom sheet of actions for a single calorie record. Presentational: it
 /// pops itself, then invokes the matching callback — the screen owns the work.
-class ItemOptionsSheet extends StatelessWidget {
+/// The colour label is the exception: it applies in place and the sheet stays
+/// open, so a mistap can be corrected without reopening the sheet.
+class ItemOptionsSheet extends StatefulWidget {
   final CalorieRecord item;
 
   /// Title of the meal this record belongs to, when [item.mealId] is set.
@@ -17,6 +23,7 @@ class ItemOptionsSheet extends StatelessWidget {
   final VoidCallback onToggleEaten;
   final VoidCallback onRemoveFromMeal;
   final VoidCallback onDelete;
+  final ValueChanged<ColorLabel?> onColorLabelChanged;
 
   const ItemOptionsSheet({
     Key? key,
@@ -27,6 +34,7 @@ class ItemOptionsSheet extends StatelessWidget {
     required this.onToggleEaten,
     required this.onRemoveFromMeal,
     required this.onDelete,
+    required this.onColorLabelChanged,
   }) : super(key: key);
 
   static void show(
@@ -38,12 +46,14 @@ class ItemOptionsSheet extends StatelessWidget {
     required VoidCallback onToggleEaten,
     required VoidCallback onRemoveFromMeal,
     required VoidCallback onDelete,
+    required ValueChanged<ColorLabel?> onColorLabelChanged,
   }) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      // The palette makes the sheet taller than the default 9/16 of the screen
+      // on small devices, so let it size itself and scroll instead of clipping.
+      isScrollControlled: true,
+      shape: AppCard.squircleBorder(radius: 20, bottom: false),
       builder: (_) => ItemOptionsSheet(
         item: item,
         mealTitle: mealTitle,
@@ -52,92 +62,163 @@ class ItemOptionsSheet extends StatelessWidget {
         onToggleEaten: onToggleEaten,
         onRemoveFromMeal: onRemoveFromMeal,
         onDelete: onDelete,
+        onColorLabelChanged: onColorLabelChanged,
       ),
     );
   }
 
   @override
+  State<ItemOptionsSheet> createState() => _ItemOptionsSheetState();
+}
+
+class _ItemOptionsSheetState extends State<ItemOptionsSheet> {
+  late ColorLabel? _colorLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    _colorLabel = widget.item.colorLabel;
+  }
+
+  void _handleColorLabelChanged(ColorLabel? color) {
+    setState(() {
+      _colorLabel = color;
+    });
+    widget.onColorLabelChanged(color);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final item = widget.item;
     final hasWeight = item.weightGrams != null && item.weightGrams! > 0;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: appColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: appColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                _ItemPreview(item: item, colorLabel: _colorLabel),
+                const SizedBox(height: 16),
+                _ColorLabelSection(
+                  value: _colorLabel,
+                  onChanged: _handleColorLabelChanged,
+                ),
+                const SizedBox(height: 8),
+                if (hasWeight)
+                  _OptionTile(
+                    icon: Icons.scale,
+                    color: Colors.teal,
+                    title: 'Adjust Weight',
+                    subtitle: 'Scale all values proportionally',
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onAdjustWeight();
+                    },
+                  ),
+                _OptionTile(
+                  icon: Icons.edit,
+                  color: Colors.blue,
+                  title: 'Edit Entry',
+                  subtitle: 'Modify calories or description',
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onEdit();
+                  },
+                ),
+                _OptionTile(
+                  icon: item.isEaten() ? Icons.cancel : Icons.check_circle,
+                  color: item.isEaten() ? Colors.orange : SuccessColor,
+                  title:
+                      item.isEaten() ? 'Mark as Not Eaten' : 'Mark as Eaten',
+                  subtitle: item.isEaten()
+                      ? 'Remove from today\'s total'
+                      : 'Add to today\'s total',
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onToggleEaten();
+                  },
+                ),
+                if (item.mealId != null)
+                  _OptionTile(
+                    icon: Icons.playlist_remove,
+                    color: Colors.orange,
+                    title: 'Remove from Meal',
+                    subtitle: widget.mealTitle ?? 'Ungrouped meal',
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onRemoveFromMeal();
+                    },
+                  ),
+                _OptionTile(
+                  icon: Icons.delete,
+                  color: DangerColor,
+                  title: 'Delete Entry',
+                  titleColor: DangerColor,
+                  subtitle: 'Permanently remove this entry',
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onDelete();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            _ItemPreview(item: item),
-            const SizedBox(height: 8),
-            if (hasWeight)
-              _OptionTile(
-                icon: Icons.scale,
-                color: Colors.teal,
-                title: 'Adjust Weight',
-                subtitle: 'Scale all values proportionally',
-                onTap: () {
-                  Navigator.pop(context);
-                  onAdjustWeight();
-                },
-              ),
-            _OptionTile(
-              icon: Icons.edit,
-              color: Colors.blue,
-              title: 'Edit Entry',
-              subtitle: 'Modify calories or description',
-              onTap: () {
-                Navigator.pop(context);
-                onEdit();
-              },
-            ),
-            _OptionTile(
-              icon: item.isEaten() ? Icons.cancel : Icons.check_circle,
-              color: item.isEaten() ? Colors.orange : SuccessColor,
-              title: item.isEaten() ? 'Mark as Not Eaten' : 'Mark as Eaten',
-              subtitle: item.isEaten()
-                  ? 'Remove from today\'s total'
-                  : 'Add to today\'s total',
-              onTap: () {
-                Navigator.pop(context);
-                onToggleEaten();
-              },
-            ),
-            if (item.mealId != null)
-              _OptionTile(
-                icon: Icons.playlist_remove,
-                color: Colors.orange,
-                title: 'Remove from Meal',
-                subtitle: mealTitle ?? 'Ungrouped meal',
-                onTap: () {
-                  Navigator.pop(context);
-                  onRemoveFromMeal();
-                },
-              ),
-            _OptionTile(
-              icon: Icons.delete,
-              color: DangerColor,
-              title: 'Delete Entry',
-              titleColor: DangerColor,
-              subtitle: 'Permanently remove this entry',
-              onTap: () {
-                Navigator.pop(context);
-                onDelete();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ColorLabelSection extends StatelessWidget {
+  final ColorLabel? value;
+  final ValueChanged<ColorLabel?> onChanged;
+
+  const _ColorLabelSection({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Color label',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: appColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ColorLabelPicker(
+          value: value,
+          onChanged: onChanged,
+          singleLine: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+      ],
     );
   }
 }
@@ -145,11 +226,16 @@ class ItemOptionsSheet extends StatelessWidget {
 class _ItemPreview extends StatelessWidget {
   final CalorieRecord item;
 
-  const _ItemPreview({required this.item});
+  /// Passed in rather than read off [item] so the preview follows the sheet's
+  /// pending selection while the screen persists it.
+  final ColorLabel? colorLabel;
+
+  const _ItemPreview({required this.item, required this.colorLabel});
 
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final dotColor = colorLabel;
     final hasMacros = item.proteinGrams != null ||
         item.fatGrams != null ||
         item.carbGrams != null;
@@ -157,9 +243,9 @@ class _ItemPreview extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(12),
+        shape: AppCard.squircleBorder(radius: 12),
       ),
       child: Column(
         children: [
@@ -174,12 +260,22 @@ class _ItemPreview extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${item.value >= 0 ? '+' : ''}${item.value.toStringAsFixed(0)} kcal',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: item.value > 0 ? DangerColor : SuccessColor,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${item.value >= 0 ? '+' : ''}${item.value.toStringAsFixed(0)} kcal',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: item.value > 0 ? DangerColor : SuccessColor,
+                          ),
+                        ),
+                        // On the value line, not next to the description, so a
+                        // labelled record without a description still shows it.
+                        if (dotColor != null) ...[
+                          const SizedBox(width: 8),
+                          ColorLabelDot(color: dotColor),
+                        ],
+                      ],
                     ),
                     if (item.description != null)
                       Text(

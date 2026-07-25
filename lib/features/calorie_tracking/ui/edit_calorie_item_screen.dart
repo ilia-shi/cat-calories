@@ -2,8 +2,10 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_top_bar.dart';
+import 'package:cat_calories/common/widgets/color_label_picker.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,6 +35,7 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   CalorieRecord calorieItem;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
+  ColorLabel? _selectedColorLabel;
   bool _showNutritionFields = false;
 
   EditCalorieItemScreenState(this.calorieItem);
@@ -59,6 +62,8 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
         calorieItem.proteinGrams != null ||
         calorieItem.fatGrams != null ||
         calorieItem.carbGrams != null;
+
+    _selectedColorLabel = calorieItem.colorLabel;
 
     // Initialize date and time from the calorie item
     _selectedDate = calorieItem.createdAt;
@@ -159,6 +164,8 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
     calorieItem.fatGrams = _parseNullableDouble(_fatController.text);
     calorieItem.carbGrams = _parseNullableDouble(_carbController.text);
 
+    calorieItem.colorLabel = _selectedColorLabel;
+
     // Update the date
     calorieItem.createdAt = _selectedDate;
 
@@ -237,6 +244,28 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
                         enabledBorder: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(),
                       ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Color Label Section
+                    Text(
+                      'Color label',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ColorLabelPicker(
+                      value: _selectedColorLabel,
+                      onChanged: (color) {
+                        setState(() {
+                          _selectedColorLabel = color;
+                        });
+                      },
+                      singleLine: true,
                     ),
 
                     const SizedBox(height: 32),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories_core/http/controller.dart';
@@ -66,6 +67,7 @@ class RecordsController extends Controller {
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
       mealId: data['meal_id'] as String?,
+      colorLabel: ColorLabel.tryParse(data['color_label']),
     );
 
     await repo.offsetSortOrder();
@@ -117,6 +119,9 @@ class RecordsController extends Controller {
     if (data.containsKey('meal_id')) {
       item.mealId = data['meal_id'] as String?;
     }
+    if (data.containsKey('color_label')) {
+      item.colorLabel = ColorLabel.tryParse(data['color_label']);
+    }
     if (data.containsKey('eaten_at')) {
       final raw = data['eaten_at'] as String?;
       item.eatenAt = raw != null ? DateTime.parse(raw) : null;
@@ -165,5 +170,6 @@ class RecordsController extends Controller {
     'cost_currency': item.costCurrency,
     'cost_is_manual': item.costIsManual,
     'meal_id': item.mealId,
+    'color_label': item.colorLabel?.hex,
   };
 }

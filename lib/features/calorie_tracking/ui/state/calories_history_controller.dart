@@ -3,6 +3,7 @@ import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/day_summary.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:flutter/foundation.dart';
@@ -319,6 +320,13 @@ class CaloriesHistoryController extends ChangeNotifier {
     if (remaining.isEmpty && meal != null) {
       await _mealRepository.delete(meal);
     }
+    await load();
+  }
+
+  Future<void> setColorLabel(CalorieRecord item, ColorLabel? color) async {
+    item.colorLabel = color;
+    item.updatedAt = DateTime.now();
+    await _recordRepository.update(item);
     await load();
   }
 

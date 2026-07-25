@@ -57,6 +57,7 @@ class V001InitialSchema extends Migration {
         cost_value REAL NULL,
         cost_currency TEXT NULL,
         cost_is_manual INT NOT NULL DEFAULT 0,
+        color_label TEXT NULL,
         FOREIGN KEY(profile_id) REFERENCES profiles(id),
         FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
         FOREIGN KEY(product_id) REFERENCES products(id)

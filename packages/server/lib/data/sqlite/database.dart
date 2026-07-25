@@ -49,6 +49,7 @@ void _migrate(Database db) {
       cost_value       REAL,
       cost_currency    TEXT,
       cost_is_manual   INTEGER NOT NULL DEFAULT 0,
+      color_label      TEXT,
       created_at_day   INTEGER,
       eaten_at         INTEGER,
       created_at       INTEGER NOT NULL,
@@ -140,6 +141,7 @@ void _migrate(Database db) {
   _addColumnIfMissing(db, 'calorie_items', 'cost_currency', 'TEXT');
   _addColumnIfMissing(
       db, 'calorie_items', 'cost_is_manual', 'INTEGER NOT NULL DEFAULT 0');
+  _addColumnIfMissing(db, 'calorie_items', 'color_label', 'TEXT');
   _addColumnIfMissing(db, 'products', 'price_per_package', 'REAL');
   _addColumnIfMissing(db, 'products', 'price_currency', 'TEXT');
   _addColumnIfMissing(db, 'products', 'price_updated_at', 'INTEGER');

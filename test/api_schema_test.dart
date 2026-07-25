@@ -52,6 +52,19 @@ void main() {
       _expectType(props, 'fat_grams', 'number', nullable: true);
       _expectType(props, 'carb_grams', 'number', nullable: true);
     });
+
+    test('color_label is a nullable hex string on record and both requests', () {
+      for (final name in const [
+        'CalorieRecord',
+        'CreateRecordRequest',
+        'UpdateRecordRequest',
+      ]) {
+        final props = schemas[name]['properties'] as YamlMap;
+        _expectType(props, 'color_label', 'string', nullable: true);
+        expect(props['color_label']['pattern'], r'^#[0-9A-Fa-f]{6}$',
+            reason: '$name.color_label must be constrained to #RRGGBB');
+      }
+    });
   });
 
   group('Profile schema', () {

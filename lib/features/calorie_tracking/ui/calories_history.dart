@@ -313,6 +313,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       },
       onRemoveFromMeal: () => _removeFromMeal(item),
       onDelete: () => _confirmDelete(item),
+      onColorLabelChanged: (color) => _controller.setColorLabel(item, color),
     );
   }
 

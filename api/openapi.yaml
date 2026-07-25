@@ -207,6 +207,10 @@ components:
         meal_id:
           type: string
           nullable: true
+        color_label:
+          type: string
+          nullable: true
+          pattern: '^#[0-9A-Fa-f]{6}$'
 
     Profile:
       type: object
@@ -317,6 +321,10 @@ components:
         meal_id:
           type: string
           nullable: true
+        color_label:
+          type: string
+          nullable: true
+          pattern: '^#[0-9A-Fa-f]{6}$'
 
     UpdateRecordRequest:
       type: object
@@ -363,6 +371,10 @@ components:
         meal_id:
           type: string
           nullable: true
+        color_label:
+          type: string
+          nullable: true
+          pattern: '^#[0-9A-Fa-f]{6}$'
 
     DeleteResponse:
       type: object

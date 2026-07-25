@@ -1,3 +1,5 @@
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
+
 final class CalorieRecord {
   String? id;
   double value;
@@ -26,6 +28,9 @@ final class CalorieRecord {
   /// weight/product change must not clobber a manual correction.
   bool costIsManual;
 
+  /// Optional user color tag — null means unlabelled (always ok).
+  ColorLabel? colorLabel;
+
   CalorieRecord({
     required this.id,
     required this.value,
@@ -45,6 +50,7 @@ final class CalorieRecord {
     this.costValue = null,
     this.costCurrency = null,
     this.costIsManual = false,
+    this.colorLabel = null,
   }) : updatedAt = updatedAt ?? createdAt;
 
   factory CalorieRecord.fromJson(Map<String, dynamic> json) =>
@@ -74,6 +80,7 @@ final class CalorieRecord {
         // sqlite stores booleans as 0/1
         costIsManual: json['cost_is_manual'] == true ||
             json['cost_is_manual'] == 1,
+        colorLabel: ColorLabel.tryParse(json['color_label']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -101,6 +108,7 @@ final class CalorieRecord {
         'cost_value': costValue,
         'cost_currency': costCurrency,
         'cost_is_manual': costIsManual ? 1 : 0,
+        'color_label': colorLabel?.hex,
       };
 
   bool isEaten() {
@@ -109,9 +117,9 @@ final class CalorieRecord {
 
   /// A fresh planned copy of this record ("cook it again"): no id yet, not
   /// eaten, detached from any waking period and meal — the caller assigns a
-  /// new meal. Nutrition, weight and cost carry over as the starting point
-  /// to tweak while cooking; cost is no longer a manual override because it
-  /// no longer describes an actual past purchase.
+  /// new meal. Nutrition, weight, cost and the color label carry over as the
+  /// starting point to tweak while cooking; cost is no longer a manual override
+  /// because it no longer describes an actual past purchase.
   CalorieRecord copyForPlanning(DateTime createdAt) {
     return CalorieRecord(
       id: null,
@@ -131,6 +139,7 @@ final class CalorieRecord {
       costValue: costValue,
       costCurrency: costCurrency,
       costIsManual: false,
+      colorLabel: colorLabel,
     );
   }
 }
