@@ -1,6 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/products/domain/product_category.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,11 +12,11 @@ class ProductCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
+      appBar: AppTopBar(
+        title: 'Categories',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
+          AppTopBarAction(
+            icon: Icons.add,
             onPressed: () => _showAddCategoryDialog(context),
             tooltip: 'Add Category',
           ),

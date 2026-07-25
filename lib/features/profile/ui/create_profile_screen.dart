@@ -1,6 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,13 +37,11 @@ class CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Create profile', style: TextStyle(fontSize: 16)),
+      appBar: AppTopBar(
+        title: 'Create profile',
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.check,
-            ),
+          AppTopBarTextAction(
+            label: 'Save',
             onPressed: () {
               if (!_formKey.currentState!.validate()) {
                 return;

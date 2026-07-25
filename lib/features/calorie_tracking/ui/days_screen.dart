@@ -4,6 +4,7 @@ import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +20,7 @@ class _DaysScreenState extends State<DaysScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Days')),
+      appBar: AppTopBar(title: 'Days'),
       body: BlocBuilder<HomeBloc, AbstractHomeState>(
         builder: (context, state) {
           if (state is HomeFetchingInProgress) {

@@ -2,6 +2,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/bloc/calories_cubit.da
 import 'package:cat_calories/features/calorie_tracking/ui/bloc/calories_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/common/widgets/calculator_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,16 +32,16 @@ class _DayCaloriesPageState extends State<DayCaloriesPage> {
     context.read<CaloriesCubit>().fetch(_invertSorting, startDate);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Calories ' + DateFormat('MMM d, y').format(startDate),
-        ),
+      appBar: AppTopBar(
+        title: 'Calories ' + DateFormat('MMM d, y').format(startDate),
         actions: [
-          IconButton(
-            icon: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.rotationX(_invertSorting ? math.pi : 0),
-                child: Icon(Icons.sort)),
+          AppTopBarAction(
+            tooltip: 'Sort',
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.rotationX(_invertSorting ? math.pi : 0),
+              child: Icon(Icons.sort),
+            ),
             onPressed: () {
               setState(() {
                 _invertSorting = !_invertSorting;

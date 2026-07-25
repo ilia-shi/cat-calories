@@ -10,6 +10,7 @@ import 'package:cat_calories_core/features/sync/domain/sync_server.dart';
 import 'package:cat_calories_core/features/sync/domain/sync_server_repository.dart';
 import 'package:cat_calories_core/features/sync/transport/rest/config.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/features/oauth/ui/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -70,9 +71,7 @@ class EditServersScreenState extends State<EditServersScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sync Servers'),
-      ),
+      appBar: const AppTopBar(title: 'Sync Servers'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _servers.isEmpty
@@ -811,19 +810,14 @@ class EditServerScreenState extends State<EditServerScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Server' : 'Add Sync Server'),
+      appBar: AppTopBar(
+        title: _isEditing ? 'Edit Server' : 'Add Sync Server',
         actions: [
-          TextButton.icon(
-            onPressed: _isSaving ? null : _save,
-            icon: _isSaving
-                ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-                : const Icon(Icons.check),
-            label: Text(_isSaving ? 'Saving...' : 'Save'),
+          AppTopBarTextAction(
+            label: 'Save',
+            busyLabel: 'Saving...',
+            busy: _isSaving,
+            onPressed: _save,
           ),
         ],
       ),

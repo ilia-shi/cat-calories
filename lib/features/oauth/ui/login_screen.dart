@@ -1,5 +1,6 @@
 import 'package:cat_calories/features/oauth/auth_client.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -100,9 +101,7 @@ class LoginScreenState extends State<LoginScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: const AppTopBar(title: 'Login'),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

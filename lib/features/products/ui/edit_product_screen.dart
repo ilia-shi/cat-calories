@@ -1,6 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories/features/products/ui/_edit_product_form.dart';
 import 'package:flutter/material.dart';
@@ -59,13 +60,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit product'),
+      appBar: AppTopBar(
+        title: 'Edit product',
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.check,
-            ),
+          AppTopBarTextAction(
+            label: 'Save',
             onPressed: () {
               if (!_formKey.currentState!.validate()) {
                 return;

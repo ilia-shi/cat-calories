@@ -1,6 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/products/domain/product_category.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:flutter/material.dart';
@@ -199,20 +200,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Product' : 'Add Product'),
+      appBar: AppTopBar(
+        title: widget.isEditing ? 'Edit Product' : 'Add Product',
         actions: [
           if (widget.isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
+            AppTopBarAction(
+              icon: Icons.delete_outline,
               onPressed: _confirmDelete,
               tooltip: 'Delete',
             ),
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _save,
-            tooltip: 'Save',
-          ),
+          AppTopBarTextAction(label: 'Save', onPressed: _save),
         ],
       ),
       body: BlocBuilder<HomeBloc, AbstractHomeState>(

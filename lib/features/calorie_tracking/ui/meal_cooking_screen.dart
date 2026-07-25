@@ -4,6 +4,7 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
@@ -340,10 +341,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(meal.title),
-          elevation: 0,
-        ),
+        appBar: AppTopBar(title: meal.title),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(

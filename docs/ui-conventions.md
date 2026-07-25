@@ -12,6 +12,7 @@ extend what exists instead of re-implementing. The shared catalogue:
 | Component | File | Use for |
 |-----------|------|---------|
 | `AppCard` | `common/widgets/app_card.dart` | **Any card / elevated surface.** Handles squircle shape, shadow, optional `onTap`, gradient, `emphasized`. Don't hand-roll a `Container` + `BoxDecoration` card. |
+| `AppTopBar`, `AppTopBarAction`, `AppTopBarTextAction` | `common/widgets/app_top_bar.dart` | **Every screen's app bar.** Flat transparent bar, squircle back button (auto-shown when the route can pop), centred title, squircle pill actions. Never pass a bare `AppBar` to `Scaffold.appBar`. |
 | `AppCard.squircleBorder(...)` | same | The squircle `ShapeBorder` helper — reuse it for *any* rectangular surface (sheets, pills, bars), not just cards. See rule 2. |
 | `MacroCircle`, `MacroBadge`, `MacroBadgesRow` | `common/widgets/macro_chips.dart` | Protein/Fat/Carb indicators (the P/F/C circles + gram values). |
 | `ProgressPainter` | `common/widgets/progress_bar.dart` | Custom progress rendering. |

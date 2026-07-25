@@ -2,6 +2,7 @@ import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/common/widgets/error_display.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
@@ -100,10 +101,10 @@ class _LlmExportSettingsScreenState extends State<LlmExportSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('LLM Export'),
+      appBar: AppTopBar(
+        title: 'LLM Export',
         actions: [
-          TextButton(onPressed: _save, child: const Text('Save')),
+          AppTopBarTextAction(label: 'Save', onPressed: _save),
         ],
       ),
       body: ListView(

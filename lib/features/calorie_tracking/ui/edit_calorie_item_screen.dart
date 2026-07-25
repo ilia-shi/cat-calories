@@ -3,6 +3,7 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -176,16 +177,11 @@ class EditCalorieItemScreenState extends State<EditCalorieItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text('Edit calorie item',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-            )),
+      appBar: AppTopBar(
+        title: 'Edit calorie item',
         actions: [
-          IconButton(
-            icon: Icon(Icons.check),
+          AppTopBarTextAction(
+            label: 'Save',
             onPressed: _saveCalorieItem,
           ),
         ],

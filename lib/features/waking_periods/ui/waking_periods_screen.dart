@@ -1,6 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,7 +28,7 @@ class _WakingPeriodsScreenState extends State<WakingPeriodsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Waking Periods')),
+      appBar: AppTopBar(title: 'Waking Periods'),
       body: BlocBuilder<HomeBloc, AbstractHomeState>(
         builder: (context, state) {
           if (state is HomeFetchingInProgress) {

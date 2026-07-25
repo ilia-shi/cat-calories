@@ -1,7 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
-import 'package:cat_calories/features/profile/ui/widgets/edit_profile_app_bar.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/features/profile/ui/widgets/profile_avatar_header.dart';
 import 'package:cat_calories/features/profile/ui/widgets/profile_danger_zone.dart';
 import 'package:cat_calories/features/profile/ui/widgets/profile_form_cards.dart';
@@ -127,11 +127,15 @@ class EditProfileScreenState extends State<EditProfileScreen>
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: EditProfileAppBar(
-        isDark: isDark,
-        primaryColor: primaryColor,
-        hasChanges: _hasChanges,
-        onSave: _saveProfile,
+      appBar: AppTopBar(
+        title: 'Edit Profile',
+        actions: [
+          AppTopBarTextAction(
+            label: 'Save',
+            enabled: _hasChanges,
+            onPressed: _saveProfile,
+          ),
+        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
