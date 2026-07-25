@@ -2,7 +2,7 @@ import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/color_label_dot.dart';
 import 'package:cat_calories/common/widgets/color_label_picker.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/calorie_record_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +23,7 @@ class ItemOptionsSheet extends StatefulWidget {
   final bool canMoveToMeal;
 
   final VoidCallback onAdjustWeight;
+  final VoidCallback onEditValues;
   final VoidCallback onEdit;
   final VoidCallback onToggleEaten;
   final VoidCallback onMoveToMeal;
@@ -36,6 +37,7 @@ class ItemOptionsSheet extends StatefulWidget {
     required this.mealTitle,
     required this.canMoveToMeal,
     required this.onAdjustWeight,
+    required this.onEditValues,
     required this.onEdit,
     required this.onToggleEaten,
     required this.onMoveToMeal,
@@ -50,6 +52,7 @@ class ItemOptionsSheet extends StatefulWidget {
     required String? mealTitle,
     required bool canMoveToMeal,
     required VoidCallback onAdjustWeight,
+    required VoidCallback onEditValues,
     required VoidCallback onEdit,
     required VoidCallback onToggleEaten,
     required VoidCallback onMoveToMeal,
@@ -68,6 +71,7 @@ class ItemOptionsSheet extends StatefulWidget {
         mealTitle: mealTitle,
         canMoveToMeal: canMoveToMeal,
         onAdjustWeight: onAdjustWeight,
+        onEditValues: onEditValues,
         onEdit: onEdit,
         onToggleEaten: onToggleEaten,
         onMoveToMeal: onMoveToMeal,
@@ -144,10 +148,20 @@ class _ItemOptionsSheetState extends State<ItemOptionsSheet> {
                     },
                   ),
                 _OptionTile(
+                  icon: Icons.calculate,
+                  color: Colors.blue,
+                  title: 'Edit Values',
+                  subtitle: 'Weight, calories and macros on the keypad',
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onEditValues();
+                  },
+                ),
+                _OptionTile(
                   icon: Icons.edit,
                   color: Colors.blue,
                   title: 'Edit Entry',
-                  subtitle: 'Modify calories or description',
+                  subtitle: 'Description, time and colour label',
                   onTap: () {
                     Navigator.pop(context);
                     widget.onEdit();

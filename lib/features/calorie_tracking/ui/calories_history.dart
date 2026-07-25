@@ -2,23 +2,25 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/theme/colors.dart';
+import 'package:cat_calories/common/widgets/calculator/calorie_calculator_sheet.dart';
 import 'package:cat_calories/common/widgets/floating_toolbar.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/meal_cooking_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/state/calories_history_controller.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/calorie_record_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/date_group_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/delete_entry_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_empty_state.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_summary_card.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/item_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_edit_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_group_block.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_picker_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/item_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/record_calculator_edit_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -311,6 +313,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       canMoveToMeal: _moveTargetsFor(item).isNotEmpty,
       onMoveToMeal: () => _moveToMeal(item),
       onAdjustWeight: () => _showProportionalEdit(item),
+      onEditValues: () => _showCalculatorEdit(item),
       onEdit: () {
         Navigator.push(
           context,
@@ -460,6 +463,41 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     );
     BlocProvider.of<HomeBloc>(context)
         .add(CalorieItemListFetchingInProgressEvent());
+  }
+
+  void _showCalculatorEdit(CalorieRecord item) {
+    RecordCalculatorEditSheet.show(
+      context,
+      item: item,
+      onSave: (result) => _applyCalculatorEdit(item, result),
+    );
+  }
+
+  void _applyCalculatorEdit(CalorieRecord item, CalorieCalculatorResult result) {
+    item.value = result.calories;
+    // Quick Add yields a bare calorie amount: leave the record's weight and
+    // macros as they were rather than wiping them.
+    if (result.weightGrams != null) {
+      item.weightGrams = result.weightGrams;
+      item.proteinGrams = result.proteinGrams;
+      item.fatGrams = result.fatGrams;
+      item.carbGrams = result.carbGrams;
+    }
+
+    BlocProvider.of<HomeBloc>(context).add(
+      CalorieItemListUpdatingEvent(item, [], () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Updated to ${item.value.toStringAsFixed(0)} kcal'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+        _controller.load();
+      }),
+    );
   }
 
   void _showProportionalEdit(CalorieRecord item) {

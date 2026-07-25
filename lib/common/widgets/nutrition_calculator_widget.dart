@@ -144,6 +144,9 @@ class NutritionCalculatorWidget extends StatefulWidget {
   /// Called when the user requests a mode change while [inputMode] is set.
   final void Function(NutritionInputMode mode)? onModeChanged;
 
+  /// Label of the keypad's submit key, e.g. 'OK' or 'Save'.
+  final String submitLabel;
+
   /// Optional initial values (per 100g, except weight which is actual grams)
   final double? initialWeight;
   final double? initialCaloriesPer100g;
@@ -156,6 +159,7 @@ class NutritionCalculatorWidget extends StatefulWidget {
     required this.onSubmit,
     this.inputMode,
     this.onModeChanged,
+    this.submitLabel = 'OK',
     this.initialWeight,
     this.initialCaloriesPer100g,
     this.initialProteinPer100g,
@@ -179,19 +183,19 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
     super.initState();
     _controllers = {
       NutritionField.weight: TextEditingController(
-        text: widget.initialWeight?.toString() ?? '',
+        text: _formatInitial(widget.initialWeight),
       ),
       NutritionField.calories: TextEditingController(
-        text: widget.initialCaloriesPer100g?.toString() ?? '',
+        text: _formatInitial(widget.initialCaloriesPer100g),
       ),
       NutritionField.protein: TextEditingController(
-        text: widget.initialProteinPer100g?.toString() ?? '',
+        text: _formatInitial(widget.initialProteinPer100g),
       ),
       NutritionField.fat: TextEditingController(
-        text: widget.initialFatPer100g?.toString() ?? '',
+        text: _formatInitial(widget.initialFatPer100g),
       ),
       NutritionField.carbs: TextEditingController(
-        text: widget.initialCarbsPer100g?.toString() ?? '',
+        text: _formatInitial(widget.initialCarbsPer100g),
       ),
     };
 
@@ -295,6 +299,15 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
   }
 
   TextEditingController get _currentController => _controllers[_selectedField]!;
+
+  /// Prefilled fields are typed values, not computed ones: '150' reads better
+  /// on the keypad than the '150.0' a bare toString() would leave behind.
+  static String _formatInitial(double? value) {
+    if (value == null) {
+      return '';
+    }
+    return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
+  }
 
   double? _parseField(NutritionField field) {
     final text = _controllers[field]!.text.trim();
@@ -486,6 +499,7 @@ class _NutritionCalculatorWidgetState extends State<NutritionCalculatorWidget> {
         CalculatorKeypad(
           showNextField: true,
           canSubmit: _isValidInput(),
+          submitLabel: widget.submitLabel,
           onKey: _onKeyPress,
           onSubmit: _onSubmit,
         ),

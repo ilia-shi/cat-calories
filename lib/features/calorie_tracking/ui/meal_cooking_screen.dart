@@ -4,12 +4,19 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/app_floating_action_button.dart';
 import 'package:cat_calories/common/widgets/app_top_bar.dart';
+import 'package:cat_calories/common/widgets/calculator/calorie_calculator_sheet.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/item_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/product_picker_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/record_calculator_edit_sheet.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/cooked_meal_product.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
@@ -68,17 +75,85 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
     _changed = true;
   }
 
-  Future<void> _editWeight(CalorieRecord item) async {
-    if (item.weightGrams == null || item.weightGrams! <= 0) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => EditCalorieItemScreen(item)),
-      );
-      _markChanged();
-      await _load();
-      return;
-    }
+  /// The same per-record action sheet the history screen uses, so an
+  /// ingredient offers every edit here that it does there. Moving to another
+  /// meal is the exception: this screen is one meal's workbench.
+  void _showItemOptions(CalorieRecord item) {
+    ItemOptionsSheet.show(
+      context,
+      item: item,
+      mealTitle: meal.title,
+      canMoveToMeal: false,
+      onMoveToMeal: () {},
+      onAdjustWeight: () => _adjustWeight(item),
+      onEditValues: () => _editIngredient(item),
+      onEdit: () => _openFullEdit(item),
+      onToggleEaten: () => _toggleEaten(item),
+      onRemoveFromMeal: () => _removeFromMeal(item),
+      onDelete: () => _removeIngredient(item),
+      onColorLabelChanged: (color) => _setColorLabel(item, color),
+    );
+  }
 
+  Future<void> _openFullEdit(CalorieRecord item) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditCalorieItemScreen(item)),
+    );
+    _markChanged();
+    await _load();
+  }
+
+  Future<void> _toggleEaten(CalorieRecord item) async {
+    item.eatenAt = item.isEaten() ? null : DateTime.now();
+    item.updatedAt = DateTime.now();
+    await _recordsRepo.update(item);
+    _markChanged();
+    await _load();
+  }
+
+  /// Detaches the record from the dish without deleting it — the meal itself
+  /// survives even when this empties it, since the user is standing on it.
+  Future<void> _removeFromMeal(CalorieRecord item) async {
+    item.mealId = null;
+    item.updatedAt = DateTime.now();
+    await _recordsRepo.update(item);
+    _markChanged();
+    await _load();
+  }
+
+  Future<void> _setColorLabel(CalorieRecord item, ColorLabel? color) async {
+    item.colorLabel = color;
+    item.updatedAt = DateTime.now();
+    await _recordsRepo.update(item);
+    _markChanged();
+    await _load();
+  }
+
+  /// Full edit of an ingredient's numbers on the keypad — weight, calories and
+  /// macros independently, unlike the proportional weight sheet.
+  Future<void> _editIngredient(CalorieRecord item) async {
+    await RecordCalculatorEditSheet.show(
+      context,
+      item: item,
+      onSave: (result) async {
+        item.value = result.calories;
+        if (result.weightGrams != null) {
+          item.weightGrams = result.weightGrams;
+          item.proteinGrams = result.proteinGrams;
+          item.fatGrams = result.fatGrams;
+          item.carbGrams = result.carbGrams;
+          await _recomputeCost(item);
+        }
+        item.updatedAt = DateTime.now();
+        await _recordsRepo.update(item);
+        _markChanged();
+        await _load();
+      },
+    );
+  }
+
+  void _adjustWeight(CalorieRecord item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -153,7 +228,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       context: context,
       isScrollControlled: true,
       shape: AppCard.squircleBorder(radius: 20, bottom: false),
-      builder: (_) => _ProductPickerSheet(
+      builder: (_) => ProductPickerSheet(
         productsRepo: _productsRepo,
         profile: _profile!,
       ),
@@ -188,6 +263,51 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       costValue: product.calculateCost(weight),
       costCurrency:
           product.calculateCost(weight) == null ? null : product.priceCurrency,
+    );
+    await _recordsRepo.insert(record);
+    _markChanged();
+    await _load();
+  }
+
+  /// Adds an ingredient the product catalogue doesn't cover — a pinch of oil,
+  /// a guessed portion — straight from the calculator keypad.
+  Future<void> _addFromCalculator() async {
+    if (_profile == null) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
+      builder: (sheetContext) => CalorieCalculatorSheet(
+        submitLabel: 'Add',
+        onSubmit: (result) async {
+          Navigator.pop(sheetContext);
+          await _insertCalculated(result);
+        },
+      ),
+    );
+  }
+
+  Future<void> _insertCalculated(CalorieCalculatorResult result) async {
+    final now = DateTime.now();
+    final record = CalorieRecord(
+      id: null,
+      value: result.calories,
+      description: null,
+      sortOrder: 0,
+      // New ingredients follow the meal's state: still planned, or already
+      // part of an eaten meal.
+      eatenAt: meal.isEaten() ? now : null,
+      createdAt: now,
+      profileId: _profile!.id!,
+      wakingPeriodId: null,
+      weightGrams: result.weightGrams,
+      proteinGrams: result.proteinGrams,
+      fatGrams: result.fatGrams,
+      carbGrams: result.carbGrams,
+      mealId: meal.id,
     );
     await _recordsRepo.insert(record);
     _markChanged();
@@ -342,6 +462,14 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       },
       child: Scaffold(
         appBar: AppTopBar(title: meal.title),
+        floatingActionButton: AppFloatingActionButton(
+          // Its own tag: without one it would fly out of the home screen's FAB
+          // on push, dragging a blurred circle across the transition.
+          heroTag: 'meal-cooking-fab',
+          onPressed: _isLoading ? null : _addFromCalculator,
+          tooltip: 'Add calories',
+          child: const Icon(Icons.add),
+        ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
@@ -351,8 +479,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
                   const SizedBox(height: 16),
                   _IngredientsCard(
                     members: _members,
-                    onEdit: _editWeight,
-                    onRemove: _removeIngredient,
+                    onOptions: _showItemOptions,
                     onAdd: _addIngredient,
                   ),
                   const SizedBox(height: 24),
@@ -380,7 +507,8 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
                       label: const Text('Save as Product (leftovers)'),
                     ),
                   ],
-                  const SizedBox(height: 32),
+                  // Clears the FAB so it never sits on the last button.
+                  const SizedBox(height: 88),
                 ],
               ),
       ),
@@ -466,14 +594,12 @@ class _TotalsCard extends StatelessWidget {
 
 class _IngredientsCard extends StatelessWidget {
   final List<CalorieRecord> members;
-  final void Function(CalorieRecord) onEdit;
-  final void Function(CalorieRecord) onRemove;
+  final void Function(CalorieRecord) onOptions;
   final VoidCallback onAdd;
 
   const _IngredientsCard({
     required this.members,
-    required this.onEdit,
-    required this.onRemove,
+    required this.onOptions,
     required this.onAdd,
   });
 
@@ -485,11 +611,14 @@ class _IngredientsCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          for (final item in members)
-            _IngredientRow(
-              item: item,
-              onTap: () => onEdit(item),
-              onRemove: () => onRemove(item),
+          for (var i = 0; i < members.length; i++)
+            CalorieRecordRow(
+              item: members[i],
+              isSelected: false,
+              // The card's own divider closes the list under the last row.
+              isLast: i == members.length - 1,
+              showDetails: true,
+              onTap: () => onOptions(members[i]),
             ),
           if (members.isEmpty)
             Padding(
@@ -506,169 +635,6 @@ class _IngredientsCard extends StatelessWidget {
             label: const Text('Add ingredient'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _IngredientRow extends StatelessWidget {
-  final CalorieRecord item;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
-
-  const _IngredientRow({
-    required this.item,
-    required this.onTap,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.description ?? 'No description',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: appColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      if (item.weightGrams != null)
-                        '${item.weightGrams!.toStringAsFixed(0)}g',
-                      '${item.value.toStringAsFixed(0)} kcal',
-                      if (item.costValue != null)
-                        '${item.costValue!.toStringAsFixed(2)} ${item.costCurrency ?? ''}'
-                            .trim(),
-                    ].join(' · '),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: appColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.scale, size: 16, color: appColors.textDisabled),
-            IconButton(
-              icon: Icon(Icons.remove_circle_outline,
-                  size: 20, color: DangerLiteColor),
-              tooltip: 'Remove ingredient',
-              onPressed: onRemove,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProductPickerSheet extends StatefulWidget {
-  final ProductRepositoryInterface productsRepo;
-  final Profile profile;
-
-  const _ProductPickerSheet({
-    required this.productsRepo,
-    required this.profile,
-  });
-
-  @override
-  State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
-}
-
-class _ProductPickerSheetState extends State<_ProductPickerSheet> {
-  List<Product> _products = [];
-  String _query = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _search('');
-  }
-
-  Future<void> _search(String query) async {
-    _query = query;
-    final results = query.trim().isEmpty
-        ? await widget.productsRepo.fetchRecentlyUsed(widget.profile, limit: 20)
-        : await widget.productsRepo.search(widget.profile, query.trim());
-    // Out-of-order responses: drop results for a stale query.
-    if (mounted && query == _query) {
-      setState(() => _products = results);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.6,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: TextField(
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search products…',
-                  ),
-                  onChanged: _search,
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _products.length,
-                  itemBuilder: (context, index) {
-                    final product = _products[index];
-                    final parts = <String>[
-                      if (product.caloriesPer100g != null)
-                        '${product.caloriesPer100g!.toStringAsFixed(0)} kcal/100g',
-                      if (product.hasPrice)
-                        '${product.pricePerPackage!.toStringAsFixed(2)} '
-                            '${product.priceCurrency ?? ''} / '
-                            '${product.packageWeightGrams!.toStringAsFixed(0)}g',
-                    ];
-                    return ListTile(
-                      title: Text(product.title,
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: parts.isEmpty
-                          ? null
-                          : Text(
-                              parts.join(' · '),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: appColors.textSecondary,
-                              ),
-                            ),
-                      onTap: () => Navigator.of(context).pop(product),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -11,7 +11,15 @@ class CalorieRecordRow extends StatelessWidget {
   final bool isSelected;
   final bool isLast;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+
+  /// Null where rows aren't selectable, e.g. a meal's ingredient list.
+  final VoidCallback? onLongPress;
+
+  /// Keeps the macro/weight strip visible on planned rows and on rows carrying
+  /// only a weight. The history list hides it there to stay scannable; cooking
+  /// mode is the opposite case — the weights matter most while the dish is
+  /// still being assembled.
+  final bool showDetails;
 
   const CalorieRecordRow({
     Key? key,
@@ -19,7 +27,8 @@ class CalorieRecordRow extends StatelessWidget {
     required this.isSelected,
     required this.isLast,
     required this.onTap,
-    required this.onLongPress,
+    this.onLongPress,
+    this.showDetails = false,
   }) : super(key: key);
 
   @override
@@ -28,6 +37,9 @@ class CalorieRecordRow extends StatelessWidget {
     final hasMacros = item.proteinGrams != null ||
         item.fatGrams != null ||
         item.carbGrams != null;
+    final showStrip = showDetails
+        ? hasMacros || item.weightGrams != null || item.costValue != null
+        : hasMacros && item.isEaten();
 
     return InkWell(
       onTap: onTap,
@@ -87,7 +99,7 @@ class CalorieRecordRow extends StatelessWidget {
                   ),
                 ],
               ),
-              if (hasMacros && item.isEaten()) ...[
+              if (showStrip) ...[
                 const SizedBox(height: 8),
                 CalorieRecordMacros(item: item),
               ],
@@ -236,8 +248,8 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-/// Compact macro + weight strip shown under a record. Reused by the record
-/// options bottom sheet, so it is public.
+/// Compact macro + weight + cost strip shown under a record. Reused by the
+/// record options bottom sheet, so it is public.
 class CalorieRecordMacros extends StatelessWidget {
   final CalorieRecord item;
 
@@ -265,32 +277,52 @@ class CalorieRecordMacros extends StatelessWidget {
             carbs: item.carbGrams,
           ),
           if (item.weightGrams != null)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  height: 12,
-                  width: 1,
-                  color: appColors.border,
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.scale,
-                  size: 12,
-                  color: appColors.textTertiary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${item.weightGrams!.round()}g',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ],
+            _StripFact(
+              icon: Icons.scale,
+              label: '${item.weightGrams!.round()}g',
+            ),
+          if (item.costValue != null)
+            _StripFact(
+              icon: Icons.payments_outlined,
+              label: '${item.costValue!.toStringAsFixed(2)} '
+                      '${item.costCurrency ?? ''}'
+                  .trim(),
             ),
         ],
       ),
+    );
+  }
+}
+
+/// One divider-separated fact (weight, cost) trailing the macro badges.
+class _StripFact extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _StripFact({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 12,
+          width: 1,
+          color: appColors.border,
+        ),
+        const SizedBox(width: 12),
+        Icon(icon, size: 12, color: appColors.textTertiary),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: appColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

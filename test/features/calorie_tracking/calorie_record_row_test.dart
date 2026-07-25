@@ -1,25 +1,39 @@
 import 'package:cat_calories/common/widgets/color_label_dot.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/calorie_record_row.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  CalorieRecord record({ColorLabel? colorLabel, String? description}) =>
+  CalorieRecord record({
+    ColorLabel? colorLabel,
+    String? description,
+    bool eaten = true,
+    double? weightGrams,
+    double? costValue,
+    String? costCurrency,
+  }) =>
       CalorieRecord(
         id: 'r1',
         value: 320,
         description: description,
         sortOrder: 0,
-        eatenAt: DateTime(2026, 7, 25, 12, 30),
+        eatenAt: eaten ? DateTime(2026, 7, 25, 12, 30) : null,
         createdAt: DateTime(2026, 7, 25, 12, 30),
         profileId: 'p1',
         wakingPeriodId: null,
         colorLabel: colorLabel,
+        weightGrams: weightGrams,
+        costValue: costValue,
+        costCurrency: costCurrency,
       );
 
-  Future<void> pumpRow(WidgetTester tester, CalorieRecord item) {
+  Future<void> pumpRow(
+    WidgetTester tester,
+    CalorieRecord item, {
+    bool showDetails = false,
+  }) {
     return tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -27,6 +41,7 @@ void main() {
             item: item,
             isSelected: false,
             isLast: true,
+            showDetails: showDetails,
             onTap: () {},
             onLongPress: () {},
           ),
@@ -77,5 +92,34 @@ void main() {
         findsOneWidget);
 
     semantics.dispose();
+  });
+
+  testWidgets('hides the weight of a planned record by default',
+      (tester) async {
+    await pumpRow(tester, record(eaten: false, weightGrams: 150));
+
+    expect(find.text('150g'), findsNothing);
+  });
+
+  testWidgets('showDetails keeps the weight of a planned record visible',
+      (tester) async {
+    await pumpRow(
+      tester,
+      record(eaten: false, weightGrams: 150),
+      showDetails: true,
+    );
+
+    expect(find.text('150g'), findsOneWidget);
+  });
+
+  testWidgets('shows the cost snapshot alongside the weight', (tester) async {
+    await pumpRow(
+      tester,
+      record(weightGrams: 150, costValue: 1.2, costCurrency: 'EUR'),
+      showDetails: true,
+    );
+
+    expect(find.text('150g'), findsOneWidget);
+    expect(find.text('1.20 EUR'), findsOneWidget);
   });
 }

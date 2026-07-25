@@ -1,6 +1,6 @@
 import 'package:cat_calories/common/widgets/color_label_dot.dart';
 import 'package:cat_calories/common/widgets/color_label_picker.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/item_options_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/item_options_sheet.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +35,7 @@ void main() {
             mealTitle: null,
             canMoveToMeal: false,
             onAdjustWeight: () {},
+            onEditValues: () {},
             onEdit: () {},
             onToggleEaten: () {},
             onMoveToMeal: () {},
