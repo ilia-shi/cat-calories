@@ -277,12 +277,12 @@ class CalorieRecordMacros extends StatelessWidget {
             carbs: item.carbGrams,
           ),
           if (item.weightGrams != null)
-            _StripFact(
+            MacroStripFact(
               icon: Icons.scale,
               label: '${item.weightGrams!.round()}g',
             ),
           if (item.costValue != null)
-            _StripFact(
+            MacroStripFact(
               icon: Icons.payments_outlined,
               label: '${item.costValue!.toStringAsFixed(2)} '
                       '${item.costCurrency ?? ''}'
@@ -294,12 +294,14 @@ class CalorieRecordMacros extends StatelessWidget {
   }
 }
 
-/// One divider-separated fact (weight, cost) trailing the macro badges.
-class _StripFact extends StatelessWidget {
+/// One divider-separated fact (weight, cost) trailing the macro badges. The
+/// meal-level strip reuses it, so it is public.
+class MacroStripFact extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _StripFact({required this.icon, required this.label});
+  const MacroStripFact({Key? key, required this.icon, required this.label})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {

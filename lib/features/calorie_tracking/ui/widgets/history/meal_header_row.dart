@@ -1,10 +1,13 @@
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/meal_totals_strip.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
 import 'package:flutter/material.dart';
 
-/// Header row above a meal's member records, inside a [MealGroupBlock].
+/// Header row above a meal's member records, inside a [MealGroupBlock]. Carries
+/// the whole meal's totals: kcal and, under it, the summed macros.
 class MealHeaderRow extends StatelessWidget {
   final Meal meal;
   final List<CalorieRecord> records;
@@ -21,8 +24,7 @@ class MealHeaderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
     final accent = Theme.of(context).primaryColor;
-    final total = records.fold<double>(0, (sum, r) => sum + r.value);
-    final hasUneaten = records.any((r) => !r.isEaten());
+    final totals = MealTotals.of(records);
 
     return InkWell(
       onTap: onTap,
@@ -52,10 +54,43 @@ class MealHeaderRow extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            // Loose flex, so a wide macro strip scales down inside its own half
+            // instead of squeezing the title down to an ellipsis.
+            Flexible(
+              child: _MealTotalsColumn(records: records, totals: totals),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The trailing stack of figures: item count and kcal, with the macro strip
+/// under them. Being the tallest cell of the header row, it is what the meal
+/// title centres against.
+class _MealTotalsColumn extends StatelessWidget {
+  final List<CalorieRecord> records;
+  final MealTotals totals;
+
+  const _MealTotalsColumn({required this.records, required this.totals});
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+    final hasUneaten = records.any((r) => !r.isEaten());
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             if (hasUneaten) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: ShapeDecoration(
                   color: appColors.border,
                   shape: AppCard.squircleBorder(radius: 6),
@@ -72,17 +107,19 @@ class MealHeaderRow extends StatelessWidget {
               const SizedBox(width: 8),
             ],
             Text(
-              '${records.length} items · ${total.toStringAsFixed(0)} kcal',
+              '${records.length} items · ${totals.kcal.toStringAsFixed(0)} kcal',
               style: TextStyle(
                 fontSize: 12,
                 color: appColors.textSecondary,
               ),
             ),
-            const SizedBox(width: 4),
-            Icon(Icons.more_horiz, size: 16, color: appColors.textDisabled),
           ],
         ),
-      ),
+        if (totals.hasMacros) ...[
+          const SizedBox(height: 6),
+          MealTotalsStrip(totals: totals, alignment: Alignment.centerRight),
+        ],
+      ],
     );
   }
 }

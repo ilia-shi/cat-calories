@@ -20,6 +20,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.d
 import 'package:cat_calories_core/features/calorie_tracking/domain/cooked_meal_product.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -525,29 +526,12 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
-    final totalKcal = members.fold<double>(0, (sum, r) => sum + r.value);
-    final totalWeight = members.fold<double>(
-        0, (sum, r) => sum + (r.weightGrams ?? 0));
-    double protein = 0, fat = 0, carbs = 0;
-    bool hasMacros = false;
-    final costs = <String, double>{};
-    for (final r in members) {
-      if (r.proteinGrams != null || r.fatGrams != null || r.carbGrams != null) {
-        hasMacros = true;
-        protein += r.proteinGrams ?? 0;
-        fat += r.fatGrams ?? 0;
-        carbs += r.carbGrams ?? 0;
-      }
-      if (r.costValue != null) {
-        final currency = r.costCurrency ?? '?';
-        costs[currency] = (costs[currency] ?? 0) + r.costValue!;
-      }
-    }
+    final totals = MealTotals.of(members);
 
     final chips = <String>[
-      '${totalKcal.toStringAsFixed(0)} kcal',
-      if (totalWeight > 0) '${totalWeight.toStringAsFixed(0)}g',
-      for (final entry in costs.entries)
+      '${totals.kcal.toStringAsFixed(0)} kcal',
+      if (totals.hasWeight) '${totals.weightGrams.toStringAsFixed(0)}g',
+      for (final entry in totals.costs.entries)
         '${entry.value.toStringAsFixed(2)} ${entry.key}',
     ];
 
@@ -582,9 +566,13 @@ class _TotalsCard extends StatelessWidget {
               ),
             ],
           ),
-          if (hasMacros) ...[
+          if (totals.hasMacros) ...[
             const SizedBox(height: 10),
-            MacroBadgesRow(protein: protein, fat: fat, carbs: carbs),
+            MacroBadgesRow(
+              protein: totals.protein,
+              fat: totals.fat,
+              carbs: totals.carbs,
+            ),
           ],
         ],
       ),
