@@ -51,31 +51,12 @@ final class ColorLabel {
   String toString() => hex;
 }
 
-/// The swatches offered in a picker. Same Material-500 hues as the product
-/// category palette in `categories_screen.dart`, so a category color and a
-/// record label read as one visual system — keep the two lists in step.
-/// [ColorLabel] itself accepts any color, so this set can grow, or give way to
-/// a free-form picker, without a migration.
 enum ColorLabelPreset {
   red(ColorLabel._('#F44336')),
-  pink(ColorLabel._('#E91E63')),
   purple(ColorLabel._('#9C27B0')),
-  deepPurple(ColorLabel._('#673AB7')),
-  indigo(ColorLabel._('#3F51B5')),
   blue(ColorLabel._('#2196F3')),
-  lightBlue(ColorLabel._('#03A9F4')),
-  cyan(ColorLabel._('#00BCD4')),
-  teal(ColorLabel._('#009688')),
-  green(ColorLabel._('#4CAF50')),
-  lightGreen(ColorLabel._('#8BC34A')),
-  lime(ColorLabel._('#CDDC39')),
   yellow(ColorLabel._('#FFEB3B')),
-  amber(ColorLabel._('#FFC107')),
-  orange(ColorLabel._('#FF9800')),
-  deepOrange(ColorLabel._('#FF5722')),
-  brown(ColorLabel._('#795548')),
-  grey(ColorLabel._('#9E9E9E')),
-  blueGrey(ColorLabel._('#607D8B'));
+  orange(ColorLabel._('#FF9800'));
 
   final ColorLabel color;
 

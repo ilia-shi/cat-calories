@@ -240,17 +240,6 @@ class _ColorLabelSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Color label',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: appColors.textSecondary,
-            ),
-          ),
-        ),
         const SizedBox(height: 12),
         ColorLabelPicker(
           value: value,
