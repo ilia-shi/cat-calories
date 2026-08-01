@@ -13,6 +13,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/state/calories_history
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/calorie_record_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/date_group_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/delete_entry_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/delete_meal_dialog.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_empty_state.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/history_summary_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_group_block.dart';
@@ -411,6 +412,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       onEdit: () => _openMealEditScreen(meal),
       onMarkEaten: () => _markMealEaten(meal, members),
       onUngroup: () => _ungroupMeal(meal, members),
+      onDelete: () => _confirmDeleteMeal(meal, members),
     );
   }
 
@@ -439,6 +441,21 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   Future<void> _ungroupMeal(Meal meal, List<CalorieRecord> members) async {
     await _controller.ungroupMeal(meal, members);
     _afterMealMutation('Meal ungrouped');
+  }
+
+  void _confirmDeleteMeal(Meal meal, List<CalorieRecord> members) {
+    DeleteMealDialog.show(
+      context,
+      meal: meal,
+      recordCount: members.length,
+      totalCalories: members.fold<double>(0, (sum, r) => sum + r.value),
+      onConfirm: () => _deleteMeal(meal, members),
+    );
+  }
+
+  Future<void> _deleteMeal(Meal meal, List<CalorieRecord> members) async {
+    await _controller.deleteMeal(meal, members);
+    _afterMealMutation('Meal "${meal.title}" deleted');
   }
 
   Future<void> _removeFromMeal(CalorieRecord item) async {

@@ -14,6 +14,7 @@ class MealOptionsSheet extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onMarkEaten;
   final VoidCallback onUngroup;
+  final VoidCallback onDelete;
 
   const MealOptionsSheet({
     Key? key,
@@ -24,6 +25,7 @@ class MealOptionsSheet extends StatelessWidget {
     required this.onEdit,
     required this.onMarkEaten,
     required this.onUngroup,
+    required this.onDelete,
   }) : super(key: key);
 
   static void show(
@@ -35,6 +37,7 @@ class MealOptionsSheet extends StatelessWidget {
     required VoidCallback onEdit,
     required VoidCallback onMarkEaten,
     required VoidCallback onUngroup,
+    required VoidCallback onDelete,
   }) {
     showModalBottomSheet(
       context: context,
@@ -47,6 +50,7 @@ class MealOptionsSheet extends StatelessWidget {
         onEdit: onEdit,
         onMarkEaten: onMarkEaten,
         onUngroup: onUngroup,
+        onDelete: onDelete,
       ),
     );
   }
@@ -127,6 +131,19 @@ class MealOptionsSheet extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 onUngroup();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline,
+                  color: DangerColor, size: 20),
+              title: const Text('Delete Meal'),
+              subtitle: Text(
+                'Removes the group and its '
+                '${members.length == 1 ? '1 record' : '${members.length} records'}',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onDelete();
               },
             ),
             const SizedBox(height: 8),

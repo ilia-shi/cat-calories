@@ -319,6 +319,16 @@ class CaloriesHistoryController extends ChangeNotifier {
     await load();
   }
 
+  /// Deletes a meal together with every record in it. Records go first so a
+  /// failure mid-way cannot leave them pointing at a meal that is gone.
+  Future<void> deleteMeal(Meal meal, List<CalorieRecord> members) async {
+    for (final record in members) {
+      await _recordRepository.delete(record);
+    }
+    await _mealRepository.delete(meal);
+    await load();
+  }
+
   Future<void> removeFromMeal(CalorieRecord item) async {
     final mealId = item.mealId;
     item.mealId = null;

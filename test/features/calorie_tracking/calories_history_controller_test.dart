@@ -15,6 +15,7 @@ class _FakeRecordRepo implements CalorieRecordRepositoryInterface {
   final List<CalorieRecord> records;
   final List<CalorieRecord> updated = [];
   final List<CalorieRecord> inserted = [];
+  final List<CalorieRecord> deleted = [];
 
   _FakeRecordRepo(this.records);
 
@@ -41,6 +42,13 @@ class _FakeRecordRepo implements CalorieRecordRepositoryInterface {
     inserted.add(record);
     records.add(record);
     return record;
+  }
+
+  @override
+  Future<int> delete(CalorieRecord record) async {
+    deleted.add(record);
+    records.remove(record);
+    return 1;
   }
 
   @override
@@ -530,6 +538,65 @@ void main() {
       await controller.moveToMeal(item, controller.mealsById['target']!);
 
       expect(item.updatedAt.isAfter(before), isTrue);
+    });
+  });
+
+  group('deleteMeal', () {
+    test('deletes every member record and the meal itself', () async {
+      final members = [
+        record(id: 'a1', createdAt: dayAmorning, value: 100, mealId: 'm1'),
+        record(id: 'a2', createdAt: dayAnoon, value: 200, mealId: 'm1'),
+      ];
+      final other = record(id: 'b1', createdAt: dayB, value: 300);
+      final recordRepo = _FakeRecordRepo([...members, other]);
+      final meal = Meal(
+        id: 'm1',
+        profileId: profile.id!,
+        title: 'Lunch',
+        createdAt: dayAmorning,
+      );
+      final mealRepo = _FakeMealRepo([meal]);
+      final controller = CaloriesHistoryController(
+        recordRepository: recordRepo,
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.deleteMeal(meal, members);
+
+      expect(recordRepo.deleted.map((r) => r.id), ['a1', 'a2']);
+      expect(mealRepo.deleted, [meal]);
+      expect(controller.mealsById, isEmpty);
+      expect(controller.membersByMeal, isEmpty);
+      expect(controller.sortedDates, [dayBkey],
+          reason: 'day A had only the deleted meal records');
+      expect(controller.totalAllTime, 300);
+    });
+
+    test('deletes the meal even when it has no records', () async {
+      final meal = Meal(
+        id: 'm1',
+        profileId: profile.id!,
+        title: 'Planned',
+        createdAt: dayAmorning,
+      );
+      final recordRepo = _FakeRecordRepo([
+        record(id: 'a1', createdAt: dayAmorning, value: 100),
+      ]);
+      final mealRepo = _FakeMealRepo([meal]);
+      final controller = CaloriesHistoryController(
+        recordRepository: recordRepo,
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.deleteMeal(meal, const []);
+
+      expect(recordRepo.deleted, isEmpty);
+      expect(mealRepo.deleted, [meal]);
+      expect(controller.totalAllTime, 100);
     });
   });
 
