@@ -30,10 +30,15 @@ class ProductWeightInputSheet extends StatefulWidget {
   final Product product;
   final void Function(ProductWeightResult result) onSubmit;
 
+  /// Wording of the shortcut that takes the whole package weight. Defaults to
+  /// the eating flow; cooking passes its own verb.
+  final String entirePackageLabel;
+
   const ProductWeightInputSheet({
     Key? key,
     required this.product,
     required this.onSubmit,
+    this.entirePackageLabel = 'Eat entire package',
   }) : super(key: key);
 
   @override
@@ -279,7 +284,8 @@ class _ProductWeightInputSheetState extends State<ProductWeightInputSheet> {
         onPressed: _onEatEntirePackage,
         icon: const Icon(Icons.inventory_2_outlined),
         label: Text(
-          'Eat entire package (${packageWeight.toStringAsFixed(0)}g • $packageCalories kcal)',
+          '${widget.entirePackageLabel} '
+          '(${packageWeight.toStringAsFixed(0)}g • $packageCalories kcal)',
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

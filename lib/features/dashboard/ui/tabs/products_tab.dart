@@ -11,7 +11,7 @@ import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/error_state_widget.dart';
 import 'package:cat_calories/common/widgets/floating_toolbar.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
-import 'package:cat_calories/features/products/ui/product_weight_input_sheet.dart';
+import 'package:cat_calories/common/widgets/calculator/product_weight_input_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';

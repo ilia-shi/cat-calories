@@ -7,6 +7,7 @@ import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/app_floating_action_button.dart';
 import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories/common/widgets/calculator/calorie_calculator_sheet.dart';
+import 'package:cat_calories/common/widgets/calculator/product_weight_input_sheet.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/edit_calorie_item_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
@@ -238,15 +239,25 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       return;
     }
 
-    final weight = await _promptWeight(product);
-    if (weight == null || weight <= 0) {
+    final result = await showModalBottomSheet<ProductWeightResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => ProductWeightInputSheet(
+        product: product,
+        entirePackageLabel: 'Use entire package',
+        onSubmit: (result) => Navigator.of(sheetContext).pop(result),
+      ),
+    );
+    if (result == null || result.weightGrams <= 0) {
       return;
     }
 
+    final weight = result.weightGrams;
     final now = DateTime.now();
     final record = CalorieRecord(
       id: null,
-      value: product.calculateCalories(weight) ?? 0,
+      value: result.calories,
       description: product.title,
       sortOrder: 0,
       // New ingredients follow the meal's state: still planned, or already
@@ -256,9 +267,9 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       profileId: _profile!.id!,
       wakingPeriodId: null,
       weightGrams: weight,
-      proteinGrams: product.calculateProtein(weight),
-      fatGrams: product.calculateFat(weight),
-      carbGrams: product.calculateCarbs(weight),
+      proteinGrams: result.proteinGrams,
+      fatGrams: result.fatGrams,
+      carbGrams: result.carbGrams,
       productId: product.id,
       mealId: meal.id,
       costValue: product.calculateCost(weight),
@@ -313,40 +324,6 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
     await _recordsRepo.insert(record);
     _markChanged();
     await _load();
-  }
-
-  Future<double?> _promptWeight(Product product) {
-    final controller = TextEditingController(
-      text: product.packageWeightGrams?.toStringAsFixed(0) ?? '',
-    );
-    return showDialog<double>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(product.title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Weight',
-            suffixText: 'g',
-          ),
-          onSubmitted: (value) =>
-              Navigator.of(dialogContext).pop(double.tryParse(value)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(double.tryParse(controller.text)),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _markMealEaten() async {
