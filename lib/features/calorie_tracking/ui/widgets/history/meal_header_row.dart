@@ -6,8 +6,8 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
 import 'package:flutter/material.dart';
 
-/// Header row above a meal's member records, inside a [MealGroupBlock]. Carries
-/// the whole meal's totals: kcal and, under it, the summed macros.
+/// Header block above a meal's member records, inside a [MealGroupBlock]. Names
+/// the meal on the first line and carries the whole meal's totals on the second.
 class MealHeaderRow extends StatelessWidget {
   final Meal meal;
   final List<CalorieRecord> records;
@@ -38,28 +38,33 @@ class MealHeaderRow extends StatelessWidget {
             ),
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.restaurant, size: 16, color: accent),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                meal.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: appColors.textPrimary,
+            Row(
+              children: [
+                Icon(Icons.restaurant, size: 16, color: accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    meal.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
+                if (records.any((r) => !r.isEaten())) ...[
+                  const SizedBox(width: 8),
+                  const _PlannedBadge(),
+                ],
+              ],
             ),
-            const SizedBox(width: 8),
-            // Loose flex, so a wide macro strip scales down inside its own half
-            // instead of squeezing the title down to an ellipsis.
-            Flexible(
-              child: _MealTotalsColumn(records: records, totals: totals),
-            ),
+            const SizedBox(height: 6),
+            _MealTotalsLine(records: records, totals: totals),
           ],
         ),
       ),
@@ -67,59 +72,59 @@ class MealHeaderRow extends StatelessWidget {
   }
 }
 
-/// The trailing stack of figures: item count and kcal, with the macro strip
-/// under them. Being the tallest cell of the header row, it is what the meal
-/// title centres against.
-class _MealTotalsColumn extends StatelessWidget {
+/// The second line of the header: the meal's macros and weight, then its item
+/// count and kcal. One uninterrupted reading, so a narrow screen scales the
+/// macro strip down rather than pushing the count onto a line of its own.
+class _MealTotalsLine extends StatelessWidget {
   final List<CalorieRecord> records;
   final MealTotals totals;
 
-  const _MealTotalsColumn({required this.records, required this.totals});
+  const _MealTotalsLine({required this.records, required this.totals});
 
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
-    final hasUneaten = records.any((r) => !r.isEaten());
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Row(
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasUneaten) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: ShapeDecoration(
-                  color: appColors.border,
-                  shape: AppCard.squircleBorder(radius: 6),
-                ),
-                child: Text(
-                  'planned',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              '${records.length} items · ${totals.kcal.toStringAsFixed(0)} kcal',
-              style: TextStyle(
-                fontSize: 12,
-                color: appColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
         if (totals.hasMacros) ...[
-          const SizedBox(height: 6),
-          MealTotalsStrip(totals: totals, alignment: Alignment.centerRight),
+          Flexible(child: MealTotalsStrip(totals: totals)),
+          const SizedBox(width: 10),
         ],
+        Text(
+          '${records.length} items · ${totals.kcal.toStringAsFixed(0)} kcal',
+          style: TextStyle(
+            fontSize: 12,
+            color: appColors.textSecondary,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+/// Marks a meal that still holds records nobody has eaten yet.
+class _PlannedBadge extends StatelessWidget {
+  const _PlannedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: ShapeDecoration(
+        color: appColors.border,
+        shape: AppCard.squircleBorder(radius: 6),
+      ),
+      child: Text(
+        'planned',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: appColors.textSecondary,
+        ),
+      ),
     );
   }
 }
