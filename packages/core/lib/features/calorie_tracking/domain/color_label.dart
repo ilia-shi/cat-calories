@@ -54,6 +54,7 @@ final class ColorLabel {
 enum ColorLabelPreset {
   red(ColorLabel._('#F44336')),
   purple(ColorLabel._('#9C27B0')),
+  green(ColorLabel._('#008000')),
   blue(ColorLabel._('#2196F3')),
   yellow(ColorLabel._('#FFEB3B')),
   orange(ColorLabel._('#FF9800'));
