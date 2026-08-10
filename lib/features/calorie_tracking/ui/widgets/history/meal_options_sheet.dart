@@ -4,8 +4,6 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:flutter/material.dart';
 
-/// Bottom sheet of actions for a meal group. Presentational: it pops itself,
-/// then invokes the matching callback — the screen owns the work.
 class MealOptionsSheet extends StatelessWidget {
   final Meal meal;
   final List<CalorieRecord> members;
@@ -41,6 +39,9 @@ class MealOptionsSheet extends StatelessWidget {
   }) {
     showModalBottomSheet(
       context: context,
+      // An uneaten meal adds a tile, pushing the sheet past the default 9/16 of
+      // the screen, so let it size itself and scroll instead of clipping.
+      isScrollControlled: true,
       shape: AppCard.squircleBorder(radius: 20, bottom: false),
       builder: (_) => MealOptionsSheet(
         meal: meal,
@@ -61,93 +62,101 @@ class MealOptionsSheet extends StatelessWidget {
     final hasUneaten = members.any((r) => !r.isEaten());
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading:
-                  Icon(Icons.restaurant, color: Theme.of(context).primaryColor),
-              title: Text(
-                meal.title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                '${members.length} items'
-                '${meal.notes?.trim().isNotEmpty == true ? ' · ${meal.notes}' : ''}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: appColors.textSecondary),
-              ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.restaurant,
+                      color: Theme.of(context).primaryColor),
+                  title: Text(
+                    meal.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${members.length} items'
+                    '${meal.notes?.trim().isNotEmpty == true ? ' · ${meal.notes}' : ''}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: appColors.textSecondary),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.soup_kitchen,
+                      color: Colors.teal, size: 20),
+                  title: const Text('Cooking Mode'),
+                  subtitle: const Text(
+                      'Adjust weights and ingredients while cooking'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onCookingMode();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.copy_all,
+                      color: Colors.indigo, size: 20),
+                  title: const Text('Duplicate Meal (cook again)'),
+                  subtitle: const Text(
+                      'New planned meal with the same ingredients and weights'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onDuplicate();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                  title: const Text('Rename / Edit Notes'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onEdit();
+                  },
+                ),
+                if (hasUneaten)
+                  ListTile(
+                    leading: const Icon(Icons.check_circle,
+                        color: SuccessColor, size: 20),
+                    title: const Text('Mark Meal as Eaten'),
+                    subtitle: const Text('Stamps all its records at once'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMarkEaten();
+                    },
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.playlist_remove,
+                      color: Colors.orange, size: 20),
+                  title: const Text('Ungroup Meal'),
+                  subtitle:
+                      const Text('Records stay, only the group is removed'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onUngroup();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_outline,
+                      color: DangerColor, size: 20),
+                  title: const Text('Delete Meal'),
+                  subtitle: Text(
+                    'Removes the group and its '
+                    '${members.length == 1 ? '1 record' : '${members.length} records'}',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onDelete();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            const Divider(height: 1),
-            ListTile(
-              leading:
-                  const Icon(Icons.soup_kitchen, color: Colors.teal, size: 20),
-              title: const Text('Cooking Mode'),
-              subtitle:
-                  const Text('Adjust weights and ingredients while cooking'),
-              onTap: () {
-                Navigator.pop(context);
-                onCookingMode();
-              },
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.copy_all, color: Colors.indigo, size: 20),
-              title: const Text('Duplicate Meal (cook again)'),
-              subtitle: const Text(
-                  'New planned meal with the same ingredients and weights'),
-              onTap: () {
-                Navigator.pop(context);
-                onDuplicate();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit, color: Colors.blue, size: 20),
-              title: const Text('Rename / Edit Notes'),
-              onTap: () {
-                Navigator.pop(context);
-                onEdit();
-              },
-            ),
-            if (hasUneaten)
-              ListTile(
-                leading: const Icon(Icons.check_circle,
-                    color: SuccessColor, size: 20),
-                title: const Text('Mark Meal as Eaten'),
-                subtitle: const Text('Stamps all its records at once'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onMarkEaten();
-                },
-              ),
-            ListTile(
-              leading: const Icon(Icons.playlist_remove,
-                  color: Colors.orange, size: 20),
-              title: const Text('Ungroup Meal'),
-              subtitle: const Text('Records stay, only the group is removed'),
-              onTap: () {
-                Navigator.pop(context);
-                onUngroup();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline,
-                  color: DangerColor, size: 20),
-              title: const Text('Delete Meal'),
-              subtitle: Text(
-                'Removes the group and its '
-                '${members.length == 1 ? '1 record' : '${members.length} records'}',
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                onDelete();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );

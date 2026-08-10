@@ -6,8 +6,6 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
 import 'package:flutter/material.dart';
 
-/// Header block above a meal's member records, inside a [MealGroupBlock]. Names
-/// the meal on the first line and carries the whole meal's totals on the second.
 class MealHeaderRow extends StatelessWidget {
   final Meal meal;
   final List<CalorieRecord> records;
