@@ -132,8 +132,8 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         id, profile_id, waking_period_id, product_id, meal_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
         cost_value, cost_currency, cost_is_manual, color_label,
-        created_at_day, eaten_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_at_day, eaten_at, planned_for, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       json['id'],
       json['profile_id'],
@@ -153,6 +153,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['color_label'],
       json['created_at_day'],
       json['eaten_at'],
+      json['planned_for'],
       json['created_at'],
       json['updated_at'],
     ]);
@@ -172,8 +173,8 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         value = ?, description = ?, sort_order = ?,
         weight_grams = ?, protein_grams = ?, fat_grams = ?, carb_grams = ?,
         cost_value = ?, cost_currency = ?, cost_is_manual = ?, color_label = ?,
-        eaten_at = ?, updated_at = ?, product_id = ?, meal_id = ?,
-        waking_period_id = ?
+        eaten_at = ?, planned_for = ?, updated_at = ?, product_id = ?,
+        meal_id = ?, waking_period_id = ?
       WHERE id = ?
     ''', [
       json['value'],
@@ -188,6 +189,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['cost_is_manual'] ?? 0,
       json['color_label'],
       json['eaten_at'],
+      json['planned_for'],
       json['updated_at'],
       json['product_id'],
       json['meal_id'],
@@ -238,6 +240,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       'cost_is_manual': row['cost_is_manual'],
       'color_label': row['color_label'],
       'eaten_at': row['eaten_at'],
+      'planned_for': row['planned_for'],
       'created_at': row['created_at'],
       'updated_at': row['updated_at'],
     });

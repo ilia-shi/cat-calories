@@ -58,6 +58,7 @@ class V001InitialSchema extends Migration {
         cost_currency TEXT NULL,
         cost_is_manual INT NOT NULL DEFAULT 0,
         color_label TEXT NULL,
+        planned_for INT NULL,
         FOREIGN KEY(profile_id) REFERENCES profiles(id),
         FOREIGN KEY(waking_period_id) REFERENCES waking_periods(id),
         FOREIGN KEY(product_id) REFERENCES products(id)
@@ -113,6 +114,7 @@ class V001InitialSchema extends Migration {
         created_at INT NOT NULL,
         updated_at INT NOT NULL,
         eaten_at INT NULL,
+        planned_for INT NULL,
         cooking_minutes INT NULL,
         taste_rating INT NULL,
         satiety_rating INT NULL,
@@ -127,6 +129,8 @@ class V001InitialSchema extends Migration {
         'CREATE INDEX calorie_items_product_id_idx ON calorie_items(product_id)');
     await db.execute(
         'CREATE INDEX calorie_items_meal_id_idx ON calorie_items(meal_id)');
+    await db.execute(
+        'CREATE INDEX calorie_items_planned_for_idx ON calorie_items(planned_for)');
     await db.execute(
         'CREATE INDEX products_category_id_idx ON products(category_id)');
     await db.execute(

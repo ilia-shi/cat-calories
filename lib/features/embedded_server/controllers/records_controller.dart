@@ -67,6 +67,7 @@ class RecordsController extends Controller {
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
       mealId: data['meal_id'] as String?,
+      plannedFor: _parsePlannedFor(data['planned_for']),
       colorLabel: ColorLabel.tryParse(data['color_label']),
     );
 
@@ -122,6 +123,9 @@ class RecordsController extends Controller {
     if (data.containsKey('color_label')) {
       item.colorLabel = ColorLabel.tryParse(data['color_label']);
     }
+    if (data.containsKey('planned_for')) {
+      item.plannedFor = _parsePlannedFor(data['planned_for']);
+    }
     if (data.containsKey('eaten_at')) {
       final raw = data['eaten_at'] as String?;
       item.eatenAt = raw != null ? DateTime.parse(raw) : null;
@@ -170,6 +174,26 @@ class RecordsController extends Controller {
     'cost_currency': item.costCurrency,
     'cost_is_manual': item.costIsManual,
     'meal_id': item.mealId,
+    'planned_for': _plannedForToJson(item.plannedFor),
     'color_label': item.colorLabel?.hex,
   };
+
+  /// `planned_for` crosses the API as a bare `YYYY-MM-DD` day, not a timestamp:
+  /// it means a calendar day, and sending it as an instant would shift it to
+  /// the neighbouring day for every client whose offset from UTC is not zero.
+  static DateTime? _parsePlannedFor(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    return DateTime.tryParse(value);
+  }
+
+  static String? _plannedForToJson(DateTime? day) {
+    if (day == null) {
+      return null;
+    }
+    final month = day.month.toString().padLeft(2, '0');
+    final dayOfMonth = day.day.toString().padLeft(2, '0');
+    return '${day.year}-$month-$dayOfMonth';
+  }
 }

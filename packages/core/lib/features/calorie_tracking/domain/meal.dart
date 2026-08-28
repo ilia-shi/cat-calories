@@ -13,6 +13,11 @@ final class Meal {
   DateTime updatedAt;
   DateTime? eatenAt;
 
+  /// The day this meal is meant to be eaten, as local midnight of that day —
+  /// day granularity, no time of day. Null means "no particular day": a meal
+  /// grouped after the fact, or one planned for right now.
+  DateTime? plannedFor;
+
   /// Signal fields (increment E fills their UI; nullable from day one).
   int? cookingMinutes;
   int? tasteRating;
@@ -29,6 +34,7 @@ final class Meal {
     required this.createdAt,
     DateTime? updatedAt,
     this.eatenAt,
+    this.plannedFor,
     this.cookingMinutes,
     this.tasteRating,
     this.satietyRating,
@@ -47,6 +53,9 @@ final class Meal {
         eatenAt: json['eaten_at'] != null
             ? DateTime.fromMillisecondsSinceEpoch(json['eaten_at'])
             : null,
+        plannedFor: json['planned_for'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(json['planned_for'])
+            : null,
         cookingMinutes: json['cooking_minutes'],
         tasteRating: json['taste_rating'],
         satietyRating: json['satiety_rating'],
@@ -62,6 +71,7 @@ final class Meal {
         'created_at': createdAt.millisecondsSinceEpoch,
         'updated_at': updatedAt.millisecondsSinceEpoch,
         'eaten_at': eatenAt?.millisecondsSinceEpoch,
+        'planned_for': plannedFor?.millisecondsSinceEpoch,
         'cooking_minutes': cookingMinutes,
         'taste_rating': tasteRating,
         'satiety_rating': satietyRating,

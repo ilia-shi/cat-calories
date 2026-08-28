@@ -5,6 +5,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class MealHeaderRow extends StatelessWidget {
   final Meal meal;
@@ -57,7 +58,7 @@ class MealHeaderRow extends StatelessWidget {
                 ),
                 if (records.any((r) => !r.isEaten())) ...[
                   const SizedBox(width: 8),
-                  const _PlannedBadge(),
+                  _PlannedBadge(plannedFor: meal.plannedFor),
                 ],
               ],
             ),
@@ -101,13 +102,17 @@ class _MealTotalsLine extends StatelessWidget {
   }
 }
 
-/// Marks a meal that still holds records nobody has eaten yet.
+/// Marks a meal that still holds records nobody has eaten yet, naming the day
+/// it is meant for once one is set.
 class _PlannedBadge extends StatelessWidget {
-  const _PlannedBadge();
+  final DateTime? plannedFor;
+
+  const _PlannedBadge({required this.plannedFor});
 
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final day = plannedFor;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -116,7 +121,9 @@ class _PlannedBadge extends StatelessWidget {
         shape: AppCard.squircleBorder(radius: 6),
       ),
       child: Text(
-        'planned',
+        day == null
+            ? 'planned'
+            : 'for ${DateFormat('EEE d MMM').format(day)}',
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w600,

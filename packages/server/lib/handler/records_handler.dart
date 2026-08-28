@@ -85,6 +85,7 @@ class RecordsHandler extends Controller {
       costCurrency: data['cost_currency'] as String?,
       costIsManual: data['cost_is_manual'] == true,
       mealId: data['meal_id'] as String?,
+      plannedFor: _parsePlannedFor(data['planned_for']),
       colorLabel: ColorLabel.tryParse(data['color_label']),
     );
 
@@ -150,6 +151,9 @@ class RecordsHandler extends Controller {
     }
     if (data.containsKey('meal_id')) {
       existing.mealId = data['meal_id'] as String?;
+    }
+    if (data.containsKey('planned_for')) {
+      existing.plannedFor = _parsePlannedFor(data['planned_for']);
     }
     if (data.containsKey('color_label')) {
       existing.colorLabel = ColorLabel.tryParse(data['color_label']);
@@ -228,6 +232,25 @@ class RecordsHandler extends Controller {
     );
   }
 
+  /// `planned_for` crosses the API as a bare `YYYY-MM-DD` day, not a timestamp:
+  /// it means a calendar day, and sending it as an instant would shift it to the
+  /// neighbouring day for every client whose offset from UTC is not zero.
+  static DateTime? _parsePlannedFor(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    return DateTime.tryParse(value);
+  }
+
+  static String? _plannedForToJson(DateTime? day) {
+    if (day == null) {
+      return null;
+    }
+    final month = day.month.toString().padLeft(2, '0');
+    final dayOfMonth = day.day.toString().padLeft(2, '0');
+    return '${day.year}-$month-$dayOfMonth';
+  }
+
   static Map<String, dynamic> _recordToJson(CalorieRecord r) => {
         'id': r.id,
         'value': r.value,
@@ -242,6 +265,7 @@ class RecordsHandler extends Controller {
         'cost_currency': r.costCurrency,
         'cost_is_manual': r.costIsManual,
         'meal_id': r.mealId,
+        'planned_for': _plannedForToJson(r.plannedFor),
         'color_label': r.colorLabel?.hex,
       };
 }

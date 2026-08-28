@@ -207,6 +207,13 @@ components:
         meal_id:
           type: string
           nullable: true
+        planned_for:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            The calendar day the record is planned to be eaten, as YYYY-MM-DD.
+            A day, not an instant — null means no particular day.
         color_label:
           type: string
           nullable: true
@@ -321,6 +328,10 @@ components:
         meal_id:
           type: string
           nullable: true
+        planned_for:
+          type: string
+          format: date
+          nullable: true
         color_label:
           type: string
           nullable: true
@@ -370,6 +381,10 @@ components:
           nullable: true
         meal_id:
           type: string
+          nullable: true
+        planned_for:
+          type: string
+          format: date
           nullable: true
         color_label:
           type: string

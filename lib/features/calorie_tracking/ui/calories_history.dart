@@ -425,6 +425,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       meal.title = result.title!;
     }
     meal.notes = result.notes;
+    meal.plannedFor = result.plannedFor;
     meal.cookingMinutes = result.cookingMinutes;
     meal.tasteRating = result.tasteRating;
     meal.satietyRating = result.satietyRating;

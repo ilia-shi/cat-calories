@@ -19,6 +19,11 @@ final class CalorieRecord {
   /// Optional meal grouping — null means the record is ungrouped (always ok).
   String? mealId;
 
+  /// The day this record is planned to be eaten, as local midnight of that day.
+  /// Null means "no particular day". For a record in a meal this is a copy of
+  /// the meal's own [Meal.plannedFor], rewritten whenever the meal moves day.
+  DateTime? plannedFor;
+
   /// Cost snapshotted at logging time from the product's then-current price —
   /// the product price may change later without corrupting history.
   double? costValue;
@@ -47,6 +52,7 @@ final class CalorieRecord {
     this.carbGrams = null,
     this.productId = null,
     this.mealId = null,
+    this.plannedFor = null,
     this.costValue = null,
     this.costCurrency = null,
     this.costIsManual = false,
@@ -75,6 +81,9 @@ final class CalorieRecord {
         carbGrams: json['carb_grams'] ?? null,
         productId: json['product_id'] ?? null,
         mealId: json['meal_id']?.toString(),
+        plannedFor: json['planned_for'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(json['planned_for'])
+            : null,
         costValue: json['cost_value'] ?? null,
         costCurrency: json['cost_currency'] ?? null,
         // sqlite stores booleans as 0/1
@@ -105,6 +114,7 @@ final class CalorieRecord {
         'carb_grams': carbGrams,
         'product_id': productId,
         'meal_id': mealId,
+        'planned_for': plannedFor?.millisecondsSinceEpoch,
         'cost_value': costValue,
         'cost_currency': costCurrency,
         'cost_is_manual': costIsManual ? 1 : 0,
@@ -119,7 +129,9 @@ final class CalorieRecord {
   /// eaten, detached from any waking period and meal — the caller assigns a
   /// new meal. Nutrition, weight, cost and the color label carry over as the
   /// starting point to tweak while cooking; cost is no longer a manual override
-  /// because it no longer describes an actual past purchase.
+  /// because it no longer describes an actual past purchase. [plannedFor] is
+  /// deliberately not carried over — the source's day is in the past by the
+  /// time it is cooked again; the caller stamps the new meal's day instead.
   CalorieRecord copyForPlanning(DateTime createdAt) {
     return CalorieRecord(
       id: null,

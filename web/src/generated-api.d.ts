@@ -84,6 +84,11 @@ export interface components {
             /** @default false */
             cost_is_manual: boolean;
             meal_id?: string | null;
+            /**
+             * Format: date
+             * @description The calendar day the record is planned to be eaten, as YYYY-MM-DD. A day, not an instant — null means no particular day.
+             */
+            planned_for?: string | null;
             color_label?: string | null;
         };
         Profile: {
@@ -130,6 +135,8 @@ export interface components {
             cost_currency?: string | null;
             cost_is_manual?: boolean | null;
             meal_id?: string | null;
+            /** Format: date */
+            planned_for?: string | null;
             color_label?: string | null;
         };
         UpdateRecordRequest: {
@@ -153,6 +160,8 @@ export interface components {
             cost_currency?: string | null;
             cost_is_manual?: boolean | null;
             meal_id?: string | null;
+            /** Format: date */
+            planned_for?: string | null;
             color_label?: string | null;
         };
         DeleteResponse: {

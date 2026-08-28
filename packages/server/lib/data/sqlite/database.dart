@@ -52,6 +52,7 @@ void _migrate(Database db) {
       color_label      TEXT,
       created_at_day   INTEGER,
       eaten_at         INTEGER,
+      planned_for      INTEGER,
       created_at       INTEGER NOT NULL,
       updated_at       INTEGER NOT NULL,
       deleted_at       INTEGER
@@ -142,6 +143,7 @@ void _migrate(Database db) {
   _addColumnIfMissing(
       db, 'calorie_items', 'cost_is_manual', 'INTEGER NOT NULL DEFAULT 0');
   _addColumnIfMissing(db, 'calorie_items', 'color_label', 'TEXT');
+  _addColumnIfMissing(db, 'calorie_items', 'planned_for', 'INTEGER');
   _addColumnIfMissing(db, 'products', 'price_per_package', 'REAL');
   _addColumnIfMissing(db, 'products', 'price_currency', 'TEXT');
   _addColumnIfMissing(db, 'products', 'price_updated_at', 'INTEGER');
