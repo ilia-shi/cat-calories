@@ -62,16 +62,20 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
         .toList();
   }
 
+  /// Records belonging to one day. Matches that day exactly: it used to take
+  /// everything from the day onwards, which was harmless while nothing could be
+  /// dated ahead, but a meal planned for next week would now land in today's.
   Future<List<CalorieRecord>> fetchByCreatedAtDay(
       DateTime createdAtDay) async {
     final calorieItemsResult = await _db.query(
       'calorie_items',
       orderBy: 'sort_order ASC',
-      where: 'created_at_day >= ?',
+      where: 'created_at_day = ?',
       whereArgs: [
-        DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
-                .millisecondsSinceEpoch /
-            100000
+        (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
+                    .millisecondsSinceEpoch /
+                100000)
+            .round(),
       ],
     );
 
@@ -124,21 +128,25 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
     return null;
   }
 
+  /// Per-day totals, newest day first. Counts only what was actually eaten, so
+  /// these totals say the same thing as the history screen's day headers — and
+  /// so a day that holds nothing but a plan never becomes a day result, which
+  /// would otherwise push real days out of a `LIMIT`ed window from the future.
   Future<List<DayResult>> fetchDaysByProfile(
       Profile profile, int limit) async {
     final result = await _db.rawQuery('''
-      SELECT 
-          SUM(ci.value) as value_sum, 
+      SELECT
+          SUM(ci.value) as value_sum,
           SUM(case when ci.value > 0 THEN ci.value ELSE 0 END) positive_value_sum,
           SUM(case when ci.value < 0 THEN ci.value ELSE 0 END) negative_value_sum,
           ci.created_at_day
-      
+
       FROM ${tableName} ci
-      WHERE ci.profile_id = ?
+      WHERE ci.profile_id = ? AND ci.eaten_at IS NOT NULL
 
       GROUP BY created_at_day
       ORDER BY created_at_day DESC
-      
+
       LIMIT ?
     ''', [profile.id, limit]);
 

@@ -108,7 +108,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         SUM(CASE WHEN value < 0 THEN value ELSE 0 END) negative_value_sum,
         created_at_day
       FROM calorie_items
-      WHERE profile_id = ?
+      WHERE profile_id = ? AND eaten_at IS NOT NULL
       GROUP BY created_at_day
       ORDER BY created_at_day DESC
       LIMIT ?
@@ -173,8 +173,8 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         value = ?, description = ?, sort_order = ?,
         weight_grams = ?, protein_grams = ?, fat_grams = ?, carb_grams = ?,
         cost_value = ?, cost_currency = ?, cost_is_manual = ?, color_label = ?,
-        eaten_at = ?, planned_for = ?, updated_at = ?, product_id = ?,
-        meal_id = ?, waking_period_id = ?
+        eaten_at = ?, planned_for = ?, created_at_day = ?, updated_at = ?,
+        product_id = ?, meal_id = ?, waking_period_id = ?
       WHERE id = ?
     ''', [
       json['value'],
@@ -190,6 +190,9 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['color_label'],
       json['eaten_at'],
       json['planned_for'],
+      // The day key follows eaten_at and planned_for, so an update that moves
+      // either has to move it too or the row keeps answering for its old day.
+      json['created_at_day'],
       json['updated_at'],
       json['product_id'],
       json['meal_id'],

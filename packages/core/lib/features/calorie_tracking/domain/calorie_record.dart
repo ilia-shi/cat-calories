@@ -98,8 +98,12 @@ final class CalorieRecord {
         'description': description,
         'created_at': createdAt.millisecondsSinceEpoch,
         'updated_at': updatedAt.millisecondsSinceEpoch,
+        // The day key every day-bucketing query groups and filters by. It
+        // holds the day the record *belongs to* ([dayAnchor]), which is only
+        // the day it was created when it was neither planned nor eaten on
+        // another one — the column name predates planned meals.
         'created_at_day':
-            (DateTime(createdAt.year, createdAt.month, createdAt.day)
+            (DateTime(dayAnchor.year, dayAnchor.month, dayAnchor.day)
                         .millisecondsSinceEpoch /
                     100000)
                 .round(),
@@ -124,6 +128,12 @@ final class CalorieRecord {
   bool isEaten() {
     return eatenAt != null;
   }
+
+  /// The moment that decides which calendar day this record counts on: when it
+  /// was eaten if it was eaten, otherwise the day it is planned for, otherwise
+  /// when it was entered. The single statement of that precedence — `recordDay`
+  /// and the stored `created_at_day` key both read it from here.
+  DateTime get dayAnchor => eatenAt ?? plannedFor ?? createdAt;
 
   /// A fresh planned copy of this record ("cook it again"): no id yet, not
   /// eaten, detached from any waking period and meal — the caller assigns a

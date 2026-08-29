@@ -10,8 +10,10 @@ DateTime dayOf(DateTime moment) =>
 ///
 /// Eaten wins over planned on purpose. Saturday's plan eaten on Sunday counts
 /// on Sunday, and needs no correction from the user.
-DateTime recordDay(CalorieRecord record) =>
-    dayOf(record.eatenAt ?? record.plannedFor ?? record.createdAt);
+///
+/// The same rule is materialized into the `created_at_day` column by
+/// [CalorieRecord.toJson], so the SQL day queries and this function agree.
+DateTime recordDay(CalorieRecord record) => dayOf(record.dayAnchor);
 
 /// The day a meal belongs to, by the same rule. Only meaningful for a meal
 /// holding no records: one with records is placed by where its records land,

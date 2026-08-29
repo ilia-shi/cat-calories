@@ -81,6 +81,39 @@ void main() {
     });
   });
 
+  group('the stored created_at_day key', () {
+    int keyFor(CalorieRecord record) => record.toJson()['created_at_day'] as int;
+
+    int keyOfDay(DateTime day) =>
+        (DateTime(day.year, day.month, day.day).millisecondsSinceEpoch / 100000)
+            .round();
+
+    test('matches recordDay, so SQL and Dart bucket a record alike', () {
+      final planned = record(createdAt: wednesday, plannedFor: saturday);
+      final eaten = record(
+        createdAt: wednesday,
+        plannedFor: saturday,
+        eatenAt: sunday,
+      );
+      final plain = record(createdAt: wednesday);
+
+      expect(keyFor(planned), keyOfDay(recordDay(planned)));
+      expect(keyFor(eaten), keyOfDay(recordDay(eaten)));
+      expect(keyFor(plain), keyOfDay(recordDay(plain)));
+    });
+
+    test('follows the planned day away from the day it was entered', () {
+      expect(
+        keyFor(record(createdAt: wednesday, plannedFor: saturday)),
+        keyOfDay(saturday),
+      );
+      expect(
+        keyFor(record(createdAt: wednesday, plannedFor: saturday)),
+        isNot(keyOfDay(wednesday)),
+      );
+    });
+  });
+
   group('dayOf', () {
     test('keeps the calendar day and drops the clock', () {
       expect(dayOf(DateTime(2026, 7, 8, 23, 59, 59)), DateTime(2026, 7, 8));
