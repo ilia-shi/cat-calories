@@ -1,5 +1,6 @@
 import 'package:cat_calories/app/profile_resolver.dart';
 import 'package:cat_calories/common/locator.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/state/meal_eating.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/day_summary.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
@@ -28,6 +29,11 @@ class CaloriesHistoryController extends ChangeNotifier {
   final CalorieRecordRepositoryInterface _recordRepository;
   final MealRepositoryInterface _mealRepository;
   final ProfileResolver _profileResolver;
+
+  late final MealEating _eating = MealEating(
+    mealRepository: _mealRepository,
+    recordRepository: _recordRepository,
+  );
 
   bool _isLoading = true;
   bool _isInitialLoad = true;
@@ -346,34 +352,14 @@ class CaloriesHistoryController extends ChangeNotifier {
   }
 
   Future<void> markMealEaten(Meal meal, List<CalorieRecord> members) async {
-    final now = DateTime.now();
-    meal.eatenAt = now;
-    meal.updatedAt = now;
-    await _mealRepository.update(meal);
-    for (final record in members) {
-      if (!record.isEaten()) {
-        record.eatenAt = now;
-        record.updatedAt = now;
-        await _recordRepository.update(record);
-      }
-    }
+    await _eating.markEaten(meal, members);
     await load();
   }
 
   /// Takes the meal back to planned. The mirror of [markMealEaten], and the
   /// only way back to the day controls, which an eaten meal does not offer.
   Future<void> markMealNotEaten(Meal meal, List<CalorieRecord> members) async {
-    final now = DateTime.now();
-    meal.eatenAt = null;
-    meal.updatedAt = now;
-    await _mealRepository.update(meal);
-    for (final record in members) {
-      if (record.isEaten()) {
-        record.eatenAt = null;
-        record.updatedAt = now;
-        await _recordRepository.update(record);
-      }
-    }
+    await _eating.markNotEaten(meal, members);
     await load();
   }
 
