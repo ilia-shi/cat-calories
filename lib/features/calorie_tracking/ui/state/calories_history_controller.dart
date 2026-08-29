@@ -360,6 +360,32 @@ class CaloriesHistoryController extends ChangeNotifier {
     await load();
   }
 
+  /// Takes the meal back to planned. The mirror of [markMealEaten], and the
+  /// only way back to the day controls, which an eaten meal does not offer.
+  Future<void> markMealNotEaten(Meal meal, List<CalorieRecord> members) async {
+    final now = DateTime.now();
+    meal.eatenAt = null;
+    meal.updatedAt = now;
+    await _mealRepository.update(meal);
+    for (final record in members) {
+      if (record.isEaten()) {
+        record.eatenAt = null;
+        record.updatedAt = now;
+        await _recordRepository.update(record);
+      }
+    }
+    await load();
+  }
+
+  /// Reschedules the meal; [saveMeal] carries its members to the same day.
+  /// [day] null means "no particular day". A member that is already eaten still
+  /// counts on the day it was eaten, whatever day this writes onto it.
+  Future<void> moveMealToDay(Meal meal, DateTime? day) async {
+    meal.plannedFor = day;
+    meal.updatedAt = DateTime.now();
+    await saveMeal(meal);
+  }
+
   Future<void> ungroupMeal(Meal meal, List<CalorieRecord> members) async {
     final now = DateTime.now();
     for (final record in members) {

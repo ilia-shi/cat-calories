@@ -20,7 +20,9 @@ import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_g
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_picker_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/move_meal_day_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/plan_meal_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/planned_day_chips.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/item_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/record_calculator_edit_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
@@ -229,6 +231,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       summary: _controller.daySummaries[date]!,
       isExpanded: isExpanded,
       onToggle: () => _controller.toggleExpanded(date),
+      onPlanMeal: () => _planMealOn(date),
       // Collapsed days build none of their rows.
       dayItems: isExpanded ? _buildDayItems(items, date) : const [],
     );
@@ -412,6 +415,20 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
     if (plan == null) {
       return;
     }
+    await _planFrom(plan);
+  }
+
+  /// Planning from a day card: the day is settled by which card was tapped, so
+  /// the sheet only asks for a name.
+  Future<void> _planMealOn(DateTime date) async {
+    final plan = await PlanMealSheet.show(context, fixedDay: date);
+    if (plan == null) {
+      return;
+    }
+    await _planFrom(plan);
+  }
+
+  Future<void> _planFrom(PlanMealResult plan) async {
     final meal = await _controller.createNewMeal(
       plan.title,
       plannedFor: plan.plannedFor,
@@ -438,7 +455,9 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       onCookingMode: () => _openCookingScreen(meal),
       onDuplicate: () => _duplicateMeal(meal, members),
       onEdit: () => _openMealEditScreen(meal),
+      onMoveToDay: () => _moveMealToDay(meal, members),
       onMarkEaten: () => _markMealEaten(meal, members),
+      onMarkNotEaten: () => _markMealNotEaten(meal, members),
       onUngroup: () => _ungroupMeal(meal, members),
       onDelete: () => _confirmDeleteMeal(meal, members),
     );
@@ -465,6 +484,30 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   Future<void> _markMealEaten(Meal meal, List<CalorieRecord> members) async {
     await _controller.markMealEaten(meal, members);
     _afterMealMutation('Meal marked as eaten');
+  }
+
+  Future<void> _markMealNotEaten(
+      Meal meal, List<CalorieRecord> members) async {
+    await _controller.markMealNotEaten(meal, members);
+    _afterMealMutation('Meal "${meal.title}" is planned again');
+  }
+
+  Future<void> _moveMealToDay(Meal meal, List<CalorieRecord> members) async {
+    final chosen = await MoveMealDaySheet.show(
+      context,
+      meal: meal,
+      members: members,
+    );
+    if (chosen == null) {
+      return;
+    }
+    final day = chosen.single;
+    await _controller.moveMealToDay(meal, day);
+    _afterMealMutation(
+      day == null
+          ? 'Meal "${meal.title}" is no longer tied to a day'
+          : 'Moved "${meal.title}" to ${PlannedDayChips.labelFor(day)}',
+    );
   }
 
   Future<void> _ungroupMeal(Meal meal, List<CalorieRecord> members) async {

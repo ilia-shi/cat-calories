@@ -16,6 +16,7 @@ void main() {
   Future<PlanMealResult?> openSheet(
     WidgetTester tester, {
     String? initialTitle,
+    DateTime? fixedDay,
     required Future<void> Function(WidgetTester tester) act,
   }) async {
     PlanMealResult? result;
@@ -29,6 +30,7 @@ void main() {
               result = await PlanMealSheet.show(
                 context,
                 initialTitle: initialTitle,
+                fixedDay: fixedDay,
               );
               done = true;
             },
@@ -117,6 +119,38 @@ void main() {
     );
 
     expect(result!.title, 'Old curry');
+  });
+
+  testWidgets('planning from a day card states the day instead of asking',
+      (tester) async {
+    final result = await openSheet(
+      tester,
+      fixedDay: dayFromToday(4),
+      act: (tester) async {
+        expect(find.text('Tomorrow'), findsNothing,
+            reason: 'the day was settled by the card that was tapped');
+        expect(find.text('Pick a day'), findsNothing);
+        expect(find.text(dayLabel(dayFromToday(4))), findsOneWidget);
+        await tester.tap(find.text('Plan'));
+      },
+    );
+
+    expect(result!.plannedFor, dayFromToday(4));
+    expect(result.title, 'Meal for ${dayLabel(dayFromToday(4))}');
+  });
+
+  testWidgets('planning onto today from its own card stores no day',
+      (tester) async {
+    final result = await openSheet(
+      tester,
+      fixedDay: dayFromToday(0),
+      act: (tester) async {
+        expect(find.text('Today'), findsOneWidget);
+        await tester.tap(find.text('Plan'));
+      },
+    );
+
+    expect(result!.plannedFor, isNull);
   });
 
   testWidgets('backing out plans nothing', (tester) async {

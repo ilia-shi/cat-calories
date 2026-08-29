@@ -28,6 +28,7 @@ void main() {
     WidgetTester tester, {
     required DateTime date,
     required DaySummary daySummary,
+    VoidCallback? onPlanMeal,
   }) {
     return tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -38,11 +39,14 @@ void main() {
             isExpanded: false,
             onToggle: () {},
             dayItems: const [],
+            onPlanMeal: onPlanMeal ?? () {},
           ),
         ),
       ),
     ));
   }
+
+  final planAction = find.byTooltip('Plan a meal for this day');
 
   testWidgets('a day with only a plan leads with the planned figure',
       (tester) async {
@@ -116,6 +120,51 @@ void main() {
     );
     return container.decoration! as ShapeDecoration;
   }
+
+  testWidgets('today and the days ahead can be planned onto', (tester) async {
+    await pumpCard(
+      tester,
+      date: dayFromToday(0),
+      daySummary: summary(eaten: 900, items: 4),
+    );
+    expect(planAction, findsOneWidget);
+
+    await pumpCard(
+      tester,
+      date: dayFromToday(3),
+      daySummary: summary(planned: 400, items: 2, plannedItems: 2),
+    );
+    expect(planAction, findsOneWidget);
+  });
+
+  testWidgets('a day already gone offers no planning', (tester) async {
+    await pumpCard(
+      tester,
+      date: dayFromToday(-1),
+      daySummary: summary(eaten: 1500, items: 5),
+    );
+
+    expect(
+      planAction,
+      findsNothing,
+      reason: 'planning a day that has passed is not a thing to offer',
+    );
+  });
+
+  testWidgets('the plan action reports the day it belongs to', (tester) async {
+    var planned = 0;
+    await pumpCard(
+      tester,
+      date: dayFromToday(2),
+      daySummary: summary(planned: 400, items: 2, plannedItems: 2),
+      onPlanMeal: () => planned++,
+    );
+
+    await tester.tap(planAction);
+    await tester.pumpAndSettle();
+
+    expect(planned, 1);
+  });
 
   testWidgets('a day still to come is outlined, not filled', (tester) async {
     final date = dayFromToday(2);

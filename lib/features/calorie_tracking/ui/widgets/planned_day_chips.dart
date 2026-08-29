@@ -24,6 +24,20 @@ class PlannedDayChips extends StatelessWidget {
     return DateTime(now.year, now.month, now.day + offset);
   }
 
+  /// How a day reads in prose: the neighbouring days by name, the rest by date.
+  static String labelFor(DateTime day) {
+    if (day == dayFromToday(0)) {
+      return 'Today';
+    }
+    if (day == dayFromToday(1)) {
+      return 'Tomorrow';
+    }
+    if (day == dayFromToday(-1)) {
+      return 'Yesterday';
+    }
+    return DateFormat('EEE d MMM').format(day);
+  }
+
   Future<void> _pickDay(BuildContext context) async {
     final today = dayFromToday(0);
     final picked = await showDatePicker(
@@ -58,7 +72,7 @@ class PlannedDayChips extends StatelessWidget {
           ),
         if (isOtherDay)
           SelectableChip(
-            label: DateFormat('EEE d MMM').format(day!),
+            label: labelFor(day!),
             selected: true,
             onTap: () => onChanged(null),
           ),

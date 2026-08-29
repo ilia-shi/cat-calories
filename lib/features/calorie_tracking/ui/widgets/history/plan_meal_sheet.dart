@@ -17,18 +17,27 @@ class PlanMealResult {
 class PlanMealSheet extends StatefulWidget {
   final String? initialTitle;
 
-  const PlanMealSheet({super.key, this.initialTitle});
+  /// Set when the day is already decided — planning from a day card. The chips
+  /// give way to a label: the question has been answered by where the user
+  /// tapped, and offering it again would invite a contradiction.
+  final DateTime? fixedDay;
+
+  const PlanMealSheet({super.key, this.initialTitle, this.fixedDay});
 
   /// Resolves to the entered name and day, or null when the user backs out.
   static Future<PlanMealResult?> show(
     BuildContext context, {
     String? initialTitle,
+    DateTime? fixedDay,
   }) {
     return showModalBottomSheet<PlanMealResult>(
       context: context,
       isScrollControlled: true,
       shape: AppCard.squircleBorder(radius: 20, bottom: false),
-      builder: (_) => PlanMealSheet(initialTitle: initialTitle),
+      builder: (_) => PlanMealSheet(
+        initialTitle: initialTitle,
+        fixedDay: fixedDay,
+      ),
     );
   }
 
@@ -43,7 +52,7 @@ class _PlanMealSheetState extends State<PlanMealSheet> {
   /// Today, so its chip reads as chosen from the start. It is normalised back
   /// to null on submit — "today" and "no particular day" are the same thing to
   /// everything downstream, and the column stays empty for the common case.
-  DateTime? _day = PlannedDayChips.dayFromToday(0);
+  late DateTime? _day = widget.fixedDay ?? PlannedDayChips.dayFromToday(0);
 
   @override
   void dispose() {
@@ -103,7 +112,7 @@ class _PlanMealSheetState extends State<PlanMealSheet> {
               ),
               const SizedBox(height: 20),
               Text(
-                'For which day',
+                widget.fixedDay == null ? 'For which day' : 'For',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -111,10 +120,26 @@ class _PlanMealSheetState extends State<PlanMealSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              PlannedDayChips(
-                day: _day,
-                onChanged: (day) => setState(() => _day = day),
-              ),
+              if (widget.fixedDay == null)
+                PlannedDayChips(
+                  day: _day,
+                  onChanged: (day) => setState(() => _day = day),
+                )
+              else
+                Row(
+                  children: [
+                    Icon(Icons.event, size: 16, color: appColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Text(
+                      PlannedDayChips.labelFor(widget.fixedDay!),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

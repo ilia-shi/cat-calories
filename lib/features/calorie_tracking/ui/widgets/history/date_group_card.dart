@@ -17,6 +17,11 @@ class DateGroupCard extends StatelessWidget {
   final VoidCallback onToggle;
   final List<Widget> dayItems;
 
+  /// Plans a meal straight onto this day. Offered on today and the days ahead
+  /// only — "plan" is not something one does to a day already gone, and a
+  /// forgotten meal is logged through the toolbar's own entry instead.
+  final VoidCallback? onPlanMeal;
+
   const DateGroupCard({
     Key? key,
     required this.date,
@@ -24,6 +29,7 @@ class DateGroupCard extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.dayItems,
+    this.onPlanMeal,
   }) : super(key: key);
 
   @override
@@ -56,6 +62,8 @@ class DateGroupCard extends StatelessWidget {
                 isToday: isToday,
                 isUpcoming: isUpcoming,
                 isExpanded: isExpanded,
+                onPlanMeal:
+                    isToday || isUpcoming ? onPlanMeal : null,
               ),
             ),
           ),
@@ -86,6 +94,7 @@ class _DateGroupHeader extends StatelessWidget {
   final bool isToday;
   final bool isUpcoming;
   final bool isExpanded;
+  final VoidCallback? onPlanMeal;
 
   const _DateGroupHeader({
     required this.date,
@@ -93,6 +102,7 @@ class _DateGroupHeader extends StatelessWidget {
     required this.isToday,
     required this.isUpcoming,
     required this.isExpanded,
+    required this.onPlanMeal,
   });
 
   @override
@@ -156,7 +166,16 @@ class _DateGroupHeader extends StatelessWidget {
               ),
             ),
             _DayTotal(summary: summary),
-            const SizedBox(width: 8),
+            if (onPlanMeal != null)
+              IconButton(
+                onPressed: onPlanMeal,
+                icon: const Icon(Icons.post_add, size: 20),
+                color: Theme.of(context).primaryColor,
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Plan a meal for this day',
+              )
+            else
+              const SizedBox(width: 8),
             AnimatedRotation(
               turns: isExpanded ? 0.5 : 0,
               duration: const Duration(milliseconds: 200),

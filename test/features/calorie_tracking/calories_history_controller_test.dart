@@ -1038,6 +1038,120 @@ void main() {
       expect(records.every((r) => r.plannedFor == saturday), isTrue);
     });
 
+    test('moveMealToDay carries the meal and its members to the new day',
+        () async {
+      final meal = Meal(
+        id: 'm1',
+        profileId: profile.id!,
+        title: 'Curry',
+        createdAt: dayAmorning,
+        plannedFor: saturday,
+      );
+      final members = [
+        record(
+          id: 'a1',
+          createdAt: dayAmorning,
+          value: 300,
+          eaten: false,
+          mealId: 'm1',
+          plannedFor: saturday,
+        ),
+      ];
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([...members]),
+        mealRepository: _FakeMealRepo([meal]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.moveMealToDay(meal, sunday);
+
+      expect(meal.plannedFor, sunday);
+      expect(members.single.plannedFor, sunday);
+      expect(controller.groupedCalories[sunday]!.map((r) => r.id), ['a1']);
+    });
+
+    test('moveMealToDay to no particular day clears it everywhere', () async {
+      final meal = Meal(
+        id: 'm1',
+        profileId: profile.id!,
+        title: 'Curry',
+        createdAt: dayAmorning,
+        plannedFor: saturday,
+      );
+      final members = [
+        record(
+          id: 'a1',
+          createdAt: dayAmorning,
+          value: 300,
+          eaten: false,
+          mealId: 'm1',
+          plannedFor: saturday,
+        ),
+      ];
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([...members]),
+        mealRepository: _FakeMealRepo([meal]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.moveMealToDay(meal, null);
+
+      expect(meal.plannedFor, isNull);
+      expect(members.single.plannedFor, isNull);
+      expect(controller.groupedCalories[dayAkey]!.map((r) => r.id), ['a1'],
+          reason: 'with no planned day it falls back to when it was entered');
+    });
+
+    test('markMealNotEaten takes the meal and its records back to planned',
+        () async {
+      final meal = Meal(
+        id: 'm1',
+        profileId: profile.id!,
+        title: 'Curry',
+        createdAt: dayAmorning,
+        plannedFor: saturday,
+        eatenAt: dayAnoon,
+      );
+      // Members carry the meal's day, as every write path leaves them: marking
+      // a meal eaten stamps eatenAt over the top of it rather than clearing it.
+      final members = [
+        record(
+          id: 'a1',
+          createdAt: dayAmorning,
+          value: 300,
+          mealId: 'm1',
+          plannedFor: saturday,
+        ),
+        record(
+          id: 'a2',
+          createdAt: dayAnoon,
+          value: 200,
+          mealId: 'm1',
+          plannedFor: saturday,
+        ),
+      ];
+      final recordRepo = _FakeRecordRepo([...members]);
+      final controller = CaloriesHistoryController(
+        recordRepository: recordRepo,
+        mealRepository: _FakeMealRepo([meal]),
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.markMealNotEaten(meal, members);
+
+      expect(meal.isEaten(), isFalse);
+      expect(members.every((r) => !r.isEaten()), isTrue);
+      expect(recordRepo.updated.map((r) => r.id).toSet(), {'a1', 'a2'});
+      expect(
+        controller.groupedCalories[saturday]!.map((r) => r.id).toSet(),
+        {'a1', 'a2'},
+        reason: 'no longer eaten, so the planned day decides again',
+      );
+    });
+
     test('emptying a planned meal keeps it — the plan was deliberate',
         () async {
       final item = record(

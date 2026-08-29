@@ -1,5 +1,6 @@
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/planned_day_chips.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,9 @@ class MealOptionsSheet extends StatelessWidget {
   final VoidCallback onCookingMode;
   final VoidCallback onDuplicate;
   final VoidCallback onEdit;
+  final VoidCallback onMoveToDay;
   final VoidCallback onMarkEaten;
+  final VoidCallback onMarkNotEaten;
   final VoidCallback onUngroup;
   final VoidCallback onDelete;
 
@@ -21,7 +24,9 @@ class MealOptionsSheet extends StatelessWidget {
     required this.onCookingMode,
     required this.onDuplicate,
     required this.onEdit,
+    required this.onMoveToDay,
     required this.onMarkEaten,
+    required this.onMarkNotEaten,
     required this.onUngroup,
     required this.onDelete,
   }) : super(key: key);
@@ -33,7 +38,9 @@ class MealOptionsSheet extends StatelessWidget {
     required VoidCallback onCookingMode,
     required VoidCallback onDuplicate,
     required VoidCallback onEdit,
+    required VoidCallback onMoveToDay,
     required VoidCallback onMarkEaten,
+    required VoidCallback onMarkNotEaten,
     required VoidCallback onUngroup,
     required VoidCallback onDelete,
   }) {
@@ -49,7 +56,9 @@ class MealOptionsSheet extends StatelessWidget {
         onCookingMode: onCookingMode,
         onDuplicate: onDuplicate,
         onEdit: onEdit,
+        onMoveToDay: onMoveToDay,
         onMarkEaten: onMarkEaten,
+        onMarkNotEaten: onMarkNotEaten,
         onUngroup: onUngroup,
         onDelete: onDelete,
       ),
@@ -60,6 +69,12 @@ class MealOptionsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
     final hasUneaten = members.any((r) => !r.isEaten());
+    final hasEaten = meal.isEaten() || members.any((r) => r.isEaten());
+    // Once the meal is eaten it belongs to the day it was eaten on, so a
+    // planned day would no longer decide anything — offering to change it
+    // would be a control that does nothing visible. "Mark as not eaten" is
+    // the way back to it.
+    final canMoveDay = !meal.isEaten();
 
     return SafeArea(
       child: ConstrainedBox(
@@ -118,6 +133,22 @@ class MealOptionsSheet extends StatelessWidget {
                     onEdit();
                   },
                 ),
+                if (canMoveDay)
+                  ListTile(
+                    leading: const Icon(Icons.event_repeat,
+                        color: Colors.purple, size: 20),
+                    title: const Text('Move to Another Day'),
+                    subtitle: Text(
+                      meal.plannedFor == null
+                          ? 'Plan it for a specific day'
+                          : 'Planned for '
+                              '${PlannedDayChips.labelFor(meal.plannedFor!)}',
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMoveToDay();
+                    },
+                  ),
                 if (hasUneaten)
                   ListTile(
                     leading: const Icon(Icons.check_circle,
@@ -127,6 +158,18 @@ class MealOptionsSheet extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(context);
                       onMarkEaten();
+                    },
+                  ),
+                if (hasEaten)
+                  ListTile(
+                    leading: const Icon(Icons.restore,
+                        color: Colors.orange, size: 20),
+                    title: const Text('Mark as Not Eaten'),
+                    subtitle: const Text(
+                        'Back to planned, so it can be moved to another day'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMarkNotEaten();
                     },
                   ),
                 ListTile(
