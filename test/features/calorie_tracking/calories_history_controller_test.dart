@@ -634,6 +634,177 @@ void main() {
     });
   });
 
+  group('grouping by the day a record belongs to', () {
+    final saturday = DateTime(2026, 7, 11);
+    final sunday = DateTime(2026, 7, 12);
+
+    Meal plannedMeal(String id, {DateTime? plannedFor, DateTime? createdAt}) =>
+        Meal(
+          id: id,
+          profileId: profile.id!,
+          title: 'Curry',
+          createdAt: createdAt ?? dayAmorning,
+          plannedFor: plannedFor,
+        );
+
+    test('a planned record files under the day it is planned for', () async {
+      final controller = controllerWith([
+        record(id: 'a1', createdAt: dayAmorning, value: 500),
+        record(
+          id: 'p1',
+          createdAt: dayAmorning,
+          value: 700,
+          eaten: false,
+          plannedFor: saturday,
+        ),
+      ]);
+
+      await controller.load();
+
+      expect(controller.sortedDates, [saturday, dayAkey],
+          reason: 'the planned day is in the future, so it sorts first');
+      expect(controller.groupedCalories[saturday]!.map((r) => r.id), ['p1']);
+      expect(controller.groupedCalories[dayAkey]!.map((r) => r.id), ['a1']);
+    });
+
+    test('an eaten record files under the day it was eaten, not planned',
+        () async {
+      final item = record(id: 'a1', createdAt: dayAmorning, value: 500,
+          eaten: false, plannedFor: saturday);
+      item.eatenAt = sunday;
+      final controller = controllerWith([item]);
+
+      await controller.load();
+
+      expect(controller.sortedDates, [sunday]);
+      expect(controller.daySummaries[sunday]!.totalEaten, 500);
+    });
+
+    test('planned calories are summarised apart from eaten ones', () async {
+      final controller = controllerWith([
+        record(id: 'a1', createdAt: dayAmorning, value: 500),
+        record(id: 'a2', createdAt: dayAnoon, value: 300, eaten: false),
+      ]);
+
+      await controller.load();
+
+      final summary = controller.daySummaries[dayAkey]!;
+      expect(summary.totalEaten, 500);
+      expect(summary.plannedKcal, 300);
+      expect(summary.plannedItemCount, 1);
+      expect(summary.showsPlannedTotal, isFalse,
+          reason: 'the day has eaten calories to lead with');
+    });
+
+    test('a day with only a plan leads with the planned figure', () async {
+      final controller = controllerWith([
+        record(
+          id: 'p1',
+          createdAt: dayAmorning,
+          value: 700,
+          eaten: false,
+          plannedFor: saturday,
+        ),
+      ]);
+
+      await controller.load();
+
+      final summary = controller.daySummaries[saturday]!;
+      expect(summary.totalEaten, 0);
+      expect(summary.plannedKcal, 700);
+      expect(summary.showsPlannedTotal, isTrue);
+    });
+
+    test('a meal with no records still gets a day of its own', () async {
+      final controller = controllerWith(
+        [record(id: 'a1', createdAt: dayAmorning, value: 500)],
+        meals: [plannedMeal('m1', plannedFor: saturday)],
+      );
+
+      await controller.load();
+
+      expect(controller.sortedDates, [saturday, dayAkey]);
+      expect(controller.emptyMealsOn(saturday).map((m) => m.id), ['m1']);
+      expect(controller.emptyMealsOn(dayAkey), isEmpty);
+    });
+
+    test('an empty meal with no day falls back to the day it was made',
+        () async {
+      final controller = controllerWith(
+        const [],
+        meals: [plannedMeal('m1', createdAt: dayAmorning)],
+      );
+
+      await controller.load();
+
+      expect(controller.sortedDates, [dayAkey]);
+      expect(controller.emptyMealsOn(dayAkey).map((m) => m.id), ['m1']);
+    });
+
+    test('a meal that has records is placed by them, not listed as empty',
+        () async {
+      final controller = controllerWith(
+        [
+          record(
+            id: 'a1',
+            createdAt: dayAmorning,
+            value: 500,
+            eaten: false,
+            mealId: 'm1',
+            plannedFor: saturday,
+          ),
+        ],
+        meals: [plannedMeal('m1', plannedFor: saturday)],
+      );
+
+      await controller.load();
+
+      expect(controller.emptyMealsOn(saturday), isEmpty);
+      expect(controller.membersByMeal['m1']!.map((r) => r.id), ['a1']);
+    });
+
+    test('the first load opens today, never a day still to come', () async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final nextWeek = DateTime(now.year, now.month, now.day + 7);
+      final controller = controllerWith([
+        record(id: 'a1', createdAt: today.add(const Duration(hours: 9)),
+            value: 500),
+        record(
+          id: 'p1',
+          createdAt: today.add(const Duration(hours: 10)),
+          value: 700,
+          eaten: false,
+          plannedFor: nextWeek,
+        ),
+      ]);
+
+      await controller.load();
+
+      expect(controller.sortedDates.first, nextWeek);
+      expect(controller.isExpanded(today), isTrue);
+      expect(controller.isExpanded(nextWeek), isFalse);
+    });
+
+    test('with only future days the first load opens the nearest one',
+        () async {
+      final now = DateTime.now();
+      final nextWeek = DateTime(now.year, now.month, now.day + 7);
+      final fortnight = DateTime(now.year, now.month, now.day + 14);
+      final controller = controllerWith([
+        record(id: 'p1', createdAt: now, value: 700, eaten: false,
+            plannedFor: nextWeek),
+        record(id: 'p2', createdAt: now, value: 800, eaten: false,
+            plannedFor: fortnight),
+      ]);
+
+      await controller.load();
+
+      expect(controller.isExpanded(nextWeek), isTrue);
+      expect(controller.isExpanded(fortnight), isFalse);
+    });
+  });
+
   group('planned day', () {
     final saturday = DateTime(2026, 7, 11);
     final sunday = DateTime(2026, 7, 12);
@@ -854,7 +1025,10 @@ void main() {
       ];
       final controller = controllerWith(records);
       await controller.load();
-      for (final r in [...controller.groupedCalories[dayAkey]!]) {
+      // Selected across days: a planned record now groups under the day it is
+      // planned for, not the day it was entered.
+      for (final r
+          in controller.groupedCalories.values.expand((day) => day).toList()) {
         controller.toggleSelection(r);
       }
 
@@ -862,6 +1036,69 @@ void main() {
 
       expect(meal!.plannedFor, saturday);
       expect(records.every((r) => r.plannedFor == saturday), isTrue);
+    });
+
+    test('emptying a planned meal keeps it — the plan was deliberate',
+        () async {
+      final item = record(
+        id: 'a1',
+        createdAt: dayAmorning,
+        value: 100,
+        eaten: false,
+        mealId: 'source',
+        plannedFor: saturday,
+      );
+      final mealRepo = _FakeMealRepo([
+        Meal(
+          id: 'source',
+          profileId: profile.id!,
+          title: 'Curry',
+          createdAt: dayAmorning,
+          plannedFor: saturday,
+        ),
+      ]);
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([item]),
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.removeFromMeal(item);
+
+      expect(mealRepo.deleted, isEmpty);
+      expect(
+        controller.emptyMealsOn(saturday).map((m) => m.id),
+        ['source'],
+        reason: 'it now renders empty on its own day instead of vanishing',
+      );
+    });
+
+    test('emptying a meal with no planned day still removes it', () async {
+      final item = record(
+        id: 'a1',
+        createdAt: dayAmorning,
+        value: 100,
+        mealId: 'source',
+      );
+      final mealRepo = _FakeMealRepo([
+        Meal(
+          id: 'source',
+          profileId: profile.id!,
+          title: 'Leftover group',
+          createdAt: dayAmorning,
+        ),
+      ]);
+      final controller = CaloriesHistoryController(
+        recordRepository: _FakeRecordRepo([item]),
+        mealRepository: mealRepo,
+        profileResolver: _FakeProfileResolver(profile),
+      );
+      await controller.load();
+
+      await controller.removeFromMeal(item);
+
+      expect(mealRepo.deleted.map((m) => m.id), ['source']);
     });
 
     test('groupSelectedAsMeal stays dayless when the records disagree',
@@ -884,7 +1121,10 @@ void main() {
       ];
       final controller = controllerWith(records);
       await controller.load();
-      for (final r in [...controller.groupedCalories[dayAkey]!]) {
+      // Selected across days: a planned record now groups under the day it is
+      // planned for, not the day it was entered.
+      for (final r
+          in controller.groupedCalories.values.expand((day) => day).toList()) {
         controller.toggleSelection(r);
       }
 

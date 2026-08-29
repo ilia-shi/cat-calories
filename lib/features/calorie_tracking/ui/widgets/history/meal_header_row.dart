@@ -24,6 +24,12 @@ class MealHeaderRow extends StatelessWidget {
     final appColors = AppColors.of(context);
     final accent = Theme.of(context).primaryColor;
     final totals = MealTotals.of(records);
+    // A meal with records is planned while any of them is uneaten; one with
+    // none has only its own state to go on, which is how a meal planned for a
+    // day but not filled in yet still reads as planned.
+    final isPlanned = records.isEmpty
+        ? !meal.isEaten()
+        : records.any((r) => !r.isEaten());
 
     return InkWell(
       onTap: onTap,
@@ -56,7 +62,7 @@ class MealHeaderRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (records.any((r) => !r.isEaten())) ...[
+                if (isPlanned) ...[
                   const SizedBox(width: 8),
                   _PlannedBadge(plannedFor: meal.plannedFor),
                 ],
@@ -83,6 +89,13 @@ class _MealTotalsLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+
+    if (records.isEmpty) {
+      return Text(
+        'no ingredients yet — open it to cook',
+        style: TextStyle(fontSize: 12, color: appColors.textTertiary),
+      );
+    }
 
     return Row(
       children: [

@@ -230,14 +230,16 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
       isExpanded: isExpanded,
       onToggle: () => _controller.toggleExpanded(date),
       // Collapsed days build none of their rows.
-      dayItems: isExpanded ? _buildDayItems(items) : const [],
+      dayItems: isExpanded ? _buildDayItems(items, date) : const [],
     );
   }
 
   /// A day's rows with meal groups inline: each meal becomes one enclosed
   /// block, ungrouped records stay plain rows. Order follows first appearance
-  /// in [items], so days without meals render exactly as before.
-  List<Widget> _buildDayItems(List<CalorieRecord> items) {
+  /// in [items], so days without meals render exactly as before. Meals planned
+  /// for [date] that hold no records yet close the list — they have no record
+  /// to place them, and nothing to interleave with.
+  List<Widget> _buildDayItems(List<CalorieRecord> items, DateTime date) {
     // Group members by meal in a single pass, instead of an O(n) `.where` scan
     // per meal (which made the whole day O(n²) on every rebuild).
     final membersByMeal = <String, List<CalorieRecord>>{};
@@ -264,6 +266,10 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
         meal,
         membersByMeal[meal.id!] ?? const <CalorieRecord>[],
       ));
+    }
+
+    for (final meal in _controller.emptyMealsOn(date)) {
+      entries.add(_DayEntry.meal(meal, const <CalorieRecord>[]));
     }
 
     return [

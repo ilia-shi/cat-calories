@@ -6,6 +6,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/record_day.dart';
 import 'package:flutter/foundation.dart';
 
 /// Loads the full calorie history, groups it by day and performs the
@@ -32,6 +33,7 @@ class CaloriesHistoryController extends ChangeNotifier {
   bool _isInitialLoad = true;
   Map<String, Meal> _mealsById = {};
   Map<String, List<CalorieRecord>> _membersByMeal = {};
+  Map<DateTime, List<Meal>> _emptyMealsByDay = {};
   Map<DateTime, List<CalorieRecord>> _groupedCalories = {};
   Map<DateTime, DaySummary> _daySummaries = {};
   List<DateTime> _sortedDates = [];
@@ -50,6 +52,12 @@ class CaloriesHistoryController extends ChangeNotifier {
   /// Every meal's records, keyed by meal id. Built with the day grouping so
   /// callers get a meal's stats without rescanning the whole history.
   Map<String, List<CalorieRecord>> get membersByMeal => _membersByMeal;
+
+  /// Meals with no records at all, keyed by the day they are planned for (or
+  /// were created on). They have no record to render them, so the screen adds
+  /// their headers to the day itself.
+  List<Meal> emptyMealsOn(DateTime date) =>
+      _emptyMealsByDay[date] ?? const <Meal>[];
 
   Map<DateTime, List<CalorieRecord>> get groupedCalories => _groupedCalories;
   Map<DateTime, DaySummary> get daySummaries => _daySummaries;
@@ -106,11 +114,7 @@ class CaloriesHistoryController extends ChangeNotifier {
     double totalCarbs = 0;
 
     for (final calorie in records) {
-      final dateKey = DateTime(
-        calorie.createdAt.year,
-        calorie.createdAt.month,
-        calorie.createdAt.day,
-      );
+      final dateKey = recordDay(calorie);
 
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];
@@ -124,6 +128,11 @@ class CaloriesHistoryController extends ChangeNotifier {
       final mealId = calorie.mealId;
       if (mealId != null) {
         (membersByMeal[mealId] ??= <CalorieRecord>[]).add(calorie);
+      }
+
+      if (!calorie.isEaten()) {
+        summary.plannedKcal += calorie.value;
+        summary.plannedItemCount++;
       }
 
       if (calorie.isEaten()) {
@@ -153,12 +162,31 @@ class CaloriesHistoryController extends ChangeNotifier {
       }
     }
 
+    // A meal holding no records reaches no day through a record, so it would
+    // render nowhere at all — which is how a meal planned and then left empty
+    // used to become unreachable. Give it a day of its own.
+    final emptyMealsByDay = <DateTime, List<Meal>>{};
+    for (final meal in meals) {
+      final id = meal.id;
+      if (id == null || (membersByMeal[id] ?? const []).isNotEmpty) {
+        continue;
+      }
+      final dateKey = mealDay(meal);
+      grouped.putIfAbsent(dateKey, () => []);
+      summaries.putIfAbsent(dateKey, () => DaySummary());
+      (emptyMealsByDay[dateKey] ??= <Meal>[]).add(meal);
+    }
+    for (final dayMeals in emptyMealsByDay.values) {
+      dayMeals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
     final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     _mealsById = {
       for (final meal in meals)
         if (meal.id != null) meal.id!: meal,
     };
+    _emptyMealsByDay = emptyMealsByDay;
     _membersByMeal = membersByMeal;
     _groupedCalories = grouped;
     _daySummaries = summaries;
@@ -169,9 +197,16 @@ class CaloriesHistoryController extends ChangeNotifier {
     _totalFat = totalFat;
     _totalCarbs = totalCarbs;
 
-    // Expand the first date by default only on the very first load.
+    // Expand one date by default on the very first load: today, or failing
+    // that the most recent day already past. Never a day still to come — the
+    // list is newest first, so planned days sit above today and would
+    // otherwise be the one opened.
     if (_isInitialLoad && sortedDates.isNotEmpty) {
-      _expandedDates.add(sortedDates.first);
+      final today = dayOf(DateTime.now());
+      _expandedDates.add(sortedDates.firstWhere(
+        (date) => !date.isAfter(today),
+        orElse: () => sortedDates.last,
+      ));
       _isInitialLoad = false;
     }
   }
@@ -408,12 +443,15 @@ class CaloriesHistoryController extends ChangeNotifier {
     return [...sameDay, ...empty];
   }
 
-  /// Deletes the meal [item] just left when it was the last member: an empty
-  /// group renders nowhere, so it would linger with no way to reach or remove
-  /// it. Returns the deleted meal, or null when nothing was deleted.
+  /// Deletes the meal [item] just left when it was the last member, so an
+  /// accidental leftover does not linger. A meal with a planned day survives
+  /// being emptied: the day was chosen deliberately, it still renders on that
+  /// day with no records, and losing a plan because its last ingredient moved
+  /// elsewhere would be a silent deletion of something the user asked for.
+  /// Returns the deleted meal, or null when nothing was deleted.
   Future<Meal?> _deleteMealIfEmptied(String? mealId, CalorieRecord item) async {
     final meal = mealId == null ? null : _mealsById[mealId];
-    if (meal == null) {
+    if (meal == null || meal.plannedFor != null) {
       return null;
     }
     // The members map predates the move, so exclude the moved record by id.

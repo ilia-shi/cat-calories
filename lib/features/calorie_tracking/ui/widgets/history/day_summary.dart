@@ -7,6 +7,15 @@ class DaySummary {
   double negativeSum = 0;
   int itemCount = 0;
 
+  /// What is planned for the day but not eaten yet. Kept apart from
+  /// [totalEaten] so a plan never inflates a day's consumed calories.
+  double plannedKcal = 0;
+  int plannedItemCount = 0;
+
+  /// A day with a plan and nothing eaten yet shows the planned figure as its
+  /// headline; a day with both shows the eaten total and the plan beside it.
+  bool get showsPlannedTotal => totalEaten == 0 && plannedKcal > 0;
+
   // Macro totals
   double totalProtein = 0;
   double totalFat = 0;

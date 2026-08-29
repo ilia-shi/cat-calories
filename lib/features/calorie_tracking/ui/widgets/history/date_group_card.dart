@@ -30,6 +30,7 @@ class DateGroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
     final isToday = _isToday(date);
+    final isUpcoming = _isUpcoming(date);
     final headerShape = AppCard.squircleBorder(bottom: !isExpanded);
 
     return AppCard(
@@ -53,6 +54,7 @@ class DateGroupCard extends StatelessWidget {
                 date: date,
                 summary: summary,
                 isToday: isToday,
+                isUpcoming: isUpcoming,
                 isExpanded: isExpanded,
               ),
             ),
@@ -82,12 +84,14 @@ class _DateGroupHeader extends StatelessWidget {
   final DateTime date;
   final DaySummary summary;
   final bool isToday;
+  final bool isUpcoming;
   final bool isExpanded;
 
   const _DateGroupHeader({
     required this.date,
     required this.summary,
     required this.isToday,
+    required this.isUpcoming,
     required this.isExpanded,
   });
 
@@ -98,7 +102,7 @@ class _DateGroupHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            _DateBadge(date: date, isToday: isToday),
+            _DateBadge(date: date, isToday: isToday, isUpcoming: isUpcoming),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -121,6 +125,17 @@ class _DateGroupHeader extends StatelessWidget {
                         color: Colors.grey,
                       ),
                       const SizedBox(width: 8),
+                      // Only on a day that has both: when nothing is eaten yet
+                      // the planned figure is already the day's headline.
+                      if (summary.plannedKcal > 0 &&
+                          !summary.showsPlannedTotal) ...[
+                        _StatChip(
+                          value: summary.plannedKcal.toStringAsFixed(0),
+                          label: 'planned',
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       if (summary.positiveSum > 0)
                         _StatChip(
                           value: '+${summary.positiveSum.toStringAsFixed(0)}',
@@ -161,34 +176,55 @@ class _DateGroupHeader extends StatelessWidget {
   }
 }
 
+/// The day-and-month tile. Today is filled with the accent gradient, a day
+/// still to come is only outlined in it — the same colour says "this is the
+/// one that matters", the fill says whether it has happened.
 class _DateBadge extends StatelessWidget {
   static final _dayFormat = DateFormat('d');
   static final _monthFormat = DateFormat('MMM');
 
   final DateTime date;
   final bool isToday;
+  final bool isUpcoming;
 
-  const _DateBadge({required this.date, required this.isToday});
+  const _DateBadge({
+    required this.date,
+    required this.isToday,
+    required this.isUpcoming,
+  });
 
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final accent = Theme.of(context).primaryColor;
+    final foreground = isToday
+        ? Colors.white
+        : isUpcoming
+            ? accent
+            : appColors.textPrimary;
+
     return Container(
       width: 56,
       height: 56,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         gradient: isToday
             ? LinearGradient(
-                colors: [
-                  Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                ],
+                colors: [accent, accent.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : null,
-        color: isToday ? null : appColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(12),
+        color: isToday
+            ? null
+            : isUpcoming
+                ? Colors.transparent
+                : appColors.surfaceSubtle,
+        shape: AppCard.squircleBorder(
+          radius: 12,
+          side: isUpcoming
+              ? BorderSide(color: accent.withValues(alpha: 0.5))
+              : BorderSide.none,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -198,7 +234,7 @@ class _DateBadge extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isToday ? Colors.white : appColors.textPrimary,
+              color: foreground,
             ),
           ),
           Text(
@@ -208,7 +244,9 @@ class _DateBadge extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: isToday
                   ? Colors.white.withValues(alpha: 0.9)
-                  : appColors.textSecondary,
+                  : isUpcoming
+                      ? accent
+                      : appColors.textSecondary,
             ),
           ),
         ],
@@ -225,23 +263,31 @@ class _DayTotal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    // A day with nothing eaten yet leads with what is planned instead of a
+    // green zero, which would read as "kept under the limit" for a day that
+    // has not happened.
+    final showsPlanned = summary.showsPlannedTotal;
+    final value = showsPlanned ? summary.plannedKcal : summary.totalEaten;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          summary.totalEaten.toStringAsFixed(0),
+          value.toStringAsFixed(0),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: summary.totalEaten > 2000
-                ? DangerColor
-                : summary.totalEaten > 1500
-                    ? Colors.orange
-                    : SuccessColor,
+            color: showsPlanned
+                ? appColors.textSecondary
+                : summary.totalEaten > 2000
+                    ? DangerColor
+                    : summary.totalEaten > 1500
+                        ? Colors.orange
+                        : SuccessColor,
           ),
         ),
         Text(
-          'kcal',
+          showsPlanned ? 'kcal planned' : 'kcal',
           style: TextStyle(fontSize: 12, color: appColors.textTertiary),
         ),
       ],
@@ -290,9 +336,9 @@ class _StatChip extends StatelessWidget {
     final appColors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: appColors.tintedSurface(color),
-        borderRadius: BorderRadius.circular(8),
+        shape: AppCard.squircleBorder(radius: 8),
       ),
       child: Text(
         '$value${label.isNotEmpty ? ' $label' : ''}',
@@ -312,22 +358,30 @@ String _dateLabel(DateTime date) {
   if (_isToday(date)) {
     return 'Today';
   }
-  if (_isYesterday(date)) {
+  if (_isDayFromToday(date, -1)) {
     return 'Yesterday';
+  }
+  if (_isDayFromToday(date, 1)) {
+    return 'Tomorrow';
   }
   return _fullDateFormat.format(date);
 }
 
-bool _isToday(DateTime date) {
+bool _isToday(DateTime date) => _isDayFromToday(date, 0);
+
+/// True for a day the user has not reached yet, which renders as planned
+/// rather than recorded.
+bool _isUpcoming(DateTime date) {
   final now = DateTime.now();
-  return date.year == now.year &&
-      date.month == now.month &&
-      date.day == now.day;
+  return date.isAfter(DateTime(now.year, now.month, now.day));
 }
 
-bool _isYesterday(DateTime date) {
-  final yesterday = DateTime.now().subtract(const Duration(days: 1));
-  return date.year == yesterday.year &&
-      date.month == yesterday.month &&
-      date.day == yesterday.day;
+/// Built by field rather than `add(Duration(days:))`, which lands an hour off
+/// across a daylight-saving change and would mislabel the neighbouring day.
+bool _isDayFromToday(DateTime date, int offset) {
+  final now = DateTime.now();
+  final target = DateTime(now.year, now.month, now.day + offset);
+  return date.year == target.year &&
+      date.month == target.month &&
+      date.day == target.day;
 }
