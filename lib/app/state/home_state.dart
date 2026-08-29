@@ -145,7 +145,7 @@ class HomeFetched extends AbstractHomeState {
 
     this.days30.forEach((DayResult dayResult) {
       if (getDayStart().millisecondsSinceEpoch >
-          dayResult.createdAtDay.millisecondsSinceEpoch) {
+          dayResult.day.millisecondsSinceEpoch) {
         days.add(dayResult);
         totalCalories += dayResult.valueSum;
       }
@@ -160,7 +160,7 @@ class HomeFetched extends AbstractHomeState {
 
     this.days2.forEach((DayResult dayResult) {
       if (getDayStart().millisecondsSinceEpoch >
-          dayResult.createdAtDay.millisecondsSinceEpoch) {
+          dayResult.day.millisecondsSinceEpoch) {
         days.add(dayResult);
         totalCalories += dayResult.valueSum;
       }

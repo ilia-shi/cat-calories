@@ -43,8 +43,8 @@ class HomeController extends Controller {
     final days = await repo.fetchDaysByProfile(profile, 30);
     final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
     final relevantDays = days.where((day) {
-      return day.createdAtDay.isAfter(sevenDaysAgo) &&
-          day.createdAtDay.isBefore(todayStart);
+      return day.day.isAfter(sevenDaysAgo) &&
+          day.day.isBefore(todayStart);
     }).toList();
 
     final avg7Days = relevantDays.isEmpty

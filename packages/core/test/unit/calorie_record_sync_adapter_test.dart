@@ -121,11 +121,11 @@ void main() {
     });
   });
 
-  test('toSyncPayload includes created_at_day', () {
+  test('toSyncPayload includes record_day', () {
     final record = _makeRecord();
     final json = adapter.toSyncPayload(record);
-    expect(json.containsKey('created_at_day'), isTrue);
-    expect(json['created_at_day'], isA<int>());
+    expect(json.containsKey('record_day'), isTrue);
+    expect(json['record_day'], isA<int>());
   });
 }
 

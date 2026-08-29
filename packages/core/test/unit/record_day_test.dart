@@ -81,8 +81,8 @@ void main() {
     });
   });
 
-  group('the stored created_at_day key', () {
-    int keyFor(CalorieRecord record) => record.toJson()['created_at_day'] as int;
+  group('the stored record_day key', () {
+    int keyFor(CalorieRecord record) => record.toJson()['record_day'] as int;
 
     int keyOfDay(DateTime day) =>
         (DateTime(day.year, day.month, day.day).millisecondsSinceEpoch / 100000)

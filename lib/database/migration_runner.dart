@@ -17,9 +17,10 @@ import 'package:cat_calories/database/migrations/v014_add_meals.dart';
 import 'package:cat_calories/database/migrations/v015_add_color_label.dart';
 import 'package:cat_calories/database/migrations/v016_add_planned_for.dart';
 import 'package:cat_calories/database/migrations/v017_backfill_day_key.dart';
+import 'package:cat_calories/database/migrations/v018_rename_record_day.dart';
 
 class MigrationRunner {
-  static const currentVersion = 17;
+  static const currentVersion = 18;
 
   static final List<Migration> _migrations = [
     V002AddNutritionColumns(),
@@ -38,6 +39,7 @@ class MigrationRunner {
     V015AddColorLabel(),
     V016AddPlannedFor(),
     V017BackfillDayKey(),
+    V018RenameRecordDay(),
   ];
 
   Future<void> onCreate(Database db, int version) async {

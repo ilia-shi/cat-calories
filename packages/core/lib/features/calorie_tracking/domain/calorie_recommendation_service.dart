@@ -21,9 +21,9 @@ class CalorieRecommendationService {
 
     // Filter to only past days (not including today)
     final pastDays = historicalDays
-        .where((d) => d.createdAtDay.isBefore(today))
+        .where((d) => d.day.isBefore(today))
         .toList()
-      ..sort((a, b) => b.createdAtDay.compareTo(a.createdAtDay));
+      ..sort((a, b) => b.day.compareTo(a.day));
 
     // Calculate weighted deviations
     final compensationBreakdown = _calculateCompensationBreakdown(pastDays, today);
@@ -79,7 +79,7 @@ class CalorieRecommendationService {
 
     for (int i = 0; i < min(pastDays.length, settings.lookbackDays); i++) {
       final day = pastDays[i];
-      final daysAgo = today.difference(day.createdAtDay).inDays;
+      final daysAgo = today.difference(day.day).inDays;
 
       // Calculate decay weight: decay^(daysAgo - 1)
       // Day 1 ago = weight 1.0, Day 2 ago = weight 0.7, etc.
@@ -89,7 +89,7 @@ class CalorieRecommendationService {
       final weightedDeviation = deviation * weight;
 
       result.add(DayCompensation(
-        date: day.createdAtDay,
+        date: day.day,
         consumed: day.valueSum,
         target: settings.baseCalorieGoal,
         deviation: deviation,

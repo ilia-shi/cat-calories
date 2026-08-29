@@ -218,7 +218,7 @@ Future<void> _materializeSyncEntries(
       INSERT OR REPLACE INTO calorie_items (
         id, profile_id, waking_period_id, product_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
-        created_at_day, eaten_at, created_at, updated_at
+        record_day, eaten_at, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       entry.entityId,
@@ -232,7 +232,8 @@ Future<void> _materializeSyncEntries(
       p['protein_grams'],
       p['fat_grams'],
       p['carb_grams'],
-      p['created_at_day'],
+      // Payloads written before the rename carry `created_at_day` instead.
+      p['record_day'] ?? p['created_at_day'],
       p['eaten_at'],
       p['created_at'],
       p['updated_at'],

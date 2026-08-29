@@ -116,7 +116,7 @@ class SyncV2Handler extends Controller {
   }
 
   /// Materialize a calorie_item sync entry into the calorie_items table.
-  /// Uses raw SQL to preserve payload values (especially created_at_day
+  /// Uses raw SQL to preserve payload values (especially record_day
   /// which is timezone-dependent and should come from the client).
   void _materializeCalorieItem({
     required String entityId,
@@ -137,7 +137,7 @@ class SyncV2Handler extends Controller {
         id, profile_id, waking_period_id, product_id, meal_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
         cost_value, cost_currency, cost_is_manual, color_label,
-        created_at_day, eaten_at, created_at, updated_at
+        record_day, eaten_at, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       entityId,
@@ -156,7 +156,9 @@ class SyncV2Handler extends Controller {
       payload['cost_currency'],
       payload['cost_is_manual'] ?? 0,
       payload['color_label'],
-      payload['created_at_day'],
+      // An app older than the rename still sends `created_at_day`; its value
+      // means the same thing, so accept either rather than materialising null.
+      payload['record_day'] ?? payload['created_at_day'],
       payload['eaten_at'],
       payload['created_at'],
       payload['updated_at'],

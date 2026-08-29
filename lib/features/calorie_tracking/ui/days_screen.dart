@@ -59,7 +59,7 @@ class _DaysScreenState extends State<DaysScreen> {
                         ],
                       )),
                   subtitle: Text(
-                      (DateFormat('MMM d, y').format(dayItem.createdAtDay))),
+                      (DateFormat('MMM d, y').format(dayItem.day))),
                   onTap: () {
                     showModalBottomSheet<dynamic>(
                       context: context,
@@ -76,7 +76,7 @@ class _DaysScreenState extends State<DaysScreen> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => DayCaloriesPage(
-                                          dayItem.createdAtDay)),
+                                          dayItem.day)),
                                 );
                               },
                             ),
@@ -101,7 +101,7 @@ class _DaysScreenState extends State<DaysScreen> {
                                           onPressed: () {
                                             BlocProvider.of<HomeBloc>(context).add(
                                                 RemovingCaloriesByCreatedAtDayEvent(
-                                                    dayItem.createdAtDay,
+                                                    dayItem.day,
                                                     state.activeProfile));
 
                                             ScaffoldMessenger.of(context)

@@ -43,7 +43,7 @@ class V001InitialSchema extends Migration {
         description TEXT NULL,
         sort_order INT,
         created_at INT,
-        created_at_day INT,
+        record_day INT,
         eaten_at INT NULL,
         updated_at INT,
         profile_id TEXT,
@@ -124,7 +124,7 @@ class V001InitialSchema extends Migration {
     ''');
 
     await db.execute(
-        'CREATE INDEX calorie_items_created_at_day_idx ON calorie_items(created_at_day)');
+        'CREATE INDEX calorie_items_record_day_idx ON calorie_items(record_day)');
     await db.execute(
         'CREATE INDEX calorie_items_product_id_idx ON calorie_items(product_id)');
     await db.execute(

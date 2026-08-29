@@ -50,7 +50,7 @@ void _migrate(Database db) {
       cost_currency    TEXT,
       cost_is_manual   INTEGER NOT NULL DEFAULT 0,
       color_label      TEXT,
-      created_at_day   INTEGER,
+      record_day   INTEGER,
       eaten_at         INTEGER,
       planned_for      INTEGER,
       created_at       INTEGER NOT NULL,
@@ -144,10 +144,24 @@ void _migrate(Database db) {
       db, 'calorie_items', 'cost_is_manual', 'INTEGER NOT NULL DEFAULT 0');
   _addColumnIfMissing(db, 'calorie_items', 'color_label', 'TEXT');
   _addColumnIfMissing(db, 'calorie_items', 'planned_for', 'INTEGER');
+  // Renamed once it stopped meaning "the day this was created" and started
+  // meaning "the day this belongs to" — eaten, else planned, else entered.
+  _renameColumnIfPresent(db, 'calorie_items', 'created_at_day', 'record_day');
   _addColumnIfMissing(db, 'products', 'price_per_package', 'REAL');
   _addColumnIfMissing(db, 'products', 'price_currency', 'TEXT');
   _addColumnIfMissing(db, 'products', 'price_updated_at', 'INTEGER');
   _addColumnIfMissing(db, 'profiles', 'default_currency', 'TEXT');
+}
+
+void _renameColumnIfPresent(
+    Database db, String table, String from, String to) {
+  final existing = db
+      .select('PRAGMA table_info($table)')
+      .map((row) => row['name'] as String)
+      .toSet();
+  if (existing.contains(from) && !existing.contains(to)) {
+    db.execute('ALTER TABLE $table RENAME COLUMN $from TO $to');
+  }
 }
 
 void _addColumnIfMissing(

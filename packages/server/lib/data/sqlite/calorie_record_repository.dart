@@ -42,7 +42,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
             100000)
         .round();
     var sql =
-        'SELECT * FROM calorie_items WHERE profile_id = ? AND created_at_day >= ? AND created_at_day <= ? ORDER BY $orderBy';
+        'SELECT * FROM calorie_items WHERE profile_id = ? AND record_day >= ? AND record_day <= ? ORDER BY $orderBy';
     if (limit != null) {
       sql += ' LIMIT $limit';
     }
@@ -54,28 +54,28 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
   }
 
   @override
-  Future<List<CalorieRecord>> fetchByCreatedAtDay(DateTime createdAtDay) async {
+  Future<List<CalorieRecord>> fetchByRecordDay(DateTime day) async {
     final dayTimestamp =
-        (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
+        (DateTime(day.year, day.month, day.day)
                     .millisecondsSinceEpoch /
                 100000)
             .round();
     final result = _db.select(
-      'SELECT * FROM calorie_items WHERE created_at_day = ?',
+      'SELECT * FROM calorie_items WHERE record_day = ?',
       [dayTimestamp],
     );
     return result.map(_rowToRecord).toList();
   }
 
   @override
-  Future<void> deleteByCreatedAtDay(DateTime createdAtDay, Profile profile) async {
+  Future<void> deleteByRecordDay(DateTime day, Profile profile) async {
     final dayTimestamp =
-        (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
+        (DateTime(day.year, day.month, day.day)
                     .millisecondsSinceEpoch /
                 100000)
             .round();
     _db.execute(
-      'DELETE FROM calorie_items WHERE created_at_day = ? AND profile_id = ?',
+      'DELETE FROM calorie_items WHERE record_day = ? AND profile_id = ?',
       [dayTimestamp, profile.id],
     );
   }
@@ -106,11 +106,11 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         SUM(value) as value_sum,
         SUM(CASE WHEN value > 0 THEN value ELSE 0 END) positive_value_sum,
         SUM(CASE WHEN value < 0 THEN value ELSE 0 END) negative_value_sum,
-        created_at_day
+        record_day
       FROM calorie_items
       WHERE profile_id = ? AND eaten_at IS NOT NULL
-      GROUP BY created_at_day
-      ORDER BY created_at_day DESC
+      GROUP BY record_day
+      ORDER BY record_day DESC
       LIMIT ?
     ''', [profile.id, limit]);
     return result
@@ -118,7 +118,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
               'value_sum': row['value_sum'],
               'positive_value_sum': row['positive_value_sum'],
               'negative_value_sum': row['negative_value_sum'],
-              'created_at_day': row['created_at_day'],
+              'record_day': row['record_day'],
             }))
         .toList();
   }
@@ -132,7 +132,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         id, profile_id, waking_period_id, product_id, meal_id, value, description,
         sort_order, weight_grams, protein_grams, fat_grams, carb_grams,
         cost_value, cost_currency, cost_is_manual, color_label,
-        created_at_day, eaten_at, planned_for, created_at, updated_at
+        record_day, eaten_at, planned_for, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
       json['id'],
@@ -151,7 +151,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['cost_currency'],
       json['cost_is_manual'] ?? 0,
       json['color_label'],
-      json['created_at_day'],
+      json['record_day'],
       json['eaten_at'],
       json['planned_for'],
       json['created_at'],
@@ -173,7 +173,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         value = ?, description = ?, sort_order = ?,
         weight_grams = ?, protein_grams = ?, fat_grams = ?, carb_grams = ?,
         cost_value = ?, cost_currency = ?, cost_is_manual = ?, color_label = ?,
-        eaten_at = ?, planned_for = ?, created_at_day = ?, updated_at = ?,
+        eaten_at = ?, planned_for = ?, record_day = ?, updated_at = ?,
         product_id = ?, meal_id = ?, waking_period_id = ?
       WHERE id = ?
     ''', [
@@ -192,7 +192,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
       json['planned_for'],
       // The day key follows eaten_at and planned_for, so an update that moves
       // either has to move it too or the row keeps answering for its old day.
-      json['created_at_day'],
+      json['record_day'],
       json['updated_at'],
       json['product_id'],
       json['meal_id'],

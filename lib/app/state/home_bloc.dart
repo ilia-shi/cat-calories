@@ -255,7 +255,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       Emitter<AbstractHomeState> emit,
       ) async {
     await _ensureActiveProfile();
-    await calorieItemRepository.deleteByCreatedAtDay(
+    await calorieItemRepository.deleteByRecordDay(
         event.date, event.profile);
     await _emitHomeData(emit);
   }
@@ -587,19 +587,19 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     final List<CalorieRecord> allItems = [];
 
     // Fetch today's items
-    final todayItems = await calorieItemRepository.fetchByCreatedAtDay(now);
+    final todayItems = await calorieItemRepository.fetchByRecordDay(now);
     allItems.addAll(todayItems);
 
     // Fetch yesterday's items
     final yesterday = now.subtract(const Duration(days: 1));
     final yesterdayItems =
-    await calorieItemRepository.fetchByCreatedAtDay(yesterday);
+    await calorieItemRepository.fetchByRecordDay(yesterday);
     allItems.addAll(yesterdayItems);
 
     // Fetch day before yesterday (to ensure full 48h coverage for edge cases)
     final dayBeforeYesterday = now.subtract(const Duration(days: 2));
     final dayBeforeItems =
-    await calorieItemRepository.fetchByCreatedAtDay(dayBeforeYesterday);
+    await calorieItemRepository.fetchByRecordDay(dayBeforeYesterday);
     allItems.addAll(dayBeforeItems);
 
     // Remove duplicates by ID (in case of overlap)
@@ -633,7 +633,7 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
       print('[BOOT] _emitHomeData - fetching today items');
       List<CalorieRecord> todayCalorieItems =
-      await calorieItemRepository.fetchByCreatedAtDay(nowDateTime);
+      await calorieItemRepository.fetchByRecordDay(nowDateTime);
       print('[BOOT] _emitHomeData - fetching rolling window');
       List<CalorieRecord> rollingWindowCalorieItems =
       await _fetchRollingWindowItems();

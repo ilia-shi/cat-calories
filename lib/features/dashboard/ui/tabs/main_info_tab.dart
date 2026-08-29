@@ -411,7 +411,7 @@ class _MainInfoViewState extends State<MainInfoView>
                         children: [
                           Expanded(
                             child: Text(
-                                '${DateFormat('MMM d, y').format(day.createdAtDay)}: ${day.valueSum.round()} kcal'),
+                                '${DateFormat('MMM d, y').format(day.day)}: ${day.valueSum.round()} kcal'),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,

@@ -169,7 +169,7 @@ class _TrackingTabState extends State<TrackingTab>
 
     if (_hoursOffset == 0) {
       for (final dayResult in state.days30) {
-        final dayDate = dayResult.createdAtDay;
+        final dayDate = dayResult.day;
         if (dayDate.year == yesterdayStart.year &&
             dayDate.month == yesterdayStart.month &&
             dayDate.day == yesterdayStart.day) {
@@ -195,7 +195,7 @@ class _TrackingTabState extends State<TrackingTab>
     final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
 
     final relevantDays = state.days30.where((day) {
-      final dayDate = day.createdAtDay;
+      final dayDate = day.day;
       return dayDate.isAfter(sevenDaysAgo) && dayDate.isBefore(todayStart);
     }).toList();
 

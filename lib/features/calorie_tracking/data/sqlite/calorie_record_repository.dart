@@ -43,7 +43,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
       int? offset,
       required DateTime dayStart}) async {
     final calorieItemsResult = await _db.query(tableName,
-        where: 'profile_id = ? AND created_at_day >= ? AND created_at_day <= ?',
+        where: 'profile_id = ? AND record_day >= ? AND record_day <= ?',
         whereArgs: [
           profile.id,
           DateTime(dayStart.year, dayStart.month, dayStart.day, 0, 0, 0)
@@ -65,14 +65,14 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
   /// Records belonging to one day. Matches that day exactly: it used to take
   /// everything from the day onwards, which was harmless while nothing could be
   /// dated ahead, but a meal planned for next week would now land in today's.
-  Future<List<CalorieRecord>> fetchByCreatedAtDay(
-      DateTime createdAtDay) async {
+  Future<List<CalorieRecord>> fetchByRecordDay(
+      DateTime day) async {
     final calorieItemsResult = await _db.query(
       'calorie_items',
       orderBy: 'sort_order ASC',
-      where: 'created_at_day = ?',
+      where: 'record_day = ?',
       whereArgs: [
-        (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
+        (DateTime(day.year, day.month, day.day)
                     .millisecondsSinceEpoch /
                 100000)
             .round(),
@@ -84,10 +84,10 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
         .toList();
   }
 
-  Future<void> deleteByCreatedAtDay(
-      DateTime createdAtDay, Profile profile) async {
+  Future<void> deleteByRecordDay(
+      DateTime day, Profile profile) async {
     final int dateTimestamp =
-        (DateTime(createdAtDay.year, createdAtDay.month, createdAtDay.day)
+        (DateTime(day.year, day.month, day.day)
                     .millisecondsSinceEpoch /
                 100000)
             .round()
@@ -95,7 +95,7 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
 
     await _db.delete(
       tableName,
-      where: 'created_at_day = ? AND profile_id = ?',
+      where: 'record_day = ? AND profile_id = ?',
       whereArgs: [dateTimestamp, profile.id],
     );
   }
@@ -139,13 +139,13 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
           SUM(ci.value) as value_sum,
           SUM(case when ci.value > 0 THEN ci.value ELSE 0 END) positive_value_sum,
           SUM(case when ci.value < 0 THEN ci.value ELSE 0 END) negative_value_sum,
-          ci.created_at_day
+          ci.record_day
 
       FROM ${tableName} ci
       WHERE ci.profile_id = ? AND ci.eaten_at IS NOT NULL
 
-      GROUP BY created_at_day
-      ORDER BY created_at_day DESC
+      GROUP BY record_day
+      ORDER BY record_day DESC
 
       LIMIT ?
     ''', [profile.id, limit]);

@@ -9,9 +9,9 @@ abstract interface class CalorieRecordRepositoryInterface {
       {String orderBy, int? limit, int? offset});
   Future<List<CalorieRecord>> fetchAllByProfileAndDay(Profile profile,
       {String orderBy, int? limit, int? offset, required DateTime dayStart});
-  Future<List<CalorieRecord>> fetchByCreatedAtDay(DateTime createdAtDay);
-  Future<void> deleteByCreatedAtDay(
-      DateTime createdAtDay, Profile profile);
+  Future<List<CalorieRecord>> fetchByRecordDay(DateTime day);
+  Future<void> deleteByRecordDay(
+      DateTime day, Profile profile);
   Future<List<CalorieRecord>> fetchByWakingPeriodAndProfile(
       WakingPeriod wakingPeriod, Profile profile);
   Future<CalorieRecord?> find(String id);
