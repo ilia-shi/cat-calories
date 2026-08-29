@@ -20,11 +20,13 @@ import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_g
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_picker_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/meal_title_dialog.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/history/plan_meal_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/item_options_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/record_calculator_edit_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/proportional_edit_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 class AllCaloriesHistoryScreen extends StatefulWidget {
   const AllCaloriesHistoryScreen({Key? key}) : super(key: key);
@@ -164,7 +166,7 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
               children: [
                 Icon(Icons.restaurant, size: 20),
                 SizedBox(width: 12),
-                Text('New Meal (plan ahead)'),
+                Text('Plan a meal…'),
               ],
             ),
           ),
@@ -383,23 +385,43 @@ class _AllCaloriesHistoryScreenState extends State<AllCaloriesHistoryScreen>
   }
 
   Future<void> _duplicateMeal(Meal source, List<CalorieRecord> members) async {
-    final meal = await _controller.duplicateMeal(source, members);
-    _afterMealMutation('Planned "${meal.title}" — adjust it while cooking');
+    final plan = await PlanMealSheet.show(context, initialTitle: source.title);
+    if (plan == null) {
+      return;
+    }
+    final meal = await _controller.duplicateMeal(
+      source,
+      members,
+      title: plan.title,
+      plannedFor: plan.plannedFor,
+    );
+    _afterMealMutation(
+      'Planned "${meal.title}"${_forDaySuffix(meal)} — adjust it while cooking',
+    );
     await _openCookingScreen(meal);
   }
 
   Future<void> _createNewMeal() async {
-    final title = await promptMealTitle(
-      context,
-      dialogTitle: 'New planned meal',
-      confirmLabel: 'Plan',
-    );
-    if (title == null || title.trim().isEmpty) {
+    final plan = await PlanMealSheet.show(context);
+    if (plan == null) {
       return;
     }
-    final meal = await _controller.createNewMeal(title.trim());
-    _afterMealMutation('Meal "${meal.title}" planned');
+    final meal = await _controller.createNewMeal(
+      plan.title,
+      plannedFor: plan.plannedFor,
+    );
+    _afterMealMutation('Meal "${meal.title}" planned${_forDaySuffix(meal)}');
     await _openCookingScreen(meal);
+  }
+
+  /// Names the day in a confirmation, but only when the meal is for a day other
+  /// than today — "planned for today" is what the toast already implies.
+  String _forDaySuffix(Meal meal) {
+    final day = meal.plannedFor;
+    if (day == null) {
+      return '';
+    }
+    return ' for ${DateFormat('EEE d MMM').format(day)}';
   }
 
   void _showMealOptions(Meal meal, List<CalorieRecord> members) {

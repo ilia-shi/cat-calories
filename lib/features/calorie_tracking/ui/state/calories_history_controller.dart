@@ -233,11 +233,19 @@ class CaloriesHistoryController extends ChangeNotifier {
 
     final now = DateTime.now();
     final allEaten = selected.every((r) => r.isEaten());
+    // Grouping is not asked for a day — the records already have their own. The
+    // meal adopts theirs when they agree, and otherwise stays dayless; either
+    // way the loop below leaves every member holding the meal's value, so the
+    // group never spans two planned days.
+    final firstDay = selected.first.plannedFor;
+    final sharedDay =
+        selected.every((r) => r.plannedFor == firstDay) ? firstDay : null;
     final meal = await _mealRepository.insert(Meal(
       id: null,
       profileId: selected.first.profileId,
       title: title,
       createdAt: now,
+      plannedFor: sharedDay,
       // Grouping after the fact: the meal was eaten when its last record was.
       eatenAt: allEaten
           ? selected
@@ -248,6 +256,7 @@ class CaloriesHistoryController extends ChangeNotifier {
 
     for (final record in selected) {
       record.mealId = meal.id;
+      record.plannedFor = sharedDay;
       record.updatedAt = now;
       await _recordRepository.update(record);
     }
@@ -257,34 +266,42 @@ class CaloriesHistoryController extends ChangeNotifier {
     return meal;
   }
 
-  /// Plans a meal from scratch (title only); ingredients are added in cooking
-  /// mode. Returns the created meal.
-  Future<Meal> createNewMeal(String title) async {
+  /// Plans a meal from scratch (title and day only); ingredients are added in
+  /// cooking mode. Returns the created meal.
+  Future<Meal> createNewMeal(String title, {DateTime? plannedFor}) async {
     final profile = await _profileResolver.resolve();
     final meal = await _mealRepository.insert(Meal(
       id: null,
       profileId: profile.id!,
       title: title,
       createdAt: DateTime.now(),
+      plannedFor: plannedFor,
     ));
     await load();
     return meal;
   }
 
   /// "Cook it again": a new planned meal with planned copies of [source]'s
-  /// records — same ingredients and last-used weights. Returns the new meal.
-  Future<Meal> duplicateMeal(Meal source, List<CalorieRecord> members) async {
+  /// records — same ingredients and last-used weights, under a name and day of
+  /// their own. Returns the new meal.
+  Future<Meal> duplicateMeal(
+    Meal source,
+    List<CalorieRecord> members, {
+    String? title,
+    DateTime? plannedFor,
+  }) async {
     final now = DateTime.now();
     final meal = await _mealRepository.insert(Meal(
       id: null,
       profileId: source.profileId,
-      title: source.title,
+      title: title ?? source.title,
       createdAt: now,
+      plannedFor: plannedFor,
       cookingMinutes: source.cookingMinutes,
     ));
 
     for (final record in members) {
-      final copy = record.copyForPlanning(now);
+      final copy = record.copyForPlanning(now, plannedFor: plannedFor);
       copy.mealId = meal.id;
       await _recordRepository.insert(copy);
     }
@@ -348,6 +365,9 @@ class CaloriesHistoryController extends ChangeNotifier {
       return null;
     }
     item.mealId = targetId;
+    // The record joins the target's day too, or it would sit under a different
+    // day from the dish it now belongs to.
+    item.plannedFor = target.plannedFor;
     item.updatedAt = DateTime.now();
     await _recordRepository.update(item);
     final emptied = await _deleteMealIfEmptied(sourceMealId, item);
@@ -413,9 +433,23 @@ class CaloriesHistoryController extends ChangeNotifier {
     await load();
   }
 
-  /// Persists an already-edited meal (fields mutated by the caller).
+  /// Persists an already-edited meal (fields mutated by the caller), then pulls
+  /// its members' planned day back in line with the meal's own. The day is
+  /// denormalized onto each record so the day a record belongs to can be read
+  /// from the record alone; the meal is the unit that owns it, so moving the
+  /// meal moves every ingredient with it. Only records that actually differ are
+  /// written, to keep a rename from bumping updatedAt on the whole dish.
   Future<void> saveMeal(Meal meal) async {
     await _mealRepository.update(meal);
+    final now = DateTime.now();
+    for (final record in _membersByMeal[meal.id] ?? const <CalorieRecord>[]) {
+      if (record.plannedFor == meal.plannedFor) {
+        continue;
+      }
+      record.plannedFor = meal.plannedFor;
+      record.updatedAt = now;
+      await _recordRepository.update(record);
+    }
     await load();
   }
 }

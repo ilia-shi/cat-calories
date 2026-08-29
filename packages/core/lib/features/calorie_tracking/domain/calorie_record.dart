@@ -129,10 +129,10 @@ final class CalorieRecord {
   /// eaten, detached from any waking period and meal — the caller assigns a
   /// new meal. Nutrition, weight, cost and the color label carry over as the
   /// starting point to tweak while cooking; cost is no longer a manual override
-  /// because it no longer describes an actual past purchase. [plannedFor] is
-  /// deliberately not carried over — the source's day is in the past by the
-  /// time it is cooked again; the caller stamps the new meal's day instead.
-  CalorieRecord copyForPlanning(DateTime createdAt) {
+  /// because it no longer describes an actual past purchase. The source's own
+  /// [plannedFor] is deliberately not carried over — its day is in the past by
+  /// the time it is cooked again; the caller passes the new meal's day instead.
+  CalorieRecord copyForPlanning(DateTime createdAt, {DateTime? plannedFor}) {
     return CalorieRecord(
       id: null,
       value: value,
@@ -148,6 +148,7 @@ final class CalorieRecord {
       carbGrams: carbGrams,
       productId: productId,
       mealId: null,
+      plannedFor: plannedFor,
       costValue: costValue,
       costCurrency: costCurrency,
       costIsManual: false,

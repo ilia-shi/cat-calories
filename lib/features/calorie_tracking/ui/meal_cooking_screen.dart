@@ -272,6 +272,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       carbGrams: result.carbGrams,
       productId: product.id,
       mealId: meal.id,
+      plannedFor: meal.plannedFor,
       costValue: product.calculateCost(weight),
       costCurrency:
           product.calculateCost(weight) == null ? null : product.priceCurrency,
@@ -320,6 +321,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
       fatGrams: result.fatGrams,
       carbGrams: result.carbGrams,
       mealId: meal.id,
+      plannedFor: meal.plannedFor,
     );
     await _recordsRepo.insert(record);
     _markChanged();
