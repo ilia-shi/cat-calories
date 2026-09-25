@@ -1,10 +1,7 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/calories_history.dart';
 import 'package:cat_calories/features/dashboard/ui/app_bar.dart';
-import 'package:cat_calories/features/dashboard/ui/tabs/main_info_tab.dart';
-import 'package:cat_calories/features/dashboard/ui/tabs/products_tab.dart';
-import 'package:cat_calories/features/dashboard/ui/tabs/tracking_tab.dart';
+import 'package:cat_calories/features/dashboard/ui/home_tabs.dart';
 import 'package:cat_calories/features/dashboard/ui/widgets/app_drawer.dart';
 import 'package:cat_calories/features/dashboard/ui/widgets/floating_action_button.dart';
 import 'package:cat_calories/features/dashboard/ui/widgets/home_bottom_nav.dart';
@@ -12,55 +9,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class HomeScreen extends StatefulWidget {
+final class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  static const _navItems = <HomeBottomNavItem>[
-    HomeBottomNavItem(
-      icon: Icons.restaurant_outlined,
-      activeIcon: Icons.restaurant,
-      label: 'Tracking',
-    ),
-    HomeBottomNavItem(
-      icon: Icons.inventory_2_outlined,
-      activeIcon: Icons.inventory_2,
-      label: 'Products',
-    ),
-    HomeBottomNavItem(
-      icon: Icons.local_fire_department_outlined,
-      activeIcon: Icons.local_fire_department,
-      label: 'kCal',
-    ),
-    HomeBottomNavItem(
-      icon: Icons.info_outline,
-      activeIcon: Icons.info,
-      label: 'Info',
-    ),
-  ];
+final class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  static final _navItems = [for (final tab in homeTabs) tab.navItem];
 
   TextEditingController _calorieItemController = TextEditingController();
 
   late final TabController _tabController;
-
-  /// Built once — recreating these every build (which the old 5s timer forced)
-  /// churned all four tabs.
   late final List<Widget> _tabViews;
-
-  /// Merged rebuild trigger handed to the bottom nav so only its dynamic parts
-  /// repaint per frame.
   late final Listenable _navListenable;
-
-  /// Drives how collapsed the bottom nav is: 0 = expanded (labels shown),
-  /// 1 = collapsed (labels hidden, icons shrunk).
   late final AnimationController _navCollapseController;
-
-  /// Drives the sliding pill indicator. [_indicatorPosition] interpolates
-  /// between the previous and the current item index as this runs.
   late final AnimationController _indicatorController;
   late Animation<double> _indicatorPosition;
 
@@ -99,12 +63,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _tabController.animation!,
     ]);
 
-    _tabViews = [
-      TrackingTab(),
-      const ProductsTab(),
-      AllCaloriesHistoryScreen(),
-      MainInfoView(),
-    ];
+    _tabViews = [for (final tab in homeTabs) tab.buildView()];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BlocProvider.of<HomeBloc>(context)
@@ -171,9 +130,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       drawerScrimColor: Colors.transparent,
       drawer: const HomeAppDrawer(),
       extendBody: true,
-      // Isolate the body (which holds three frosted blurs) as its own layer so
-      // the sliding drawer — itself a moving blur — samples a cached raster
-      // instead of forcing those blurs to re-run every drawer-animation frame.
       body: RepaintBoundary(
         child: NotificationListener<UserScrollNotification>(
           onNotification: _handleScroll,
@@ -188,9 +144,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
             body: TabBarView(
               controller: _tabController,
-              // Tabs switch via the bottom nav only; no horizontal swipe, so it
-              // can't fight inner horizontal scrollables (product chips, sliders)
-              // or build the neighbour tab mid-drag.
               physics: const NeverScrollableScrollPhysics(),
               children: _tabViews,
             ),
