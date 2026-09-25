@@ -3,6 +3,13 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/color_label.d
 import 'package:test/test.dart';
 
 void main() {
+  // Taken from the palette rather than named, so paring the presets down or
+  // adding to them cannot break tests that are not about any colour in
+  // particular. Only the parsing tests below name a hex, and those are about
+  // the format, not the palette.
+  final somePreset = ColorLabelPreset.values.first;
+  final anotherPreset = ColorLabelPreset.values.last;
+
   group('ColorLabel parsing', () {
     test('normalizes case and an omitted leading hash', () {
       expect(ColorLabel.tryParse('#f44336')!.hex, '#F44336');
@@ -37,10 +44,17 @@ void main() {
     });
 
     test('forColor maps a stored color back to its preset', () {
-      expect(ColorLabelPreset.forColor(ColorLabel.tryParse('#009688')),
-          ColorLabelPreset.teal);
+      expect(ColorLabelPreset.forColor(ColorLabel.tryParse(somePreset.color.hex)),
+          somePreset);
       expect(ColorLabelPreset.forColor(ColorLabel.tryParse('#123456')), isNull);
       expect(ColorLabelPreset.forColor(null), isNull);
+    });
+
+    test('forColor finds every preset by its own hex', () {
+      for (final preset in ColorLabelPreset.values) {
+        expect(ColorLabelPreset.forColor(preset.color), preset,
+            reason: preset.name);
+      }
     });
 
     test('every preset is a valid normalized color', () {
@@ -67,11 +81,10 @@ void main() {
         );
 
     test('survives a JSON round-trip as a hex string', () {
-      final json = record(colorLabel: ColorLabelPreset.teal.color).toJson();
-      expect(json['color_label'], '#009688');
+      final json = record(colorLabel: somePreset.color).toJson();
+      expect(json['color_label'], somePreset.color.hex);
 
-      expect(CalorieRecord.fromJson(json).colorLabel,
-          ColorLabelPreset.teal.color);
+      expect(CalorieRecord.fromJson(json).colorLabel, somePreset.color);
     });
 
     test('unlabelled by default', () {
@@ -86,9 +99,9 @@ void main() {
     });
 
     test('copyForPlanning carries the label', () {
-      final copy = record(colorLabel: ColorLabelPreset.amber.color)
+      final copy = record(colorLabel: anotherPreset.color)
           .copyForPlanning(DateTime(2026, 7, 26));
-      expect(copy.colorLabel, ColorLabelPreset.amber.color);
+      expect(copy.colorLabel, anotherPreset.color);
     });
   });
 }

@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Whichever colour the palette leads with: this is about the dot and its
+  // announcement, not about any particular preset surviving.
+  final somePreset = ColorLabelPreset.values.first;
+
   CalorieRecord record({
     ColorLabel? colorLabel,
     String? description,
@@ -55,13 +59,14 @@ void main() {
 
     await pumpRow(
       tester,
-      record(colorLabel: ColorLabelPreset.teal.color, description: 'Porridge'),
+      record(colorLabel: somePreset.color, description: 'Porridge'),
     );
 
     expect(find.byType(ColorLabelDot), findsOneWidget);
     // The row's InkWell merges descendant semantics, so the dot's label is one
     // part of the announced row rather than a node of its own.
-    expect(find.bySemanticsLabel(RegExp('Color label: teal')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Color label: ${somePreset.name}')),
+        findsOneWidget);
     expect(find.text('Porridge'), findsOneWidget);
 
     semantics.dispose();

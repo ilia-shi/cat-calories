@@ -6,6 +6,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Named presets would tie these tests to whichever colours the palette
+  // happens to hold; what they are about is the picker, not the palette.
+  final firstPreset = ColorLabelPreset.values.first;
+  final lastPreset = ColorLabelPreset.values.last;
+
+  /// Squeezes the viewport until the swatches cannot all fit. The row scrolls
+  /// only when its content overflows, and the palette is now short enough to
+  /// fit any phone — so a test that wants the scrolling has to create the
+  /// crowding itself instead of relying on a long palette to supply it.
+  void useNarrowViewport(WidgetTester tester) {
+    tester.view.physicalSize = const Size(240, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+  }
+
   Future<ColorLabel?> pumpAndTap(
     WidgetTester tester, {
     required ColorLabel? value,
@@ -47,14 +62,17 @@ void main() {
     expect(find.byType(InkWell),
         findsNWidgets(ColorLabelPreset.values.length + 1));
     expect(find.bySemanticsLabel('No color'), findsOneWidget);
-    expect(find.bySemanticsLabel('teal'), findsOneWidget);
+    for (final preset in ColorLabelPreset.values) {
+      expect(find.bySemanticsLabel(preset.name), findsOneWidget,
+          reason: 'every preset needs a swatch of its own');
+    }
   });
 
   testWidgets('tapping a swatch reports that preset color', (tester) async {
     final picked = await pumpAndTap(tester,
-        value: null, tapSemanticLabel: 'indigo');
+        value: null, tapSemanticLabel: firstPreset.name);
 
-    expect(picked, ColorLabelPreset.indigo.color);
+    expect(picked, firstPreset.color);
   });
 
   testWidgets('tapping no-color clears the label', (tester) async {
@@ -83,6 +101,7 @@ void main() {
   testWidgets('singleLine lays the swatches out in one scrolling row',
       (tester) async {
     ColorLabel? picked;
+    useNarrowViewport(tester);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -102,18 +121,19 @@ void main() {
 
     // The tail of the palette is off-viewport until the row is scrolled.
     await tester.dragUntilVisible(
-      find.bySemanticsLabel('blueGrey'),
+      find.bySemanticsLabel(lastPreset.name),
       find.byType(ColorLabelPicker),
       const Offset(-120, 0),
     );
-    await tester.tap(find.bySemanticsLabel('blueGrey'));
+    await tester.tap(find.bySemanticsLabel(lastPreset.name));
 
-    expect(picked, ColorLabelPreset.blueGrey.color);
+    expect(picked, lastPreset.color);
   });
 
   testWidgets('singleLine scrolls by mouse drag without stealing swatch taps',
       (tester) async {
     ColorLabel? picked;
+    useNarrowViewport(tester);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -137,8 +157,9 @@ void main() {
     expect(picked, isNull, reason: 'a drag must not select a swatch');
 
     // A click without movement still picks, in the same spot the drag started.
-    await tester.tap(find.bySemanticsLabel('grey'), kind: PointerDeviceKind.mouse);
-    expect(picked, ColorLabelPreset.grey.color);
+    await tester.tap(find.bySemanticsLabel(lastPreset.name),
+        kind: PointerDeviceKind.mouse);
+    expect(picked, lastPreset.color);
   });
 
   testWidgets('a preset value adds no extra swatch', (tester) async {
@@ -146,7 +167,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: ColorLabelPicker(
-            value: ColorLabelPreset.lime.color,
+            value: lastPreset.color,
             onChanged: (_) {},
           ),
         ),
