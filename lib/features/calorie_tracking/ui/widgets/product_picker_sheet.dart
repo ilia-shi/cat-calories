@@ -50,8 +50,13 @@ class _ProductPickerSheetState extends State<ProductPickerSheet> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.6,
+        // A cap, not a fixed height: with the keyboard open, 60% of the screen
+        // plus the keyboard is taller than the screen and would push the
+        // search field under the status bar.
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
           child: Column(
             children: [
               Padding(

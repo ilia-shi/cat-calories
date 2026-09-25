@@ -229,6 +229,7 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
     final product = await showModalBottomSheet<Product>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: AppCard.squircleBorder(radius: 20, bottom: false),
       builder: (_) => ProductPickerSheet(
         productsRepo: _productsRepo,
