@@ -7,6 +7,7 @@ import 'package:cat_calories_core/features/waking_periods/domain/waking_period.d
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories/features/products/ui/add_edit_product_screen.dart';
 import 'package:cat_calories/features/products/ui/categories_screen.dart';
+import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/error_state_widget.dart';
 import 'package:cat_calories/common/widgets/floating_toolbar.dart';
@@ -135,13 +136,11 @@ class _ProductsTabState extends State<ProductsTab>
     List<Product> products,
     List<ProductCategory> categories,
   ) {
-    // Filter by search query
     var filtered = products.where((product) {
       if (_searchQuery.isEmpty) {
         return true;
       }
-      return product.title.toLowerCase().contains(_searchQuery) ||
-          (product.description?.toLowerCase().contains(_searchQuery) ?? false);
+      return product.title.toLowerCase().contains(_searchQuery);
     }).toList();
 
     // Filter by category
@@ -546,14 +545,12 @@ class _ProductsTabState extends State<ProductsTab>
 
   List<Widget> _toolbarChildren(BuildContext context, int productCount) {
     return [
-      Text(
-        '$productCount products',
-        style: TextStyle(
-          fontSize: 13,
-          color: Colors.grey[600],
+      Expanded(
+        child: _ProductSearchField(
+          controller: _searchController,
+          hintText: 'Search $productCount products',
         ),
       ),
-      const Spacer(),
       ToolbarActionButton(
         icon: Icons.sort,
         tooltip: 'Sort',
@@ -596,6 +593,7 @@ class _ProductsTabState extends State<ProductsTab>
       controller: _scrollController,
       primary: false,
       physics: const AlwaysScrollableScrollPhysics(),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverToBoxAdapter(child: SizedBox(height: topInset)),
         if (products.isEmpty)
@@ -728,6 +726,53 @@ class _ProductsTabState extends State<ProductsTab>
             onEdit: () => _navigateToEditProduct(context, product),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Borderless so the frosted toolbar itself reads as the search bar.
+class _ProductSearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hintText;
+
+  const _ProductSearchField({
+    required this.controller,
+    required this.hintText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = AppColors.of(context);
+
+    return TextField(
+      controller: controller,
+      textInputAction: TextInputAction.search,
+      style: TextStyle(fontSize: 14, color: appColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(fontSize: 14, color: appColors.textTertiary),
+        prefixIcon: Icon(Icons.search, size: 20, color: appColors.textTertiary),
+        prefixIconConstraints: const BoxConstraints(minWidth: 28),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            if (value.text.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return ToolbarActionButton(
+              icon: Icons.close,
+              tooltip: 'Clear search',
+              onPressed: controller.clear,
+            );
+          },
+        ),
+        suffixIconConstraints: const BoxConstraints(),
+        border: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        filled: false,
+        isDense: true,
+        contentPadding: EdgeInsets.zero,
       ),
     );
   }
