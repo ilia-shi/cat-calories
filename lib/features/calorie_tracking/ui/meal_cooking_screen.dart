@@ -22,7 +22,6 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/cooked_meal_p
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_totals.dart';
-import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:flutter/material.dart';
@@ -226,15 +225,10 @@ class _MealCookingScreenState extends State<MealCookingScreen> {
     if (_profile == null) {
       return;
     }
-    final product = await showModalBottomSheet<Product>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: AppCard.squircleBorder(radius: 20, bottom: false),
-      builder: (_) => ProductPickerSheet(
-        productsRepo: _productsRepo,
-        profile: _profile!,
-      ),
+    final product = await ProductPickerSheet.show(
+      context,
+      productsRepo: _productsRepo,
+      profile: _profile!,
     );
     if (product == null || !mounted) {
       return;
