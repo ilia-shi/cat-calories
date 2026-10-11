@@ -8,7 +8,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_
 
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 
-abstract class AbstractHomeState {}
+sealed class AbstractHomeState {}
 
 class HomeFetchingInProgress extends AbstractHomeState {}
 
