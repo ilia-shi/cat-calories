@@ -10,6 +10,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/rate_meals_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/today_plan_row.dart';
 import '../widgets/recent_entries_widget.dart';
+import '../widgets/stats_widget.dart';
 
 final class TrackingTab extends StatefulWidget {
   const TrackingTab({Key? key}) : super(key: key);
@@ -18,11 +19,10 @@ final class TrackingTab extends StatefulWidget {
   State<TrackingTab> createState() => _TrackingTabState();
 }
 
-class _TrackingTabState extends State<TrackingTab>
+final class _TrackingTabState extends State<TrackingTab>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-
   late DateTime _baseTime;
   double _hoursOffset = 0;
   late RollingCalorieTracker _tracker;
@@ -30,9 +30,6 @@ class _TrackingTabState extends State<TrackingTab>
   Timer? _refreshTimer;
   late int _lastKnownDay;
 
-  // Own controller (not the PrimaryScrollController): with the tab kept alive,
-  // a shared primary controller would carry two positions at once and the
-  // desktop Scrollbar asserts on that.
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -269,15 +266,10 @@ class _TrackingTabState extends State<TrackingTab>
                 IndicatorsWidget(
                   data: indicatorData,
                 ),
-
                 const SizedBox(height: 12),
-
-                // Both are lazy and render nothing when they have nothing to
-                // show, so the 12px gap below each only exists via its card.
                 const TodayPlanRow(),
-
                 const RateMealsRow(),
-
+                const StatsWidget(),
                 DensityScaleWidget(
                   entries: entries,
                   currentTime: _currentTime,
