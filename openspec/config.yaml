@@ -1,0 +1,21 @@
+schema: spec-driven
+
+context: |
+  Cat Calories: a calorie-tracking app. Flutter mobile app (lib/), standalone Dart
+  sync server (packages/server), shared pure-Dart domain (packages/core), and a
+  React/Vite web client (web/). api/openapi.yaml is the single source of truth for
+  the API; web TypeScript types are generated from it.
+
+  Read before writing artifacts:
+  - AGENTS.md — repo rules of thumb
+  - docs/architecture.md — feature-first layering and import_lint boundaries
+  - docs/ui-conventions.md — shared widgets, squircles, ~200-line widget cap
+  - docs/testing.md — what to run for a given change
+
+rules:
+  design:
+    - Respect the layering in docs/architecture.md; features never import sibling features.
+    - User-entered fields are optional (nullable) and editable later.
+  tasks:
+    - End with verification tasks taken from docs/testing.md for the touched areas.
+    - If api/openapi.yaml or a server JSON shape changes, include `make test-dart` and `make test-web`.

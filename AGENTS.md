@@ -21,6 +21,15 @@ tool-specific dirs are symlinks to it, so both assistants share one copy:
 `skills/` directly; never edit through the symlinks or copy them, or the two tools
 will drift.
 
+## OpenSpec
+
+Spec-driven changes use [OpenSpec](https://github.com/Fission-AI/OpenSpec): specs in
+`openspec/specs/`, in-flight changes in `openspec/changes/`, project context and
+artifact rules in `openspec/config.yaml`. Workflow: `/opsx:propose` → `/opsx:apply` →
+`/opsx:archive` (OpenCode: `/opsx-propose` etc.). `openspec init`/`openspec update`
+also writes a copy of its skills to `.opencode/skills/` — delete that dir afterwards;
+OpenCode already gets them from `skills/` through the `.opencode/skill` symlink.
+
 ## Key references
 
 - **Architecture & adding a feature** → [docs/architecture.md](docs/architecture.md).
