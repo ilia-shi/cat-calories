@@ -108,7 +108,7 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
         SUM(CASE WHEN value < 0 THEN value ELSE 0 END) negative_value_sum,
         record_day
       FROM calorie_items
-      WHERE profile_id = ? AND eaten_at IS NOT NULL
+      WHERE profile_id = ? AND eaten_at IS NOT NULL AND record_day IS NOT NULL
       GROUP BY record_day
       ORDER BY record_day DESC
       LIMIT ?

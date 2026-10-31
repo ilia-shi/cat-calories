@@ -46,7 +46,7 @@ final class CalorieExporter {
           'id': product.id,
           'title': product.title,
           'description': product.description,
-          'calorie_content': product.carbsPer100g,
+          'calorie_content': product.caloriesPer100g,
           'proteins': product.proteinsPer100g,
           'fats': product.fatsPer100g,
           'carbohydrates': product.carbsPer100g,

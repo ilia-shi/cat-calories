@@ -1,20 +1,24 @@
 import 'dart:io';
 
+import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../auth/auth_middleware.dart';
+import '../data/sqlite/calorie_record_repository.dart';
 import '../data/sqlite/profile_repository.dart';
 
 class HomeHandler extends Controller {
   final Database db;
   final ServerProfileRepository profiles;
+  final ServerCalorieRecordRepository records;
   final UserExtractor userExtractor;
 
   HomeHandler({
     required this.db,
     required this.profiles,
+    required this.records,
     required this.userExtractor,
   });
 
@@ -52,11 +56,8 @@ class HomeHandler extends Controller {
       [yesterdayMs, todayMs],
     );
 
-    // Average over last 7 days
-    final ms7dAgo =
-        todayStart.subtract(const Duration(days: 7)).millisecondsSinceEpoch;
-    final sum7d = _sumWhere(profileId, 'COALESCE(eaten_at, created_at) >= ?', [ms7dAgo]);
-    final avg7d = sum7d / 7.0;
+    final days = await records.fetchDaysByProfile(profile, 30);
+    final avg7d = averageDailyKcal(days, now: now);
 
     // Current waking period (open period with no ended_at)
     Map<String, dynamic>? period;

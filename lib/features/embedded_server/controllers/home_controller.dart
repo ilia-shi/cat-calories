@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period_repository_interface.dart';
 import 'package:cat_calories/app/profile_resolver.dart';
@@ -41,15 +42,7 @@ class HomeController extends Controller {
     }).fold(0.0, (sum, item) => sum + item.value);
 
     final days = await repo.fetchDaysByProfile(profile, 30);
-    final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
-    final relevantDays = days.where((day) {
-      return day.day.isAfter(sevenDaysAgo) &&
-          day.day.isBefore(todayStart);
-    }).toList();
-
-    final avg7Days = relevantDays.isEmpty
-        ? 0.0
-        : relevantDays.fold(0.0, (sum, day) => sum + day.valueSum) / relevantDays.length;
+    final avg7Days = averageDailyKcal(days, now: now);
 
     // Period (current waking period)
     final wakingPeriodRepo = locator.get<WakingPeriodRepositoryInterface>();

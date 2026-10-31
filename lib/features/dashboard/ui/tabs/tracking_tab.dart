@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/eaten_in_last_24h.dart';
 import '../widgets/density_scale_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/rate_meals_row.dart';
@@ -125,7 +127,7 @@ final class _TrackingTabState extends State<TrackingTab>
     }
 
     final caloriesYesterday = _calculateYesterdayCalories(state, entries, now);
-    final averageLast7Days = _calculateAverageLast7Days(state, entries, now);
+    final averageLast7Days = averageDailyKcal(state.days30, now: now);
     final caloriesCurrentPeriod = state.periodCalorieItems
         .where((item) => item.isEaten())
         .fold(0.0, (sum, item) => sum + item.value);
@@ -139,7 +141,7 @@ final class _TrackingTabState extends State<TrackingTab>
     );
 
     final macros24h = MacroData.fromCalorieItems(
-      state.rollingWindowCalorieItems,
+      eatenInLast24h(state.rollingWindowCalorieItems, now),
     );
 
     return IndicatorData(
@@ -152,7 +154,7 @@ final class _TrackingTabState extends State<TrackingTab>
       dailyGoal: dailyGoal,
       periodGoal: periodGoal,
       hasPeriod: hasPeriod,
-      now: _baseTime,
+      now: now,
       macrosToday: macrosToday,
       macros24h: macros24h,
     );
@@ -183,26 +185,6 @@ final class _TrackingTabState extends State<TrackingTab>
       }
     }
     return yesterdayTotal;
-  }
-
-  double _calculateAverageLast7Days(
-      HomeFetched state, List<CalorieEntry> entries, DateTime now) {
-    // Use days30 data for historical average (excluding today)
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final sevenDaysAgo = todayStart.subtract(const Duration(days: 7));
-
-    final relevantDays = state.days30.where((day) {
-      final dayDate = day.day;
-      return dayDate.isAfter(sevenDaysAgo) && dayDate.isBefore(todayStart);
-    }).toList();
-
-    if (relevantDays.isEmpty) {
-      return _tracker.getAverageDaily(entries, now, days: 7);
-    }
-
-    final totalCalories =
-        relevantDays.fold(0.0, (sum, day) => sum + day.valueSum);
-    return totalCalories / relevantDays.length;
   }
 
   @override
@@ -244,7 +226,7 @@ final class _TrackingTabState extends State<TrackingTab>
                 caloriesCurrentPeriod: 0,
                 dailyGoal: config.targetDailyCalories,
                 todayCalorieItems: [],
-                now: _baseTime,
+                now: _currentTime,
               );
 
         return RefreshIndicator(
