@@ -5,6 +5,7 @@ import 'package:cat_calories/common/synced_folder.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/llm_export_formatter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap_repository_interface.dart';
 import 'package:cat_calories_core/features/products/domain/product_repository_interface.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,8 +27,9 @@ final class LlmExportService {
   final CalorieRecordRepositoryInterface _records;
   final ProductRepositoryInterface _products;
   final MealRepositoryInterface _meals;
+  final TrackingGapRepositoryInterface _gaps;
 
-  LlmExportService(this._records, this._products, this._meals);
+  LlmExportService(this._records, this._products, this._meals, this._gaps);
 
   /// The export directory is the shared synced root — the same folder file
   /// sync uses (see SyncedFolder).
@@ -86,6 +88,7 @@ final class LlmExportService {
     final records = await _records.fetchAllByProfile(profile);
     final products = await _products.fetchByProfile(profile);
     final meals = await _meals.fetchByProfile(profile);
+    final gaps = await _gaps.fetchByProfile(profile);
     final preamble = await getPreamble();
 
     return const LlmExportFormatter().format(
@@ -93,6 +96,7 @@ final class LlmExportService {
       records: records,
       products: products,
       meals: meals,
+      gaps: gaps,
       preamble: preamble,
     );
   }

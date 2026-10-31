@@ -221,6 +221,16 @@ class SyncEntryRepository {
     return result.map(_rowToEntry).toList();
   }
 
+  /// Return one user's entries of a given entity type.
+  List<SyncEntryRow> findAllByUserAndType(String userId, String entityType) {
+    final result = _db.select(
+      'SELECT * FROM sync_entries '
+      'WHERE user_id = ? AND entity_type = ? AND is_deleted = 0',
+      [userId, entityType],
+    );
+    return result.map(_rowToEntry).toList();
+  }
+
   SyncEntryRow _rowToEntry(Row row) {
     final payloadStr = row['payload'] as String?;
     return SyncEntryRow(

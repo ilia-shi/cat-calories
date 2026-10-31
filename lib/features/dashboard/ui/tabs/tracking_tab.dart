@@ -6,9 +6,13 @@ import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/eaten_in_last_24h.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/record_day.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import '../widgets/density_scale_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/widgets/empty_days_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/rate_meals_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/today_plan_row.dart';
 import '../widgets/recent_entries_widget.dart';
@@ -127,7 +131,12 @@ final class _TrackingTabState extends State<TrackingTab>
     }
 
     final caloriesYesterday = _calculateYesterdayCalories(state, entries, now);
-    final averageLast7Days = averageDailyKcal(state.days30, now: now);
+    final averageLast7Days = averageDailyKcal(
+      state.days30,
+      gaps: state.trackingGaps,
+      firstRecordDay: state.firstRecordDay,
+      now: now,
+    );
     final caloriesCurrentPeriod = state.periodCalorieItems
         .where((item) => item.isEaten())
         .fold(0.0, (sum, item) => sum + item.value);
@@ -144,7 +153,27 @@ final class _TrackingTabState extends State<TrackingTab>
       eatenInLast24h(state.rollingWindowCalorieItems, now),
     );
 
+    final today = dayOf(now);
+    final yesterday = DateTime(today.year, today.month, today.day - 1);
+    final yesterdayStats = dayStats(
+      days: state.days30,
+      gaps: state.trackingGaps,
+      firstRecordDay: state.firstRecordDay,
+      from: yesterday,
+      to: today,
+    );
+    final period = state.currentWakingPeriod;
+
     return IndicatorData(
+      rollingHasGap: gapOverlaps(
+        state.trackingGaps,
+        now.subtract(const Duration(hours: 24)),
+        now,
+      ),
+      todayHasGap: gapOverlaps(state.trackingGaps, today, nextDay(today)),
+      periodHasGap: period != null &&
+          gapOverlaps(state.trackingGaps, period.startedAt, now),
+      yesterdayStatus: yesterdayStats.isEmpty ? null : yesterdayStats.first.status,
       averageLast7Days: averageLast7Days,
       caloriesLast24Hours: caloriesLast24Hours,
       caloriesToday: caloriesToday,
@@ -251,9 +280,12 @@ final class _TrackingTabState extends State<TrackingTab>
                 const SizedBox(height: 12),
                 const TodayPlanRow(),
                 const RateMealsRow(),
+                if (state is HomeFetched)
+                  EmptyDaysRow(count: state.emptyDayCount),
                 const StatsWidget(),
                 DensityScaleWidget(
                   entries: entries,
+                  gaps: state is HomeFetched ? state.trackingGaps : const [],
                   currentTime: _currentTime,
                 ),
 

@@ -153,6 +153,20 @@ class CalorieRecordRepository implements CalorieRecordRepositoryInterface {
     return result.map((element) => DayResult.fromJson(element)).toList();
   }
 
+  @override
+  Future<DateTime?> fetchFirstRecordDay(Profile profile) async {
+    final result = await _db.rawQuery('''
+      SELECT MIN(record_day) AS first_day
+      FROM ${tableName}
+      WHERE profile_id = ? AND eaten_at IS NOT NULL
+    ''', [profile.id]);
+    final firstDay = result.first['first_day'] as int?;
+
+    return firstDay == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(firstDay * 100000);
+  }
+
   Future<CalorieRecord> insert(CalorieRecord calorieItem) async {
     if (calorieItem.id == null) {
       calorieItem.id = const Uuid().v4();

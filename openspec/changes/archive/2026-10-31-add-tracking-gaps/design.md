@@ -176,6 +176,7 @@ each section, because a custom preamble replaces `defaultPreamble` entirely.
 
 ## Migration Plan
 
-Migration v019 creates `tracking_gaps` with an index on `(profile_id, started_at)`.
+Migration v019 creates `tracking_gaps` with an index on `(profile_id, started_at)`, and
+`V001InitialSchema` gets the same table, because a fresh install runs only that.
 Older app builds ignore the new entity type, and older servers store it like any other.
 Rollback leaves an unused table.

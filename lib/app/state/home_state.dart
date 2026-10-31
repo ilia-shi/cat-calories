@@ -1,4 +1,6 @@
 import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/products/domain/product_category.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -50,6 +52,8 @@ class HomeFetched extends AbstractHomeState {
 
   final List<DayResult> days30;
   final List<DayResult> days2;
+  final List<TrackingGap> trackingGaps;
+  final DateTime? firstRecordDay;
   final List<Profile> profiles;
   final List<WakingPeriod> wakingPeriods;
   final Profile activeProfile;
@@ -69,6 +73,8 @@ class HomeFetched extends AbstractHomeState {
     required this.rollingWindowCalorieItems,
     required this.days30,
     required this.days2,
+    required this.trackingGaps,
+    required this.firstRecordDay,
     required this.profiles,
     required this.wakingPeriods,
     required this.activeProfile,
@@ -133,6 +139,37 @@ class HomeFetched extends AbstractHomeState {
     return (activeProfile.caloriesLimitGoal - consumed)
         .clamp(0.0, activeProfile.caloriesLimitGoal);
   }
+
+  /// The past [days] calendar days, newest first. Today is not one of them.
+  List<DayStat> recentDayStats({int days = 30}) {
+    final today = getDayStart();
+
+    return dayStats(
+      days: days30,
+      gaps: trackingGaps,
+      firstRecordDay: firstRecordDay,
+      from: DateTime(today.year, today.month, today.day - days),
+      to: today,
+    ).reversed.toList();
+  }
+
+  /// Null until something is logged today: an unfinished day is not `empty`.
+  DayStat? todayDayStat() {
+    final today = getDayStart();
+    final stats = dayStats(
+      days: days30,
+      gaps: trackingGaps,
+      firstRecordDay: firstRecordDay,
+      from: today,
+      to: nextDay(today),
+    );
+
+    return stats.isEmpty || stats.first.result == null ? null : stats.first;
+  }
+
+  int get emptyDayCount => recentDayStats()
+      .where((stat) => stat.status == DayStatus.empty)
+      .length;
 
   DateTime getDayStart() {
     return DateTime(

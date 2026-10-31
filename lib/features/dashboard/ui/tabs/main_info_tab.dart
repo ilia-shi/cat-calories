@@ -1,7 +1,8 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
 import 'package:cat_calories/features/waking_periods/ui/edit_waking_period_screen.dart';
 import 'package:cat_calories/common/theme/colors.dart';
@@ -385,7 +386,7 @@ class _MainInfoViewState extends State<MainInfoView>
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                       child: Text(
-                        'AVG: ${state.get30DaysUntilToday().getAvg().toStringAsFixed(2)} kcal of ${state.get30DaysUntilToday().days.length} days',
+                        'AVG: ${(averageOfCountedDays(state.recentDayStats()) ?? 0).toStringAsFixed(2)} kcal of ${state.recentDayStats().where((stat) => stat.status.isCounted).length} days',
                       ),
                     ),
                     Padding(
@@ -401,7 +402,7 @@ class _MainInfoViewState extends State<MainInfoView>
 
             // === DAILY HISTORY ===
             Column(
-              children: state.get30DaysUntilToday().days.map((DayResult day) {
+              children: state.recentDayStats().map((DayStat day) {
                 return SizedBox(
                   width: double.infinity,
                   child: Card(
@@ -411,19 +412,19 @@ class _MainInfoViewState extends State<MainInfoView>
                         children: [
                           Expanded(
                             child: Text(
-                                '${DateFormat('MMM d, y').format(day.day)}: ${day.valueSum.round()} kcal'),
+                                '${DateFormat('MMM d, y').format(day.day)}: ${day.displayKcal} kcal'),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '+${day.positiveValueSum.toStringAsFixed(2)}',
+                                '+${(day.result?.positiveValueSum ?? 0).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   color: DangerColor,
                                 ),
                               ),
                               Text(
-                                '${day.negativeValueSum.toStringAsFixed(2)}',
+                                '${(day.result?.negativeValueSum ?? 0).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   color: SuccessColor,
                                 ),

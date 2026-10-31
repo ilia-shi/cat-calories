@@ -76,6 +76,7 @@ void main() async {
     db: db,
     profiles: profileRepo,
     records: calorieRecordRepo,
+    syncEntries: syncEntryRepo,
     userExtractor: userExtractor,
   );
   final syncV2Handler = SyncV2Handler(

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cat_calories_core/features/calorie_tracking/domain/average_daily_kcal.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:cat_calories_core/http/controller.dart';
 import 'package:cat_calories_core/http/router.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -8,17 +9,20 @@ import 'package:sqlite3/sqlite3.dart';
 import '../auth/auth_middleware.dart';
 import '../data/sqlite/calorie_record_repository.dart';
 import '../data/sqlite/profile_repository.dart';
+import '../data/sqlite/sync_entry_repository.dart';
 
 class HomeHandler extends Controller {
   final Database db;
   final ServerProfileRepository profiles;
   final ServerCalorieRecordRepository records;
+  final SyncEntryRepository syncEntries;
   final UserExtractor userExtractor;
 
   HomeHandler({
     required this.db,
     required this.profiles,
     required this.records,
+    required this.syncEntries,
     required this.userExtractor,
   });
 
@@ -57,7 +61,16 @@ class HomeHandler extends Controller {
     );
 
     final days = await records.fetchDaysByProfile(profile, 30);
-    final avg7d = averageDailyKcal(days, now: now);
+    final gaps = syncEntries
+        .findAllByUserAndType(userId, 'tracking_gap')
+        .map((entry) => TrackingGap.fromJson(entry.payload!))
+        .toList();
+    final avg7d = averageDailyKcal(
+      days,
+      gaps: gaps,
+      firstRecordDay: await records.fetchFirstRecordDay(profile),
+      now: now,
+    );
 
     // Current waking period (open period with no ended_at)
     Map<String, dynamic>? period;

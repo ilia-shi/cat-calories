@@ -15,6 +15,8 @@ abstract interface class CalorieRecordRepositoryInterface {
   Future<List<CalorieRecord>> fetchByWakingPeriodAndProfile(
       WakingPeriod wakingPeriod, Profile profile);
   Future<CalorieRecord?> find(String id);
+  /// The day of the profile's earliest eaten record, or null when it has none.
+  Future<DateTime?> fetchFirstRecordDay(Profile profile);
   Future<List<DayResult>> fetchDaysByProfile(
       Profile profile, int limit);
   Future<CalorieRecord> insert(CalorieRecord calorieItem);

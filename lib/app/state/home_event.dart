@@ -1,3 +1,4 @@
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/products/domain/product_category.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -160,6 +161,18 @@ class WakingPeriodDeletingEvent extends AbstractHomeEvent {
   final WakingPeriod wakingPeriod;
 
   WakingPeriodDeletingEvent(this.wakingPeriod);
+}
+
+class TrackingGapSavingEvent extends AbstractHomeEvent {
+  final TrackingGap gap;
+
+  TrackingGapSavingEvent(this.gap);
+}
+
+class TrackingGapDeletingEvent extends AbstractHomeEvent {
+  final TrackingGap gap;
+
+  TrackingGapDeletingEvent(this.gap);
 }
 
 class WakingPeriodUpdatingEvent extends AbstractHomeEvent {

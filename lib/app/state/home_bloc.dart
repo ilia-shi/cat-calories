@@ -19,6 +19,9 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recor
 import 'home_event.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/equalization_settings.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_recommendation_service.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap_repository_interface.dart';
 
 class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   late ProductRepositoryInterface productRepository = locator.get<ProductRepositoryInterface>();
@@ -29,6 +32,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
   late ProfileRepositoryInterface profileRepository = locator.get<ProfileRepositoryInterface>();
   late WakingPeriodRepositoryInterface wakingPeriodRepository =
   locator.get<WakingPeriodRepositoryInterface>();
+  late TrackingGapRepositoryInterface trackingGapRepository =
+  locator.get<TrackingGapRepositoryInterface>();
 
   Profile? _activeProfile;
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -54,6 +59,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
     on<WakingPeriodEndingEvent>(_onWakingPeriodEnding);
     on<WakingPeriodDeletingEvent>(_onWakingPeriodDeleting);
     on<WakingPeriodUpdatingEvent>(_onWakingPeriodUpdating);
+    on<TrackingGapSavingEvent>(_onTrackingGapSaving);
+    on<TrackingGapDeletingEvent>(_onTrackingGapDeleting);
     on<RemovingCaloriesByCreatedAtDayEvent>(_onRemovingCaloriesByCreatedAtDay);
     on<CalorieItemEatingEvent>(_onCalorieItemEating);
     on<ProfileDeletingEvent>(_onProfileDeleting);
@@ -238,6 +245,28 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
       ) async {
     await _ensureActiveProfile();
     await wakingPeriodRepository.delete(event.wakingPeriod);
+    await _emitHomeData(emit);
+  }
+
+  Future<void> _onTrackingGapSaving(
+      TrackingGapSavingEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    await _ensureActiveProfile();
+    if (event.gap.id == null) {
+      await trackingGapRepository.insert(event.gap);
+    } else {
+      await trackingGapRepository.update(event.gap);
+    }
+    await _emitHomeData(emit);
+  }
+
+  Future<void> _onTrackingGapDeleting(
+      TrackingGapDeletingEvent event,
+      Emitter<AbstractHomeState> emit,
+      ) async {
+    await _ensureActiveProfile();
+    await trackingGapRepository.delete(event.gap);
     await _emitHomeData(emit);
   }
 
@@ -662,9 +691,13 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
 
       final List<DayResult> _dayResultsList30days =
       await calorieItemRepository.fetchDaysByProfile(activeProfile, 30);
+      final List<TrackingGap> trackingGaps =
+      await trackingGapRepository.fetchByProfile(activeProfile);
+      final DateTime? firstRecordDay =
+      await calorieItemRepository.fetchFirstRecordDay(activeProfile);
 
       final recommendation = recommendationService.calculate(
-        historicalDays: _dayResultsList30days,
+        historicalDays: trackedDays(_dayResultsList30days, trackingGaps),
         consumedToday: todayCalorieItems.fold<double>(
           0,
               (sum, item) => sum + (item.isEaten() ? item.value : 0),
@@ -708,6 +741,8 @@ class HomeBloc extends Bloc<AbstractHomeEvent, AbstractHomeState> {
         rollingWindowCalorieItems: rollingWindowCalorieItems,
         days30: _dayResultsList30days,
         days2: _dayResultsList2days,
+        trackingGaps: trackingGaps,
+        firstRecordDay: firstRecordDay,
         profiles: _profiles,
         wakingPeriods: wakingPeriods,
         activeProfile: activeProfile,

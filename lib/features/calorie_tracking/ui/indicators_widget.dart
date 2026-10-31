@@ -1,6 +1,7 @@
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/common/widgets/macro_chips.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -100,6 +101,10 @@ final class IndicatorData {
   final DateTime now;
   final MacroData? macrosToday;
   final MacroData? macros24h;
+  final bool rollingHasGap;
+  final bool todayHasGap;
+  final bool periodHasGap;
+  final DayStatus? yesterdayStatus;
 
   const IndicatorData({
     required this.averageLast7Days,
@@ -114,6 +119,10 @@ final class IndicatorData {
     this.hasPeriod = false,
     this.macrosToday,
     this.macros24h,
+    this.rollingHasGap = false,
+    this.todayHasGap = false,
+    this.periodHasGap = false,
+    this.yesterdayStatus,
   });
 }
 
@@ -152,6 +161,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   icon: Icons.update,
                   color: _get24hColor(context),
                   isPrimary: true,
+                  isLowerBound: data.rollingHasGap,
                   macros: data.macros24h,
                 ),
               ),
@@ -165,6 +175,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   icon: Icons.today,
                   color: _getTodayColor(context),
                   isPrimary: true,
+                  isLowerBound: data.todayHasGap,
                   macros: data.macrosToday,
                 ),
               ),
@@ -182,6 +193,7 @@ final class IndicatorsWidget extends StatelessWidget {
                   value: data.caloriesYesterday,
                   goal: data.dailyGoal,
                   icon: Icons.history,
+                  valueText: _yesterdayText(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -203,6 +215,9 @@ final class IndicatorsWidget extends StatelessWidget {
                     value: data.caloriesCurrentPeriod,
                     goal: data.periodGoal ?? data.dailyGoal,
                     icon: Icons.bedtime_outlined,
+                    valueText: data.periodHasGap
+                        ? '≥ ${data.caloriesCurrentPeriod.round()}'
+                        : null,
                   ),
                 ),
               ],
@@ -221,6 +236,7 @@ final class IndicatorsWidget extends StatelessWidget {
     required IconData icon,
     required Color color,
     bool isPrimary = false,
+    bool isLowerBound = false,
     MacroData? macros,
   }) {
     final theme = Theme.of(context);
@@ -254,7 +270,7 @@ final class IndicatorsWidget extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${value.round()}',
+            '${isLowerBound ? '≥ ' : ''}${value.round()}',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
@@ -286,14 +302,18 @@ final class IndicatorsWidget extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            isOver
-                ? '+${(-remaining).round()} over'
-                : '${remaining.round()} left',
+            isLowerBound
+                ? 'Not fully tracked'
+                : isOver
+                    ? '+${(-remaining).round()} over'
+                    : '${remaining.round()} left',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isOver
+              color: isOver && !isLowerBound
                   ? _getOverColor(context)
                   : theme.colorScheme.onSurfaceVariant,
-              fontWeight: isOver ? FontWeight.w600 : FontWeight.normal,
+              fontWeight: isOver && !isLowerBound
+                  ? FontWeight.w600
+                  : FontWeight.normal,
             ),
           ),
         ],
@@ -315,6 +335,7 @@ final class IndicatorsWidget extends StatelessWidget {
     required double value,
     required double goal,
     required IconData icon,
+    String? valueText,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -356,7 +377,7 @@ final class IndicatorsWidget extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${value.round()}',
+            valueText ?? '${value.round()}',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
@@ -365,7 +386,7 @@ final class IndicatorsWidget extends StatelessWidget {
           const SizedBox(height: 2),
           Row(
             children: [
-              Container(
+              if (valueText == null) Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
                   color: indicatorColor.withValues(alpha: isDark ? 0.25 : 0.15),
@@ -385,6 +406,15 @@ final class IndicatorsWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Null keeps the exact value and its percentage of the goal.
+  String? _yesterdayText() {
+    return switch (data.yesterdayStatus) {
+      DayStatus.unknown => '—',
+      DayStatus.partial => '≥ ${data.caloriesYesterday.round()}',
+      _ => null,
+    };
   }
 
   Color _get24hColor(BuildContext context) {

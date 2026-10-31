@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_tracker.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 
 class DensityScaleWidget extends StatelessWidget {
   final List<CalorieEntry> entries;
   final DateTime currentTime;
+  final List<TrackingGap> gaps;
   final int bucketCount;
 
   const DensityScaleWidget({
     Key? key,
     required this.entries,
     required this.currentTime,
+    this.gaps = const [],
     this.bucketCount = 24,
   }) : super(key: key);
 
@@ -31,6 +34,14 @@ class DensityScaleWidget extends StatelessWidget {
     }
 
     return buckets;
+  }
+
+  bool _isNotTracked(int bucketIndex) {
+    final bucketLength = const Duration(hours: 24) ~/ bucketCount;
+    final windowStart = currentTime.subtract(const Duration(hours: 24));
+    final start = windowStart.add(bucketLength * bucketIndex);
+
+    return gapOverlaps(gaps, start, start.add(bucketLength));
   }
 
   Color _getDensityColor(double value, double maxValue, BuildContext context) {
@@ -111,6 +122,7 @@ class DensityScaleWidget extends StatelessWidget {
                   final index = entry.key;
                   final value = entry.value;
                   final color = _getDensityColor(value, maxDensity, context);
+                  final notTracked = _isNotTracked(index);
                   final isLast = index == densities.length - 1;
 
                   final hoursAgo = 24 - (index / bucketCount * 24);
@@ -132,10 +144,19 @@ class DensityScaleWidget extends StatelessWidget {
                         ),
                       ),
                       child: Tooltip(
-                        message: value > 0
-                            ? '$timeLabel: ${value.round()} kcal'
-                            : '$timeLabel: No calories',
-                        child: const SizedBox.expand(),
+                        message: notTracked
+                            ? '$timeLabel: Not tracked'
+                            : value > 0
+                                ? '$timeLabel: ${value.round()} kcal'
+                                : '$timeLabel: No calories',
+                        child: notTracked
+                            ? CustomPaint(
+                                painter: _HatchPainter(
+                                  theme.colorScheme.onSurfaceVariant,
+                                ),
+                                child: const SizedBox.expand(),
+                              )
+                            : const SizedBox.expand(),
                       ),
                     ),
                   );
@@ -179,4 +200,31 @@ class DensityScaleWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+class _HatchPainter extends CustomPainter {
+  static const double _spacing = 5;
+
+  final Color color;
+
+  const _HatchPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..strokeWidth = 1;
+
+    canvas.clipRect(Offset.zero & size);
+    for (var x = -size.height; x < size.width; x += _spacing) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + size.height, 0),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HatchPainter oldDelegate) => color != oldDelegate.color;
 }

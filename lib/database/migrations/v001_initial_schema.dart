@@ -123,6 +123,24 @@ class V001InitialSchema extends Migration {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE tracking_gaps(
+        id TEXT PRIMARY KEY NOT NULL,
+        profile_id TEXT NOT NULL,
+        started_at INT NOT NULL,
+        ended_at INT NOT NULL,
+        description TEXT NULL,
+        created_at INT NOT NULL,
+        updated_at INT NOT NULL,
+        deleted_at INT NULL,
+        FOREIGN KEY(profile_id) REFERENCES profiles(id)
+      )
+    ''');
+
+    await db.execute(
+        'CREATE INDEX tracking_gaps_profile_started_idx '
+        'ON tracking_gaps(profile_id, started_at)');
+
     await db.execute(
         'CREATE INDEX calorie_items_record_day_idx ON calorie_items(record_day)');
     await db.execute(

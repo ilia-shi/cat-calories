@@ -2,7 +2,13 @@ import 'package:cat_calories_core/features/products/domain/product.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 
 import './calorie_record.dart';
+import './day_result.dart';
+import './day_status.dart';
 import './meal.dart';
+import './record_day.dart';
+import './average_daily_kcal.dart';
+import './tracking_gap.dart';
+import './weekly_averages.dart';
 
 /// Formats calorie history as a compact markdown document meant to be pasted
 /// into (or read by) an external LLM for nutrition analysis.
@@ -32,6 +38,7 @@ final class LlmExportFormatter {
     required List<CalorieRecord> records,
     List<Product> products = const [],
     List<Meal> meals = const [],
+    List<TrackingGap> gaps = const [],
     String? preamble,
     DateTime? now,
   }) {
@@ -67,53 +74,170 @@ final class LlmExportFormatter {
       ..writeln()
       ..writeln(preamble ?? defaultPreamble);
 
-    _writeDays(buffer, eaten, productsById, mealsById);
-    _writeWeeklySummary(buffer, eaten);
+    final activeGaps = gaps.where((gap) => !gap.isDeleted).toList()
+      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    final stats = _dayStats(eaten, activeGaps, effectiveNow);
+
+    _writeDays(buffer, eaten, activeGaps, productsById, mealsById);
+    _writeTrackingGaps(buffer, activeGaps);
+    _writeEmptyDays(buffer, stats);
+    _writeWeeklySummary(buffer, eaten, stats);
     _writePlanned(buffer, planned, productsById);
     _writeProducts(buffer, products, effectiveNow);
 
     return buffer.toString();
   }
 
-  /// Per-week rollups (weeks start Monday) so the LLM can reason about
-  /// trends without re-deriving them from the day sections.
-  void _writeWeeklySummary(StringBuffer buffer, List<CalorieRecord> eaten) {
+  List<DayStat> _dayStats(
+      List<CalorieRecord> eaten, List<TrackingGap> gaps, DateTime now) {
     if (eaten.isEmpty) {
+      return const [];
+    }
+
+    final byDay = <DateTime, List<CalorieRecord>>{};
+    for (final record in eaten) {
+      byDay.putIfAbsent(dayOf(record.eatenAt!), () => []).add(record);
+    }
+
+    return dayStats(
+      days: [
+        for (final entry in byDay.entries)
+          DayResult(
+            valueSum: entry.value.fold(0, (sum, r) => sum + r.value),
+            positiveValueSum: entry.value
+                .where((r) => r.value > 0)
+                .fold(0, (sum, r) => sum + r.value),
+            negativeValueSum: entry.value
+                .where((r) => r.value < 0)
+                .fold(0, (sum, r) => sum + r.value),
+            day: entry.key,
+          ),
+      ],
+      gaps: gaps,
+      firstRecordDay: eaten.first.eatenAt,
+      from: eaten.first.eatenAt!,
+      to: now,
+    );
+  }
+
+  /// The explanation sits in the section, not in [defaultPreamble], because a
+  /// custom preamble replaces the default one entirely.
+  void _writeTrackingGaps(StringBuffer buffer, List<TrackingGap> gaps) {
+    if (gaps.isEmpty) {
       return;
     }
 
-    final byWeek = <DateTime, List<CalorieRecord>>{};
-    for (final record in eaten) {
-      final at = record.eatenAt!;
-      final day = DateTime(at.year, at.month, at.day);
-      final monday = day.subtract(Duration(days: day.weekday - 1));
-      byWeek.putIfAbsent(monday, () => []).add(record);
+    buffer
+      ..writeln()
+      ..writeln('## Tracking gaps')
+      ..writeln('The user did not log food fully during these periods. Totals '
+          'for them are lower bounds or unknown. Descriptions are the user\'s '
+          'own rough recollection: use them for estimates and state your '
+          'assumptions.');
+    for (final gap in gaps) {
+      final description = gap.description?.trim().replaceAll(RegExp(r'\s+'), ' ');
+      buffer.writeln('- ${_gapPeriod(gap)}'
+          '${description == null || description.isEmpty ? '' : ': $description'}');
+    }
+  }
+
+  String _gapPeriod(TrackingGap gap) {
+    final start = gap.startedAt;
+    final end = gap.endedAt;
+
+    if (start == dayOf(start) && end == dayOf(end)) {
+      final lastDay = DateTime(end.year, end.month, end.day - 1);
+      final count = DateTime.utc(end.year, end.month, end.day)
+          .difference(DateTime.utc(start.year, start.month, start.day))
+          .inDays;
+
+      return count == 1
+          ? '${_date(start)} (1 day)'
+          : '${_date(start)} .. ${_date(lastDay)} ($count days)';
+    }
+
+    final endPart = dayOf(start) == dayOf(end)
+        ? _time(end)
+        : '${_date(end)} ${_time(end)}';
+
+    return '${_date(start)} ${_time(start)} .. $endPart';
+  }
+
+  /// An `empty` day counts as 0 kcal in the averages, like in the app, but the
+  /// LLM is told it is unconfirmed: the preamble says missing is not zero.
+  void _writeEmptyDays(StringBuffer buffer, List<DayStat> stats) {
+    final ranges = <(DateTime, DateTime)>[];
+    for (final stat in stats.where((s) => s.status == DayStatus.empty)) {
+      if (ranges.isNotEmpty && nextDay(ranges.last.$2) == stat.day) {
+        ranges.last = (ranges.last.$1, stat.day);
+      } else {
+        ranges.add((stat.day, stat.day));
+      }
+    }
+
+    if (ranges.isEmpty) {
+      return;
+    }
+
+    buffer
+      ..writeln()
+      ..writeln('## Unconfirmed empty days')
+      ..writeln('No records and no tracking gap: the user may have forgotten '
+          'to log.');
+    for (final (first, last) in ranges) {
+      buffer.writeln(first == last
+          ? '- ${_date(first)}'
+          : '- ${_date(first)} .. ${_date(last)}');
+    }
+  }
+
+  /// Per-week rollups (weeks start Monday) so the LLM can reason about
+  /// trends without re-deriving them from the day sections. The average follows
+  /// the same rule as the app, so both report one number; today is left out.
+  void _writeWeeklySummary(
+      StringBuffer buffer, List<CalorieRecord> eaten, List<DayStat> stats) {
+    if (stats.isEmpty) {
+      return;
+    }
+
+    final byWeek = <DateTime, List<DayStat>>{};
+    for (final stat in stats) {
+      byWeek.putIfAbsent(weekOf(stat.day), () => []).add(stat);
     }
 
     buffer
       ..writeln()
       ..writeln('## Weekly summary');
     for (final entry in byWeek.entries) {
-      final records = entry.value;
-      final days = <DateTime>{
-        for (final record in records)
-          DateTime(record.eatenAt!.year, record.eatenAt!.month,
-              record.eatenAt!.day),
-      };
-      final total = records.fold<double>(0, (sum, r) => sum + r.value);
+      final week = entry.value;
+      int count(DayStatus status) =>
+          week.where((stat) => stat.status == status).length;
+      final counted = week.where((stat) => stat.status.isCounted).length;
+      final average = averageOfCountedDays(week);
       final parts = <String>[
-        '${days.length} day${days.length == 1 ? '' : 's'} logged',
-        'avg ${_num(total / days.length)} kcal/day',
-        ..._costSumsParts(records),
+        '$counted day${counted == 1 ? '' : 's'} counted',
+        if (count(DayStatus.partial) > 0) '${count(DayStatus.partial)} partial',
+        if (count(DayStatus.empty) > 0) '${count(DayStatus.empty)} empty',
+        if (count(DayStatus.unknown) > 0) '${count(DayStatus.unknown)} unknown',
+        if (average != null) 'avg ${_num(average)} kcal/day',
+        ..._costSumsParts([
+          for (final record in eaten)
+            if (weekOf(record.eatenAt!) == entry.key) record,
+        ]),
       ];
-      final sunday = entry.key.add(const Duration(days: 6));
+      final sunday = DateTime(
+          entry.key.year, entry.key.month, entry.key.day + 6);
       buffer.writeln(
           '- ${_date(entry.key)} .. ${_date(sunday)}: ${parts.join(' · ')}');
     }
   }
 
-  void _writeDays(StringBuffer buffer, List<CalorieRecord> eaten,
-      Map<String, Product> productsById, Map<String, Meal> mealsById) {
+  void _writeDays(
+      StringBuffer buffer,
+      List<CalorieRecord> eaten,
+      List<TrackingGap> gaps,
+      Map<String, Product> productsById,
+      Map<String, Meal> mealsById) {
     final byDay = <DateTime, List<CalorieRecord>>{};
     for (final record in eaten) {
       final at = record.eatenAt!;
@@ -123,10 +247,13 @@ final class LlmExportFormatter {
 
     for (final entry in byDay.entries) {
       final records = entry.value;
+      final incomplete = gapOverlaps(gaps, entry.key, nextDay(entry.key))
+          ? ' (incomplete: overlaps a tracking gap)'
+          : '';
       buffer
         ..writeln()
         ..writeln(
-            '## ${_date(entry.key)} — total ${_total(records)}${_macroSums(records)}${_costSums(records)}');
+            '## ${_date(entry.key)} — total ${_total(records)}${_macroSums(records)}${_costSums(records)}$incomplete');
       _writeDayRecords(buffer, records, productsById, mealsById);
     }
   }
@@ -332,6 +459,12 @@ final class LlmExportFormatter {
     final month = dateTime.month.toString().padLeft(2, '0');
     final day = dateTime.day.toString().padLeft(2, '0');
     return '${dateTime.year}-$month-$day';
+  }
+
+  String _time(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   String _money(double value) {

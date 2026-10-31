@@ -124,6 +124,20 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
   }
 
   @override
+  Future<DateTime?> fetchFirstRecordDay(Profile profile) async {
+    final result = _db.select('''
+      SELECT MIN(record_day) AS first_day
+      FROM calorie_items
+      WHERE profile_id = ? AND eaten_at IS NOT NULL
+    ''', [profile.id]);
+    final firstDay = result.first['first_day'] as int?;
+
+    return firstDay == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(firstDay * 100000);
+  }
+
+  @override
   Future<CalorieRecord> insert(CalorieRecord item) async {
     item.id ??= const Uuid().v4();
     final json = item.toJson();
