@@ -83,6 +83,9 @@ new one as a regression to fix, not ignore.
    instance to the `_migrations` list, and bump `currentVersion` to NNN.
    (`onCreate` runs `V001InitialSchema`; `onUpgrade` replays migrations with
    `version > oldVersion`.)
+4. Apply the same schema change to `v001_initial_schema.dart`. It holds the
+   current schema and is all a fresh install runs, so a change made only in the
+   new migration reaches upgraded installs and not new ones.
 
 ## Sync (only if the entity replicates to the server)
 
