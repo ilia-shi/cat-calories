@@ -3,91 +3,13 @@ import 'dart:io';
 
 import 'package:cat_calories_core/http/router.dart';
 import 'package:cat_calories_server/auth/auth_middleware.dart';
+import 'package:cat_calories_server/data/sqlite/database.dart';
 import 'package:cat_calories_server/data/sqlite/profile_repository.dart';
 import 'package:cat_calories_server/data/sqlite/sync_entry_repository.dart';
 import 'package:cat_calories_server/handler/sync_v2_handler.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 import 'package:http/http.dart' as http;
-
-/// Sets up an in-memory SQLite DB with the needed schema.
-Database _openTestDb() {
-  final db = sqlite3.openInMemory();
-  db.execute('PRAGMA journal_mode=WAL');
-  db.execute('PRAGMA foreign_keys=ON');
-  db.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT NOT NULL,
-      name TEXT NOT NULL DEFAULT '',
-      password_hash TEXT NOT NULL DEFAULT '',
-      provider TEXT NOT NULL DEFAULT 'local',
-      subject TEXT NOT NULL DEFAULT '',
-      created_at DATETIME NOT NULL DEFAULT (datetime('now')),
-      updated_at DATETIME NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(provider, subject)
-    )
-  ''');
-  db.execute('''
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      name TEXT NOT NULL DEFAULT '',
-      waking_time_seconds INTEGER NOT NULL DEFAULT 57600,
-      calories_limit_goal REAL NOT NULL DEFAULT 2000,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  ''');
-  db.execute('''
-    CREATE TABLE IF NOT EXISTS calorie_items (
-      id TEXT PRIMARY KEY,
-      profile_id TEXT NOT NULL,
-      waking_period_id TEXT,
-      product_id TEXT,
-      value REAL NOT NULL DEFAULT 0,
-      description TEXT NOT NULL DEFAULT '',
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      weight_grams REAL,
-      protein_grams REAL,
-      fat_grams REAL,
-      carb_grams REAL,
-      record_day INTEGER,
-      eaten_at INTEGER,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      deleted_at INTEGER
-    )
-  ''');
-  db.execute('''
-    CREATE TABLE IF NOT EXISTS sync_entries (
-      entity_type TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
-      scope TEXT NOT NULL DEFAULT '',
-      user_id TEXT NOT NULL,
-      client_hlc TEXT NOT NULL DEFAULT '',
-      server_hlc TEXT NOT NULL DEFAULT '',
-      version INTEGER NOT NULL DEFAULT 1,
-      is_deleted INTEGER NOT NULL DEFAULT 0,
-      payload TEXT,
-      created_at DATETIME NOT NULL DEFAULT (datetime('now')),
-      PRIMARY KEY (entity_type, entity_id)
-    )
-  ''');
-  db.execute('''
-    CREATE TABLE IF NOT EXISTS sync_idempotency (
-      idempotency_key TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      accepted INTEGER NOT NULL DEFAULT 0,
-      created_at DATETIME NOT NULL DEFAULT (datetime('now'))
-    )
-  ''');
-  db.execute('''
-    CREATE INDEX IF NOT EXISTS idx_sync_entries_pull
-      ON sync_entries(user_id, entity_type, server_hlc)
-  ''');
-  return db;
-}
 
 void main() {
   late Database db;
@@ -101,7 +23,7 @@ void main() {
   const secret = 'test-secret';
 
   setUp(() async {
-    db = _openTestDb();
+    db = openDatabase(':memory:');
     syncEntries = SyncEntryRepository(db, HlcGenerator());
     profiles = ServerProfileRepository(db);
     tokenAuth = TokenAuth(secret);
