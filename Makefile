@@ -1,4 +1,4 @@
-.PHONY: build build-linux web-build server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs android-pair android-connect android-run
+.PHONY: build build-linux web-build server server-dev server-init server-stop server-logs server-run ip firewall test test-dart test-web test-server web-server start dev dev-stop dev-logs android-pair android-connect android-run linux-run
 
 build:
 	flutter build apk --release
@@ -173,3 +173,6 @@ android-connect:
 
 android-run:
 	flutter run
+
+linux-run:
+	flutter run -d linux
