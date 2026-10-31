@@ -83,17 +83,3 @@ distinct from a bucket with no calories.
 - **WHEN** a gap covers the bucket from 3 to 2 hours ago
 - **THEN** that bucket is hatched and its tooltip says it was not tracked
 
-### Requirement: Weekly chart
-The weekly chart on the Tracking tab SHALL show, for each of the last 12 Monday-to-Sunday
-weeks, the average kcal per day over that week's `tracked` and `empty` days before today,
-with a line at the profile's daily goal. A week with no such days SHALL be shown as having
-no data, not as 0.
-
-#### Scenario: Week in progress
-- **WHEN** it is Wednesday and Monday and Tuesday have 2000 kcal each
-- **THEN** the current week's bar is 2000 kcal, the same scale as a finished week
-
-#### Scenario: Week fully inside a gap
-- **WHEN** every day of a week is `unknown`
-- **THEN** that week shows a no-data placeholder
-

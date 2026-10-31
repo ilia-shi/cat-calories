@@ -12,6 +12,7 @@ import 'package:cat_calories/features/embedded_server/embedded_server_service.da
 import 'package:cat_calories/common/theme/theme.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cat_calories/app/state/calendar_mode_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/features/dashboard/ui/home_screen.dart';
@@ -117,6 +118,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider(
           create: (context) {
             return ThemeCubit();
+          },
+        ),
+        BlocProvider(
+          create: (context) {
+            return CalendarModeCubit();
           },
         ),
       ],

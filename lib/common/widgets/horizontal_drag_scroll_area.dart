@@ -1,6 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+/// Desktop [ScrollBehavior.dragDevices] excludes the mouse, so a click-drag does
+/// nothing on a scrollable that does not widen it to this set.
+const Set<PointerDeviceKind> allDragDevices = {
+  PointerDeviceKind.touch,
+  PointerDeviceKind.mouse,
+  PointerDeviceKind.stylus,
+  PointerDeviceKind.invertedStylus,
+  PointerDeviceKind.trackpad,
+};
+
 /// A horizontal scroll strip that works with every pointer, not just a finger.
 ///
 /// Two things Flutter does not give a plain horizontal [SingleChildScrollView]:
@@ -26,14 +36,6 @@ class HorizontalDragScrollArea extends StatefulWidget {
 }
 
 class _HorizontalDragScrollAreaState extends State<HorizontalDragScrollArea> {
-  static const Set<PointerDeviceKind> _dragDevices = {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.stylus,
-    PointerDeviceKind.invertedStylus,
-    PointerDeviceKind.trackpad,
-  };
-
   final ScrollController _controller = ScrollController();
 
   @override
@@ -81,7 +83,7 @@ class _HorizontalDragScrollAreaState extends State<HorizontalDragScrollArea> {
       onPointerSignal: _handlePointerSignal,
       child: ScrollConfiguration(
         behavior:
-            ScrollConfiguration.of(context).copyWith(dragDevices: _dragDevices),
+            ScrollConfiguration.of(context).copyWith(dragDevices: allDragDevices),
         child: SingleChildScrollView(
           controller: _controller,
           scrollDirection: Axis.horizontal,

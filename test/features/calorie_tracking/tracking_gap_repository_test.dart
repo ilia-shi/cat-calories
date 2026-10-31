@@ -132,4 +132,34 @@ void main() {
 
     expect(await records.fetchFirstRecordDay(profile), DateTime(2026, 10, 5));
   });
+
+  test('fetchDayNutrition sums macros and counts records per day', () async {
+    final records = CalorieRecordRepository(TestDatabaseClient(db));
+    CalorieRecord record(String id, DateTime? eatenAt, double? protein) =>
+        CalorieRecord(
+          id: id,
+          value: 300.5,
+          description: null,
+          sortOrder: 0,
+          eatenAt: eatenAt,
+          createdAt: DateTime(2026, 10, 5, 12),
+          profileId: 'p1',
+          wakingPeriodId: null,
+          proteinGrams: protein,
+        );
+
+    await records.insert(record('later', DateTime(2026, 10, 6, 12), 10));
+    await records.insert(record('with', DateTime(2026, 10, 5, 12), 20));
+    await records.insert(record('without', DateTime(2026, 10, 5, 13), null));
+    await records.insert(record('planned', null, 50));
+
+    final days = await records.fetchDayNutrition(profile);
+
+    expect(days.map((d) => d.day), [DateTime(2026, 10, 5), DateTime(2026, 10, 6)]);
+    expect(days.first.kcal, 601);
+    expect(days.first.protein, 20);
+    expect(days.first.fat, 0);
+    expect(days.first.recordCount, 2);
+    expect(days.first.recordsWithMacros, 1);
+  });
 }

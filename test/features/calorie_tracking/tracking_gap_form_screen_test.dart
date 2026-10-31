@@ -1,4 +1,4 @@
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/tracking_gap_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/tracking_gap_form_screen.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,14 +16,12 @@ void main() {
     final saved = <TrackingGap>[];
 
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: TrackingGapSheet(
-          gap: gap,
-          profileId: 'p1',
-          initialStart: start,
-          initialEnd: end,
-          onSave: saved.add,
-        ),
+      home: TrackingGapFormScreen(
+        gap: gap,
+        profileId: 'p1',
+        initialStart: start,
+        initialEnd: end,
+        onSave: saved.add,
       ),
     ));
     if (description != null) {
@@ -37,13 +35,11 @@ void main() {
 
   testWidgets('shows the hint for the description', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: TrackingGapSheet(
-          profileId: 'p1',
-          initialStart: yesterday,
-          initialEnd: yesterday.add(const Duration(hours: 2)),
-          onSave: (_) {},
-        ),
+      home: TrackingGapFormScreen(
+        profileId: 'p1',
+        initialStart: yesterday,
+        initialEnd: yesterday.add(const Duration(hours: 2)),
+        onSave: (_) {},
       ),
     ));
 

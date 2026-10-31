@@ -5,7 +5,7 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/day_status.da
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/tracking_gaps_screen.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/tracking_gap_sheet.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/tracking_gap_form_screen.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
@@ -86,7 +86,7 @@ class _DayTile extends StatelessWidget {
   void _markNotTracked(BuildContext context) {
     final (start, end) = wholeDayBounds(stat.day, DateTime.now());
 
-    TrackingGapSheet.show(
+    TrackingGapFormScreen.open(
       context,
       profileId: state.activeProfile.id!,
       start: start,

@@ -8,7 +8,6 @@ import './meal.dart';
 import './record_day.dart';
 import './average_daily_kcal.dart';
 import './tracking_gap.dart';
-import './weekly_averages.dart';
 
 /// Formats calorie history as a compact markdown document meant to be pasted
 /// into (or read by) an external LLM for nutrition analysis.

@@ -52,4 +52,17 @@ void main() {
     expect(days.single.day, DateTime(2026, 10, 1));
     expect(days.single.valueSum, 500);
   });
+
+  test('fetchDayNutrition skips a row without record_day', () async {
+    final day = DateTime(2026, 10, 1).millisecondsSinceEpoch ~/ 100000;
+    insert('with-day', day);
+    insert('without-day', null);
+
+    final days =
+        await ServerCalorieRecordRepository(db).fetchDayNutrition(profile);
+
+    expect(days.single.day, DateTime(2026, 10, 1));
+    expect(days.single.kcal, 500);
+    expect(days.single.recordsWithMacros, 0);
+  });
 }

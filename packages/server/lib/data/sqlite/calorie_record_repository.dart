@@ -1,5 +1,6 @@
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_nutrition.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
 import 'package:cat_calories_core/features/waking_periods/domain/waking_period.dart';
@@ -120,6 +121,30 @@ class ServerCalorieRecordRepository implements CalorieRecordRepositoryInterface 
               'negative_value_sum': row['negative_value_sum'],
               'record_day': row['record_day'],
             }))
+        .toList();
+  }
+
+  @override
+  Future<List<DayNutrition>> fetchDayNutrition(Profile profile) async {
+    final result = _db.select('''
+      SELECT
+        SUM(value) AS value_sum,
+        SUM(protein_grams) AS protein_sum,
+        SUM(fat_grams) AS fat_sum,
+        SUM(carb_grams) AS carb_sum,
+        COUNT(*) AS record_count,
+        SUM(CASE WHEN protein_grams IS NOT NULL
+                   OR fat_grams IS NOT NULL
+                   OR carb_grams IS NOT NULL THEN 1 ELSE 0 END) AS macro_count,
+        record_day
+      FROM calorie_items
+      WHERE profile_id = ? AND eaten_at IS NOT NULL AND record_day IS NOT NULL
+      GROUP BY record_day
+      ORDER BY record_day ASC
+    ''', [profile.id]);
+
+    return result
+        .map((row) => DayNutrition.fromJson(Map<String, dynamic>.from(row)))
         .toList();
   }
 

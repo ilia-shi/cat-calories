@@ -1,3 +1,4 @@
+import 'package:cat_calories_core/features/calorie_tracking/domain/day_nutrition.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/day_result.dart';
 import 'package:cat_calories_core/features/profile/domain/profile.dart';
@@ -15,6 +16,10 @@ abstract interface class CalorieRecordRepositoryInterface {
   Future<List<CalorieRecord>> fetchByWakingPeriodAndProfile(
       WakingPeriod wakingPeriod, Profile profile);
   Future<CalorieRecord?> find(String id);
+  /// Every day with eaten records, oldest first, without a limit: the calendar
+  /// shows all of history.
+  Future<List<DayNutrition>> fetchDayNutrition(Profile profile);
+
   /// The day of the profile's earliest eaten record, or null when it has none.
   Future<DateTime?> fetchFirstRecordDay(Profile profile);
   Future<List<DayResult>> fetchDaysByProfile(

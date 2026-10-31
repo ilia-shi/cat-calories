@@ -11,12 +11,11 @@ import 'package:cat_calories_core/features/calorie_tracking/domain/eaten_in_last
 import 'package:cat_calories_core/features/calorie_tracking/domain/record_day.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import '../widgets/density_scale_widget.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_widget.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/indicators_widget.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/empty_days_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/rate_meals_row.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/widgets/today_plan_row.dart';
 import '../widgets/recent_entries_widget.dart';
-import '../widgets/stats_widget.dart';
 
 final class TrackingTab extends StatefulWidget {
   const TrackingTab({Key? key}) : super(key: key);
@@ -280,9 +279,7 @@ final class _TrackingTabState extends State<TrackingTab>
                 const SizedBox(height: 12),
                 const TodayPlanRow(),
                 const RateMealsRow(),
-                if (state is HomeFetched)
-                  EmptyDaysRow(count: state.emptyDayCount),
-                const StatsWidget(),
+                const CalendarWidget(),
                 DensityScaleWidget(
                   entries: entries,
                   gaps: state is HomeFetched ? state.trackingGaps : const [],

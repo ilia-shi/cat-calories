@@ -26,6 +26,20 @@ void main() {
   final saturday = DateTime(2026, 7, 11);
   final sunday = DateTime(2026, 7, 12, 13, 5);
 
+  group('weekOf', () {
+    test('a Monday is the start of its own week', () {
+      expect(weekOf(DateTime(2026, 10, 5, 9)), DateTime(2026, 10, 5));
+    });
+
+    test('a Sunday belongs to the week that started six days earlier', () {
+      expect(weekOf(DateTime(2026, 10, 11, 23)), DateTime(2026, 10, 5));
+    });
+
+    test('a week spanning a month boundary starts in the previous month', () {
+      expect(weekOf(DateTime(2026, 10, 1)), DateTime(2026, 9, 28));
+    });
+  });
+
   group('recordDay', () {
     test('an ordinary record belongs to the day it was entered', () {
       expect(recordDay(record(createdAt: wednesday)), DateTime(2026, 7, 8));

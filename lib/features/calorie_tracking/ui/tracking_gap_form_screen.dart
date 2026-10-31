@@ -2,20 +2,21 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
+import 'package:cat_calories/common/widgets/app_top_bar.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 /// Creates a gap, or edits [gap] when one is given.
-class TrackingGapSheet extends StatefulWidget {
+class TrackingGapFormScreen extends StatefulWidget {
   final TrackingGap? gap;
   final String profileId;
   final DateTime initialStart;
   final DateTime initialEnd;
   final ValueChanged<TrackingGap> onSave;
 
-  const TrackingGapSheet({
+  const TrackingGapFormScreen({
     super.key,
     this.gap,
     required this.profileId,
@@ -24,7 +25,7 @@ class TrackingGapSheet extends StatefulWidget {
     required this.onSave,
   });
 
-  static Future<void> show(
+  static Future<void> open(
     BuildContext context, {
     TrackingGap? gap,
     required String profileId,
@@ -33,25 +34,32 @@ class TrackingGapSheet extends StatefulWidget {
   }) {
     final bloc = context.read<HomeBloc>();
 
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      shape: AppCard.squircleBorder(radius: 20, bottom: false),
-      builder: (_) => TrackingGapSheet(
+    return Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TrackingGapFormScreen(
         gap: gap,
         profileId: profileId,
         initialStart: start,
         initialEnd: end,
         onSave: (saved) => bloc.add(TrackingGapSavingEvent(saved)),
       ),
-    );
+    ));
+  }
+
+  /// A new gap, starting from yesterday as the likeliest day to mark.
+  static Future<void> openNew(BuildContext context, String profileId) {
+    final now = DateTime.now();
+    final (start, end) =
+        wholeDayBounds(DateTime(now.year, now.month, now.day - 1), now);
+
+    return open(context, profileId: profileId, start: start, end: end);
   }
 
   @override
-  State<TrackingGapSheet> createState() => _TrackingGapSheetState();
+  State<TrackingGapFormScreen> createState() =>
+      _TrackingGapFormScreenState();
 }
 
-class _TrackingGapSheetState extends State<TrackingGapSheet> {
+class _TrackingGapFormScreenState extends State<TrackingGapFormScreen> {
   late DateTime _start = widget.initialStart;
   late DateTime _end = widget.initialEnd;
   late final TextEditingController _descriptionController =
@@ -122,37 +130,21 @@ class _TrackingGapSheetState extends State<TrackingGapSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          16,
-          20,
-          16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
+    return Scaffold(
+      appBar: AppTopBar(title: widget.gap == null ? 'Add gap' : 'Edit gap'),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Not tracked',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: appColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
             _BoundRow(label: 'From', value: _start, onTap: _pickStart),
             const SizedBox(height: 8),
             _BoundRow(label: 'To', value: _end, onTap: _pickEnd),
             const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
-              minLines: 2,
-              maxLines: 5,
+              minLines: 3,
+              maxLines: 8,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'Roughly what did you eat? How hungry were you?',

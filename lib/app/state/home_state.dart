@@ -167,10 +167,6 @@ class HomeFetched extends AbstractHomeState {
     return stats.isEmpty || stats.first.result == null ? null : stats.first;
   }
 
-  int get emptyDayCount => recentDayStats()
-      .where((stat) => stat.status == DayStatus.empty)
-      .length;
-
   DateTime getDayStart() {
     return DateTime(
         nowDateTime.year, nowDateTime.month, nowDateTime.day, 0, 0, 0);

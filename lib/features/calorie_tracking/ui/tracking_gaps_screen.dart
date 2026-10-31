@@ -2,8 +2,7 @@ import 'package:cat_calories/app/state/home_bloc.dart';
 import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/widgets/app_top_bar.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/widgets/tracking_gap_sheet.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/record_day.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/tracking_gap_form_screen.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,19 +10,6 @@ import 'package:intl/intl.dart';
 
 class TrackingGapsScreen extends StatelessWidget {
   const TrackingGapsScreen({super.key});
-
-  void _add(BuildContext context, HomeFetched state) {
-    final now = DateTime.now();
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final (start, end) = wholeDayBounds(dayOf(yesterday), now);
-
-    TrackingGapSheet.show(
-      context,
-      profileId: state.activeProfile.id!,
-      start: start,
-      end: end,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +23,10 @@ class TrackingGapsScreen extends StatelessWidget {
                 AppTopBarAction(
                   icon: Icons.add,
                   tooltip: 'Add a gap',
-                  onPressed: () => _add(context, state),
+                  onPressed: () => TrackingGapFormScreen.openNew(
+                    context,
+                    state.activeProfile.id!,
+                  ),
                 ),
             ],
           ),
@@ -111,7 +100,7 @@ class _GapTile extends StatelessWidget {
         tooltip: 'Remove gap',
         onPressed: () => _confirmDelete(context),
       ),
-      onTap: () => TrackingGapSheet.show(
+      onTap: () => TrackingGapFormScreen.open(
         context,
         gap: gap,
         profileId: profileId,

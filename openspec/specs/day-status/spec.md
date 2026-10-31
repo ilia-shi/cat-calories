@@ -45,18 +45,21 @@ as `≥` followed by its total, and `unknown` as `—`.
 - **THEN** it is shown as `—`, not as `0`
 
 ### Requirement: Empty day highlight
-`empty` days SHALL be highlighted in `DaysScreen`, and tapping one SHALL open the gap
-sheet prefilled with that whole day. The Tracking tab SHALL show the number of `empty`
-days in the last 30 days when there are any, and tapping it SHALL open `DaysScreen`.
-Today SHALL NOT be highlighted.
+`empty` days SHALL be highlighted in `DaysScreen` and in the calendar. Tapping one in
+`DaysScreen` SHALL open the gap form prefilled with that whole day. Today SHALL NOT be
+highlighted.
 
 #### Scenario: Marking an empty day
-- **WHEN** the user taps a highlighted day and saves the prefilled gap
+- **WHEN** the user taps a highlighted day in `DaysScreen` and saves the prefilled gap
 - **THEN** the day's status becomes `unknown` and its highlight disappears
 
 #### Scenario: No records yet today
 - **WHEN** nothing has been logged today
-- **THEN** today is not highlighted and is not counted on the Tracking tab
+- **THEN** today is not highlighted
+
+#### Scenario: Empty day in the calendar
+- **WHEN** a past day has no records and no gap
+- **THEN** its slot in the calendar is tinted
 
 ### Requirement: Recommendation uses tracked days only
 `CalorieRecommendationService` SHALL receive only `tracked` days, so `empty`, `partial`
