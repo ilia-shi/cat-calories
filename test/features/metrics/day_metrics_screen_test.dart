@@ -67,13 +67,20 @@ void main() {
 
   tearDown(() => cubit.close());
 
-  Future<void> pump(WidgetTester tester, {double width = 360}) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    double width = 360,
+    VoidCallback? onChangesClosed,
+  }) async {
     tester.view.physicalSize = Size(width, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await cubit.load();
     await tester.pumpWidget(MaterialApp(
-      home: BlocProvider.value(value: cubit, child: const DayMetricsView()),
+      home: BlocProvider.value(
+        value: cubit,
+        child: DayMetricsView(onChangesClosed: onChangesClosed),
+      ),
     ));
     await tester.pumpAndSettle();
   }
@@ -175,6 +182,27 @@ void main() {
         450,
       );
       expect(find.text('7 h 30 min'), findsOneWidget);
+    });
+  });
+
+  group('closing the screen', () {
+    testWidgets('asks for a reload after a change', (tester) async {
+      var closed = 0;
+      await pump(tester, onChangesClosed: () => closed++);
+
+      await cubit.save(DayMetric.steps, today, 5000, null);
+      await tester.pumpWidget(const SizedBox());
+
+      expect(closed, 1);
+    });
+
+    testWidgets('stays quiet when nothing changed', (tester) async {
+      var closed = 0;
+      await pump(tester, onChangesClosed: () => closed++);
+
+      await tester.pumpWidget(const SizedBox());
+
+      expect(closed, 0);
     });
   });
 

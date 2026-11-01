@@ -1,4 +1,5 @@
 import 'package:cat_calories/app/state/home_bloc.dart';
+import 'package:cat_calories/app/state/home_event.dart';
 import 'package:cat_calories/app/state/home_state.dart';
 import 'package:cat_calories/common/locator.dart';
 import 'package:cat_calories/common/theme/colors.dart';
@@ -29,13 +30,18 @@ class DayMetricsScreen extends StatelessWidget {
           );
         }
 
+        final homeBloc = context.read<HomeBloc>();
+
         return BlocProvider(
           key: ValueKey(state.activeProfile.id),
           create: (_) => DayMetricsCubit(
             locator.get<DayMetricRepositoryInterface>(),
             state.activeProfile,
           )..load(),
-          child: const DayMetricsView(),
+          child: DayMetricsView(
+            onChangesClosed: () =>
+                homeBloc.add(CalorieItemListFetchingInProgressEvent()),
+          ),
         );
       },
     );
@@ -43,7 +49,12 @@ class DayMetricsScreen extends StatelessWidget {
 }
 
 class DayMetricsView extends StatefulWidget {
-  const DayMetricsView({super.key});
+  /// Called when the screen closes after a change. The calendar reloads on
+  /// HomeFetched, and only once here so saving does not rebuild the home screen
+  /// behind the sheet.
+  final VoidCallback? onChangesClosed;
+
+  const DayMetricsView({super.key, this.onChangesClosed});
 
   @override
   State<DayMetricsView> createState() => _DayMetricsViewState();
@@ -51,9 +62,19 @@ class DayMetricsView extends StatefulWidget {
 
 class _DayMetricsViewState extends State<DayMetricsView> {
   final ScrollController _scroll = ScrollController();
+  late final DayMetricsCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = context.read<DayMetricsCubit>();
+  }
 
   @override
   void dispose() {
+    if (_cubit.hasChanges) {
+      widget.onChangesClosed?.call();
+    }
     _scroll.dispose();
     super.dispose();
   }

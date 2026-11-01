@@ -36,6 +36,9 @@ class DayMetricsCubit extends Cubit<DayMetricsState> {
   final DateTime Function() _now;
   DateTime? _pickedDay;
 
+  /// Whether a value was saved or cleared since the cubit was created.
+  bool hasChanges = false;
+
   DayMetricsCubit(
     this._repository,
     this._profile, {
@@ -91,11 +94,13 @@ class DayMetricsCubit extends Cubit<DayMetricsState> {
       note: note,
       now: _now(),
     ));
+    hasChanges = true;
     await load();
   }
 
   Future<void> clear(DayMetricEntry entry) async {
     await _repository.delete(entry);
+    hasChanges = true;
     await load();
   }
 

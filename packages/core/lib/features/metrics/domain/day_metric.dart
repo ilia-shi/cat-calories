@@ -1,9 +1,12 @@
+/// How days of a metric add up to a longer period.
+enum MetricAggregation { sum, average }
+
 /// A number recorded once per day. The stored [key] is text, so a metric this
 /// app version does not know survives in the database instead of breaking it.
 enum DayMetric {
-  steps('steps', 'Steps', 'steps'),
-  sleepMinutes('sleep_minutes', 'Sleep', 'h'),
-  burnedKcal('burned_kcal', 'Burned', 'kcal');
+  steps('steps', 'Steps', 'steps', MetricAggregation.sum, 20000),
+  sleepMinutes('sleep_minutes', 'Sleep', 'h', MetricAggregation.average, 720),
+  burnedKcal('burned_kcal', 'Burned', 'kcal', MetricAggregation.sum, 5000);
 
   final String key;
   final String title;
@@ -11,7 +14,19 @@ enum DayMetric {
   /// The unit the user types in. Sleep is typed in hours and stored in minutes.
   final String inputUnit;
 
-  const DayMetric(this.key, this.title, this.inputUnit);
+  final MetricAggregation aggregation;
+
+  /// The stored value drawn at full bar height. Fixed, so bars of any two
+  /// calendar cells compare directly.
+  final double barFull;
+
+  const DayMetric(
+    this.key,
+    this.title,
+    this.inputUnit,
+    this.aggregation,
+    this.barFull,
+  );
 
   static DayMetric? fromKey(String key) {
     for (final metric in values) {
@@ -49,6 +64,18 @@ enum DayMetric {
       DayMetric.burnedKcal => '${stored.toStringAsFixed(0)} kcal',
       DayMetric.sleepMinutes => _formatMinutes(stored.round()),
     };
+  }
+
+  /// Sleep for a calendar cell, which is too narrow for [format].
+  static String compactSleep(double stored) {
+    final total = stored.round();
+    final hours = total ~/ 60;
+    final minutes = total % 60;
+    if (hours == 0) {
+      return '${minutes}m';
+    }
+
+    return minutes == 0 ? '${hours}h' : '${hours}h ${minutes}m';
   }
 
   String _formatMinutes(int total) {

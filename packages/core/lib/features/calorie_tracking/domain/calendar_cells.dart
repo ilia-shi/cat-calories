@@ -80,6 +80,10 @@ final class CalendarCell {
         '${formatAmount(grams, mode)}';
   }
 
+  List<CalendarBar> bars(double goal) {
+    return [for (final day in days) calendarBar(day, goal)];
+  }
+
   /// The cell's period as a gap's bounds: a gap cannot end in the future.
   (DateTime, DateTime) gapBounds(DateTime now) {
     return (start, end.isAfter(now) ? now : end);
@@ -141,7 +145,7 @@ CalendarBar calendarBar(CalendarDay day, double goal) {
   };
 }
 
-DateTime _periodStart(DateTime day, CalendarMode mode) {
+DateTime periodStart(DateTime day, CalendarMode mode) {
   return switch (mode) {
     CalendarMode.days => dayOf(day),
     CalendarMode.weeks => weekOf(day),
@@ -149,7 +153,7 @@ DateTime _periodStart(DateTime day, CalendarMode mode) {
   };
 }
 
-DateTime _nextPeriod(DateTime start, CalendarMode mode) {
+DateTime nextPeriod(DateTime start, CalendarMode mode) {
   return switch (mode) {
     CalendarMode.days => nextDay(start),
     CalendarMode.weeks => DateTime(start.year, start.month, start.day + 7),
@@ -197,10 +201,10 @@ List<CalendarCell> calendarCells({
   };
 
   final cells = <CalendarCell>[];
-  for (var start = _periodStart(first, mode);
+  for (var start = periodStart(first, mode);
       !start.isAfter(today);
-      start = _nextPeriod(start, mode)) {
-    final end = _nextPeriod(start, mode);
+      start = nextPeriod(start, mode)) {
+    final end = nextPeriod(start, mode);
     final days = <CalendarDay>[];
     final finished = <DayStat>[];
     var kcal = 0.0, protein = 0.0, fat = 0.0, carbs = 0.0;

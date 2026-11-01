@@ -1,6 +1,7 @@
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_bars.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_item.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_labels.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_macro_lines.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calendar_cells.dart';
@@ -11,16 +12,9 @@ class CalendarCellCard extends StatelessWidget {
   static const double _barsHeight = 32;
   static final _shape = AppCard.squircleBorder(radius: 10);
 
-  final CalendarCell cell;
-  final double goal;
-  final VoidCallback onTap;
+  final CalendarItem item;
 
-  const CalendarCellCard({
-    super.key,
-    required this.cell,
-    required this.goal,
-    required this.onTap,
-  });
+  const CalendarCellCard({super.key, required this.item});
 
   static double widthFor(CalendarMode mode) {
     return mode == CalendarMode.months ? 96 : 56;
@@ -29,13 +23,14 @@ class CalendarCellCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final macros = item.macros;
 
     return Material(
       color: appColors.surfaceMuted,
       shape: _shape,
       child: InkWell(
         customBorder: _shape,
-        onTap: onTap,
+        onTap: () => item.openDetails(context),
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Column(
@@ -44,7 +39,7 @@ class CalendarCellCard extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  shortPeriodLabel(cell),
+                  shortPeriodLabel(item.start, item.mode),
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: 10,
@@ -55,7 +50,7 @@ class CalendarCellCard extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  cell.kcalLabel,
+                  item.value,
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: 13,
@@ -65,9 +60,15 @@ class CalendarCellCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              CalendarBars(days: cell.days, goal: goal, height: _barsHeight),
-              const SizedBox(height: 4),
-              CalendarMacroLines(cell: cell),
+              CalendarBars(
+                bars: item.bars,
+                showGoalLine: item.showGoalLine,
+                height: _barsHeight,
+              ),
+              if (macros != null) ...[
+                const SizedBox(height: 4),
+                CalendarMacroLines(cell: macros),
+              ],
             ],
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_data_builder.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_labels.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_metric_sheet.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/day_calories_page.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/tracking_gap_form_screen.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calendar_cells.dart';
@@ -85,7 +86,7 @@ class CalendarCellSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              fullPeriodLabel(cell),
+              fullPeriodLabel(cell.start, cell.end, cell.mode),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -93,20 +94,21 @@ class CalendarCellSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _DetailRow('Calories', '${cell.kcalLabel} kcal'),
+            CalendarDetailRow('Calories', '${cell.kcalLabel} kcal'),
             if (cell.mode != CalendarMode.days && average != null)
-              _DetailRow(
+              CalendarDetailRow(
                 'Average',
                 '${average.round()} per day, '
                     '${cell.countedDays} of ${cell.days.length} days',
               ),
-            _DetailRow('Protein', '${cell.macroLabel(cell.protein)} g'),
-            _DetailRow('Fat', '${cell.macroLabel(cell.fat)} g'),
-            _DetailRow('Carbs', '${cell.macroLabel(cell.carbs)} g'),
-            _DetailRow(
+            CalendarDetailRow('Protein', '${cell.macroLabel(cell.protein)} g'),
+            CalendarDetailRow('Fat', '${cell.macroLabel(cell.fat)} g'),
+            CalendarDetailRow('Carbs', '${cell.macroLabel(cell.carbs)} g'),
+            CalendarDetailRow(
               'With macros',
               '${cell.recordsWithMacros} of ${cell.recordCount} records',
             ),
+            CalendarMetricRows(start: cell.start, mode: cell.mode, data: data),
             for (final gap in gaps)
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -135,42 +137,6 @@ class CalendarCellSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = AppColors.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, color: appColors.textSecondary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: appColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

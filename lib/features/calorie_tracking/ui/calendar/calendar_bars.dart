@@ -2,16 +2,17 @@ import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calendar_cells.dart';
 import 'package:flutter/material.dart';
 
-/// One bar per day of a period, with the goal line at half height.
+/// One bar per day of a period, with the goal line at half height when the
+/// bars have a goal.
 class CalendarBars extends StatelessWidget {
-  final List<CalendarDay> days;
-  final double goal;
+  final List<CalendarBar> bars;
+  final bool showGoalLine;
   final double height;
 
   const CalendarBars({
     super.key,
-    required this.days,
-    required this.goal,
+    required this.bars,
+    required this.showGoalLine,
     required this.height,
   });
 
@@ -25,8 +26,8 @@ class CalendarBars extends StatelessWidget {
       width: double.infinity,
       child: CustomPaint(
         painter: CalendarBarsPainter(
-          days: days,
-          goal: goal,
+          bars: bars,
+          showGoalLine: showGoalLine,
           normal: primary,
           today: primary.withValues(alpha: 0.45),
           muted: appColors.textDisabled,
@@ -42,8 +43,8 @@ class CalendarBars extends StatelessWidget {
 class CalendarBarsPainter extends CustomPainter {
   static const double _dotRadius = 1.5;
 
-  final List<CalendarDay> days;
-  final double goal;
+  final List<CalendarBar> bars;
+  final bool showGoalLine;
   final Color normal;
   final Color today;
   final Color muted;
@@ -52,8 +53,8 @@ class CalendarBarsPainter extends CustomPainter {
   final Color line;
 
   const CalendarBarsPainter({
-    required this.days,
-    required this.goal,
+    required this.bars,
+    required this.showGoalLine,
     required this.normal,
     required this.today,
     required this.muted,
@@ -64,12 +65,12 @@ class CalendarBarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final gap = days.length > 7 ? 1.0 : 2.0;
-    final width = (size.width - gap * (days.length - 1)) / days.length;
+    final gap = bars.length > 7 ? 1.0 : 2.0;
+    final width = (size.width - gap * (bars.length - 1)) / bars.length;
 
-    for (var i = 0; i < days.length; i++) {
+    for (var i = 0; i < bars.length; i++) {
       final left = i * (width + gap);
-      final bar = calendarBar(days[i], goal);
+      final bar = bars[i];
 
       switch (bar.kind) {
         case CalendarBarKind.blank:
@@ -97,13 +98,15 @@ class CalendarBarsPainter extends CustomPainter {
       }
     }
 
-    canvas.drawLine(
-      Offset(0, size.height / 2),
-      Offset(size.width, size.height / 2),
-      Paint()
-        ..color = line
-        ..strokeWidth = 1,
-    );
+    if (showGoalLine) {
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        Paint()
+          ..color = line
+          ..strokeWidth = 1,
+      );
+    }
   }
 
   Color _colorOf(CalendarBarKind kind) {
@@ -117,8 +120,8 @@ class CalendarBarsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CalendarBarsPainter oldDelegate) {
-    return !identical(days, oldDelegate.days) ||
-        goal != oldDelegate.goal ||
+    return !identical(bars, oldDelegate.bars) ||
+        showGoalLine != oldDelegate.showGoalLine ||
         normal != oldDelegate.normal;
   }
 }

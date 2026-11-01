@@ -1,31 +1,24 @@
 import 'package:cat_calories/common/theme/colors.dart';
 import 'package:cat_calories/common/widgets/app_card.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_bars.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_cell_sheet.dart';
-import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_data_builder.dart';
+import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_item.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/calendar/calendar_macro_lines.dart';
-import 'package:cat_calories_core/features/calorie_tracking/domain/calendar_cells.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Day cells as one Monday-to-Sunday grid per month, newest month first.
+/// Day items as one Monday-to-Sunday grid per month, newest month first.
 class CalendarMonthGrids extends StatelessWidget {
   /// Newest first.
-  final List<CalendarCell> cells;
-  final CalendarData data;
+  final List<CalendarItem> items;
 
-  const CalendarMonthGrids({
-    super.key,
-    required this.cells,
-    required this.data,
-  });
+  const CalendarMonthGrids({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
-    final months = <DateTime, List<CalendarCell>>{};
-    for (final cell in cells) {
-      final month = DateTime(cell.start.year, cell.start.month);
-      months.putIfAbsent(month, () => []).add(cell);
+    final months = <DateTime, List<CalendarItem>>{};
+    for (final item in items) {
+      final month = DateTime(item.start.year, item.start.month);
+      months.putIfAbsent(month, () => []).add(item);
     }
     final keys = months.keys.toList();
 
@@ -34,8 +27,7 @@ class CalendarMonthGrids extends StatelessWidget {
       itemCount: keys.length,
       itemBuilder: (context, index) => _MonthGrid(
         month: keys[index],
-        cells: months[keys[index]]!,
-        data: data,
+        items: months[keys[index]]!,
       ),
     );
   }
@@ -45,20 +37,15 @@ class _MonthGrid extends StatelessWidget {
   static const double _gap = 3;
 
   final DateTime month;
-  final List<CalendarCell> cells;
-  final CalendarData data;
+  final List<CalendarItem> items;
 
-  const _MonthGrid({
-    required this.month,
-    required this.cells,
-    required this.data,
-  });
+  const _MonthGrid({required this.month, required this.items});
 
   @override
   Widget build(BuildContext context) {
-    final byDay = {for (final cell in cells) cell.start.day: cell};
+    final byDay = {for (final item in items) item.start.day: item};
     final dayCount = DateTime(month.year, month.month + 1, 0).day;
-    final slots = <CalendarCell?>[
+    final slots = <CalendarItem?>[
       ...List.filled(month.weekday - 1, null),
       for (var day = 1; day <= dayCount; day++) byDay[day],
     ];
@@ -90,7 +77,7 @@ class _MonthGrid extends StatelessWidget {
                   Expanded(
                     child: slots[i] == null
                         ? const SizedBox.shrink()
-                        : _GridCell(cell: slots[i]!, data: data),
+                        : _GridCell(item: slots[i]!),
                   ),
                 ],
               ],
@@ -106,14 +93,14 @@ class _GridCell extends StatelessWidget {
   static const double _barsHeight = 20;
   static final _shape = AppCard.squircleBorder(radius: 6);
 
-  final CalendarCell cell;
-  final CalendarData data;
+  final CalendarItem item;
 
-  const _GridCell({required this.cell, required this.data});
+  const _GridCell({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final appColors = AppColors.of(context);
+    final macros = item.macros;
 
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1,
@@ -124,14 +111,14 @@ class _GridCell extends StatelessWidget {
           shape: _shape,
           child: InkWell(
             customBorder: _shape,
-            onTap: () => CalendarCellSheet.show(context, cell, data),
+            onTap: () => item.openDetails(context),
             child: Padding(
               padding: const EdgeInsets.all(3),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${cell.start.day}',
+                    '${item.start.day}',
                     style: TextStyle(
                       fontSize: 9,
                       color: appColors.textSecondary,
@@ -140,7 +127,7 @@ class _GridCell extends StatelessWidget {
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      cell.kcalLabel,
+                      item.value,
                       maxLines: 1,
                       style: TextStyle(
                         fontSize: 10,
@@ -150,15 +137,16 @@ class _GridCell extends StatelessWidget {
                     ),
                   ),
                   CalendarBars(
-                    days: cell.days,
-                    goal: data.goal,
+                    bars: item.bars,
+                    showGoalLine: item.showGoalLine,
                     height: _barsHeight,
                   ),
-                  CalendarMacroLines(
-                    cell: cell,
-                    showLetters: false,
-                    fontSize: 9,
-                  ),
+                  if (macros != null)
+                    CalendarMacroLines(
+                      cell: macros,
+                      showLetters: false,
+                      fontSize: 9,
+                    ),
                 ],
               ),
             ),
