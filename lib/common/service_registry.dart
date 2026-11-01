@@ -7,10 +7,14 @@ import 'package:cat_calories/features/calorie_tracking/data/sqlite/calorie_recor
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/meal_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/data/sqlite/tracking_gap_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/data/tracking_gap_sync_repository.dart';
+import 'package:cat_calories/features/metrics/data/day_metric_sync_repository.dart';
+import 'package:cat_calories/features/metrics/data/sqlite/day_metric_repository.dart';
 import 'package:cat_calories/features/calorie_tracking/llm_export_service.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/tracking_gap_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/sync/meal_sync_adapter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/sync/tracking_gap_sync_adapter.dart';
+import 'package:cat_calories_core/features/metrics/domain/day_metric_repository_interface.dart';
+import 'package:cat_calories_core/features/metrics/sync/day_metric_sync_adapter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/meal_repository_interface.dart';
 import 'package:cat_calories_core/features/calorie_tracking/sync/calorie_record_sync_adapter.dart';
 import 'package:cat_calories_core/features/calorie_tracking/domain/calorie_record_repository_interface.dart';
@@ -42,6 +46,8 @@ void registerServices() {
       () => MealRepository(locator.get<DatabaseClient>()));
   locator.registerLazySingleton<TrackingGapRepositoryInterface>(
       () => TrackingGapRepository(locator.get<DatabaseClient>()));
+  locator.registerLazySingleton<DayMetricRepositoryInterface>(
+      () => DayMetricRepository(locator.get<DatabaseClient>()));
   locator.registerLazySingleton<ProfileRepositoryInterface>(
     () => ProfileRepository(locator.get<DatabaseClient>()),
   );
@@ -87,6 +93,10 @@ void registerServices() {
     registry.register(
       TrackingGapSyncAdapter(),
       TrackingGapSyncRepository(locator.get<TrackingGapRepositoryInterface>()),
+    );
+    registry.register(
+      DayMetricSyncAdapter(),
+      DayMetricSyncRepository(locator.get<DayMetricRepositoryInterface>()),
     );
     // Register more entity types here:
     // registry.register(ProductSyncAdapter(), ProductSyncRepository(...));

@@ -19,9 +19,10 @@ import 'package:cat_calories/database/migrations/v016_add_planned_for.dart';
 import 'package:cat_calories/database/migrations/v017_backfill_day_key.dart';
 import 'package:cat_calories/database/migrations/v018_rename_record_day.dart';
 import 'package:cat_calories/database/migrations/v019_add_tracking_gaps.dart';
+import 'package:cat_calories/database/migrations/v020_add_day_metrics.dart';
 
 class MigrationRunner {
-  static const currentVersion = 19;
+  static const currentVersion = 20;
 
   static final List<Migration> _migrations = [
     V002AddNutritionColumns(),
@@ -42,6 +43,7 @@ class MigrationRunner {
     V017BackfillDayKey(),
     V018RenameRecordDay(),
     V019AddTrackingGaps(),
+    V020AddDayMetrics(),
   ];
 
   Future<void> onCreate(Database db, int version) async {

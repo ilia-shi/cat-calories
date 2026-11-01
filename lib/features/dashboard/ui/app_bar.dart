@@ -15,6 +15,7 @@ import 'package:cat_calories/features/calorie_tracking/ui/days_screen.dart';
 import 'package:cat_calories/features/calorie_tracking/ui/tracking_gaps_screen.dart';
 import 'package:cat_calories/features/dashboard/ui/widgets/product_search_field.dart';
 import 'package:cat_calories/features/embedded_server/embedded_server_service.dart';
+import 'package:cat_calories/features/metrics/ui/day_metrics_screen.dart';
 import 'package:cat_calories/features/products/ui/categories_screen.dart';
 import 'package:cat_calories/features/products/ui/create_product_screen.dart';
 import 'package:cat_calories/features/sync/syncer.dart';
@@ -111,6 +112,13 @@ class _HomeToolbar extends StatelessWidget {
           title: Text('Not tracked periods'),
         ),
       ),
+      const PopupMenuItem<String>(
+        value: 'metrics',
+        child: ListTile(
+          leading: Icon(Icons.monitor_heart_outlined),
+          title: Text('Metrics'),
+        ),
+      ),
       const PopupMenuDivider(),
       const PopupMenuItem<String>(
         value: 'calories',
@@ -149,6 +157,7 @@ class _HomeToolbar extends StatelessWidget {
       'calories': () => DayCaloriesPage(state.startDate),
       'days': () => DaysScreen(),
       'tracking_gaps': () => const TrackingGapsScreen(),
+      'metrics': () => const DayMetricsScreen(),
       'periods': () => WakingPeriodsScreen(),
       'categories': () => const ProductCategoriesScreen(),
     };

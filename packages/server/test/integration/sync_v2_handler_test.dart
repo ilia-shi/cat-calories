@@ -407,6 +407,41 @@ void main() {
       expect(entries[0]['payload'], isNotNull);
     });
 
+    test('a day_metric entry stays in the sync log only', () async {
+      List<String> tables() => db
+          .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+          .map((row) => row['name'] as String)
+          .toList();
+      final before = tables();
+
+      final pushed = await http.post(
+        Uri.parse('$baseUrl/api/v1/sync/push'),
+        headers: authHeaders(),
+        body: jsonEncode({
+          'idempotency_key': 'k-day-metric',
+          'entity_type': 'day_metric',
+          'entries': [
+            {
+              'entity_id': 'm1', 'version': 1, 'hlc': '2026-10-10T09:00:00.000Z',
+              'is_deleted': false, 'scope': 's',
+              'payload': {'id': 'm1', 'profile_id': 's', 'metric_key': 'steps', 'day': '2026-10-09', 'value': 9000.0, 'source': 'manual', 'note': null, 'created_at': 1000, 'updated_at': 1000, 'deleted_at': null},
+            },
+          ],
+        }),
+      );
+      expect(pushed.statusCode, 200);
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/v1/sync/pull?entity_type=day_metric&since=&limit=100'),
+        headers: authHeaders(),
+      );
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final entries = body['entries'] as List;
+
+      expect(entries.single['payload']['metric_key'], 'steps');
+      expect(tables(), before);
+    });
+
     test('pagination with limit', () async {
       // Push 3 entries
       await http.post(

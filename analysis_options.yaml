@@ -119,3 +119,8 @@ import_lint:
       target: "package:cat_calories/features/planning/**"
       from: "package:cat_calories/features/**"
       except: ["package:cat_calories/features/planning/**"]
+
+    metrics_isolation:
+      target: "package:cat_calories/features/metrics/**"
+      from: "package:cat_calories/features/**"
+      except: ["package:cat_calories/features/metrics/**"]
